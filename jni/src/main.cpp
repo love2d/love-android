@@ -43,7 +43,15 @@ public:
     }
 };
 
-int l_graphics_setcolor(lua_State *L) {
+int l_get_color (lua_State *L) {
+	lua_pushnumber (L, graphics->color[0]);
+	lua_pushnumber (L, graphics->color[1]);
+	lua_pushnumber (L, graphics->color[2]);
+
+	return 3;
+}
+
+int l_set_color(lua_State *L) {
 	SDL_Log ("[Lua] setcolor was called");
 
 	if (lua_gettop(L) != 3) {
@@ -51,32 +59,32 @@ int l_graphics_setcolor(lua_State *L) {
 		return 0;
 	}
 
-		float r = 0.f;
-		if (!lua_isnumber(L, -3)) {
-			SDL_Log("[Lua] engine.set_color error: invalid color");
-			return 0;
-		}
-		r = (float) lua_tonumber (L, -3);
+	float r = 0.f;
+	if (!lua_isnumber(L, -3)) {
+		SDL_Log("[Lua] engine.set_color error: invalid color");
+		return 0;
+	}
+	r = (float) lua_tonumber (L, -3);
 
-		float g = 0.f;
-		if (!lua_isnumber(L, -2)) {
-			SDL_Log("[Lua] engine.set_color error: invalid color");
-			return 0;
-		}
-		g = (float) lua_tonumber (L, -2);
+	float g = 0.f;
+	if (!lua_isnumber(L, -2)) {
+		SDL_Log("[Lua] engine.set_color error: invalid color");
+		return 0;
+	}
+	g = (float) lua_tonumber (L, -2);
 
-		float b = 0.f;
-		if (!lua_isnumber(L, -1)) {
-			SDL_Log("[Lua] engine.set_color error: invalid color");
-			return 0;
-		}
-		b = (float) lua_tonumber (L, -1);
+	float b = 0.f;
+	if (!lua_isnumber(L, -1)) {
+		SDL_Log("[Lua] engine.set_color error: invalid color");
+		return 0;
+	}
+	b = (float) lua_tonumber (L, -1);
 
-		SDL_Log ("[Lua] got color %f, %f, %f", r, g, b );
+	SDL_Log ("[Lua] got color %f, %f, %f", r, g, b );
 
-		graphics->color[0] = r;
-		graphics->color[1] = g;
-		graphics->color[2] = b;
+	graphics->color[0] = r;
+	graphics->color[1] = g;
+	graphics->color[2] = b;
 
 	return 0;
 }
@@ -91,7 +99,8 @@ int l_log (lua_State *L) {
 }
 
 static const struct luaL_Reg enginelib[] = {
-		{"set_color", l_graphics_setcolor},
+		{"get_color", l_get_color},
+		{"set_color", l_set_color},
 		{"log", l_log},
 		{NULL, NULL}
 };
@@ -135,6 +144,14 @@ void l_call_on_touch (lua_State *L, int x, int y) {
 		lua_pushnumber (L, x);
 		lua_pushnumber (L, y);
 		lua_pcall (L, 2, 0, 0);
+	}
+}
+
+void l_call_update (lua_State *L, float dt) {
+	lua_getglobal (L, "update");
+	if (lua_isfunction(L, -1)) {
+		lua_pushnumber (L, dt);
+		lua_pcall (L, 1, 0, 0);
 	}
 }
 
@@ -189,6 +206,8 @@ int main(int argc, char * argv[])
     } else {
     	SDL_Log ("could not open file");
     }
+
+    unsigned int last_time = SDL_GetTicks();
 
     //Game Loop
     SDL_Event event;
@@ -285,6 +304,10 @@ int main(int argc, char * argv[])
                 }
             }
         }
+
+        unsigned int current_time = SDL_GetTicks();
+        l_call_update(L, static_cast<float>(current_time - last_time) * 0.001f);
+        last_time = current_time;
 
         graphics->update();
         SDL_GL_SwapWindow(window);
