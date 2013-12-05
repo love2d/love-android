@@ -21,13 +21,16 @@ LOCAL_C_INCLUDES  :=  \
 LOCAL_SRC_FILES := \
 	$(filter-out \
   , $(subst $(LOCAL_PATH)/,,\
+	${LOCAL_PATH}/lzma/C/7zCrc.c \
+	${LOCAL_PATH}/lzma/C/Compress/Lzma/LzmaDecode.c \
 	$(wildcard ${LOCAL_PATH}/*.c) \
-	$(wildcard ${LOCAL_PATH}/lzma/*.c) \
+	$(wildcard ${LOCAL_PATH}/lzma/C/Archive/7z/*.c) \
+	$(wildcard ${LOCAL_PATH}/lzma/C/Compress/Branch/*.c) \
 	$(wildcard ${LOCAL_PATH}/zlib123/*.c) \
 	$(wildcard ${LOCAL_PATH}/archivers/*.c) \
 	$(wildcard ${LOCAL_PATH}/platform/*.c) ))
 
-$(info libphysfs: include dirs $(LOCAL_C_INCLUDES))
-$(info libphysfs: src files $(LOCAL_SRC_FILES))
+# $(info libphysfs: include dirs $(LOCAL_C_INCLUDES))
+# $(info libphysfs: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

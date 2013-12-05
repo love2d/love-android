@@ -15,6 +15,7 @@ LOCAL_C_INCLUDES  :=  \
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
+		src/libjasper/jpg/jpg_dummy.c \
 	,$(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/libjasper/*.c) \
 	$(wildcard ${LOCAL_PATH}/src/libjasper/jpc/*.c) \
@@ -27,7 +28,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard ${LOCAL_PATH}/src/libjasper/mif/*.c) \
 	$(wildcard ${LOCAL_PATH}/src/libjasper/base/*.c) ))
 
-$(info libjasper: include dirs $(LOCAL_C_INCLUDES))
-$(info libjasper: src files $(LOCAL_SRC_FILES))
+# $(info libjasper: include dirs $(LOCAL_C_INCLUDES))
+# $(info libjasper: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

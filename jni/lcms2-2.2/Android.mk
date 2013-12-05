@@ -17,7 +17,7 @@ LOCAL_SRC_FILES := \
 	,$(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/*.c) ))
 
-$(info liblcms: include dirs $(LOCAL_C_INCLUDES))
-$(info liblcms: src files $(LOCAL_SRC_FILES))
+# $(info liblcms: include dirs $(LOCAL_C_INCLUDES))
+# $(info liblcms: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

@@ -15,7 +15,7 @@ LOCAL_SRC_FILES := \
 	${LOCAL_PATH}/src/framing.c \
 	${LOCAL_PATH}/src/bitwise.c )
 
-$(info local includes $(LOCAL_C_INCLUDES))
+# $(info local includes $(LOCAL_C_INCLUDES))
 
 include $(BUILD_STATIC_LIBRARY)
 

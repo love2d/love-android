@@ -16,16 +16,18 @@ LOCAL_C_INCLUDES  :=  \
 LOCAL_SRC_FILES := \
 	$(filter-out \
 	,$(subst $(LOCAL_PATH)/,,\
-	${LOCAL_PATH}/src/autofit/autofit.c \
 	$(wildcard ${LOCAL_PATH}/src/base/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/pshinter/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/psnames/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/raster/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/sfnt/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/smooth/*.c) \
-	$(wildcard ${LOCAL_PATH}/src/truetype/*.c) ))
+	${LOCAL_PATH}/src/autofit/autofit.c \
+	${LOCAL_PATH}/src/cff/cff.c \
+	${LOCAL_PATH}/src/pshinter/pshinter.c \
+	${LOCAL_PATH}/src/psnames/psnames.c \
+	${LOCAL_PATH}/src/raster/raster.c \
+	${LOCAL_PATH}/src/sfnt/sfnt.c \
+	${LOCAL_PATH}/src/smooth/smooth.c \
+	${LOCAL_PATH}/src/truetype/truetype.c \
+  ))
 
-$(info libfreetype: include dirs $(LOCAL_C_INCLUDES))
-$(info libfreetype: src files $(LOCAL_SRC_FILES))
+# $(info libfreetype: include dirs $(LOCAL_C_INCLUDES))
+# $(info libfreetype: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

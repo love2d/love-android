@@ -15,7 +15,7 @@ LOCAL_SRC_FILES := \
 	$(filter-out lib/psytune.c lib/vorbisenc.c, $(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/lib/*.c) ))
 
-$(info libvorbis: include dirs $(LOCAL_C_INCLUDES))
-$(info libvorbis: src files $(LOCAL_SRC_FILES))
+# $(info libvorbis: include dirs $(LOCAL_C_INCLUDES))
+# $(info libvorbis: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

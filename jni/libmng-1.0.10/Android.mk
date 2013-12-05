@@ -18,7 +18,7 @@ LOCAL_SRC_FILES := \
   , $(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/*.c) ))
 
-$(info libmng: include dirs $(LOCAL_C_INCLUDES))
-$(info libmng: src files $(LOCAL_SRC_FILES))
+# $(info libmng: include dirs $(LOCAL_C_INCLUDES))
+# $(info libmng: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

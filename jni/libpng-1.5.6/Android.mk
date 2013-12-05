@@ -17,7 +17,7 @@ LOCAL_SRC_FILES := \
 	,$(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/*.c) ))
 
-$(info libpng: include dirs $(LOCAL_C_INCLUDES))
-$(info libpng: src files $(LOCAL_SRC_FILES))
+# $(info libpng: include dirs $(LOCAL_C_INCLUDES))
+# $(info libpng: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

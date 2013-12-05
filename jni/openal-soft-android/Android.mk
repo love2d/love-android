@@ -12,11 +12,16 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/OpenAL32/Include
 		
 LOCAL_SRC_FILES := \
-	$(filter-out \
-  , $(subst $(LOCAL_PATH)/,,\
-	$(wildcard ${LOCAL_PATH}/OpenAL32/*.c) ))
+	$(filter-out , $(subst $(LOCAL_PATH)/,,\
+	${LOCAL_PATH}/Alc/backends/loopback.c \
+	${LOCAL_PATH}/Alc/backends/null.c \
+	${LOCAL_PATH}/Alc/backends/android.c \
+	${LOCAL_PATH}/Alc/backends/wave.c \
+	$(wildcard ${LOCAL_PATH}/Alc/*.c) \
+	$(wildcard ${LOCAL_PATH}/OpenAL32/*.c) \
+	))
 
-$(info libopenal: include dirs $(LOCAL_C_INCLUDES))
-$(info libopenal: src files $(LOCAL_SRC_FILES))
+# $(info libopenal: include dirs $(LOCAL_C_INCLUDES))
+# $(info libopenal: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

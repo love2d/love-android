@@ -12,14 +12,14 @@ LOCAL_C_INCLUDES  :=  \
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
-	  src/libmpg123/dct64_altivec.c src/libmpg123/dct64.c \
+	  src/libmpg123/dct64_altivec.c \
 		src/libmpg123/dct64_i386.c src/libmpg123/dct64_i486.c \
-		src/libmpg123/synth_8bit.c src/libmpg123/synth_altivec.c \
-		src/libmpg123/synth.c src/libmpg123/synth_i486.c \
+		src/libmpg123/synth_altivec.c src/libmpg123/synth_i486.c \
+		src/libmpg123/testcpu.c \
   , $(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/libmpg123/*.c) ))
 
-$(info libmpg123: include dirs $(LOCAL_C_INCLUDES))
-$(info libmpg123: src files $(LOCAL_SRC_FILES))
+# $(info libmpg123: include dirs $(LOCAL_C_INCLUDES))
+# $(info libmpg123: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

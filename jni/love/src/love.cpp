@@ -20,6 +20,7 @@
 
 #include "modules/love/love.h"
 #include <SDL.h>
+#include <SDL_opengles.h>
 
 #ifdef LOVE_BUILD_EXE
 
@@ -135,6 +136,11 @@ static int love_preload(lua_State *L, lua_CFunction f, const char *name)
 
 int main(int argc, char **argv)
 {
+
+   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+   SDL_Log ("Hello from love main");
+
+
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
 	int hack_argc = 0;	char **hack_argv = 0;
 	get_utf8_arguments(hack_argc, hack_argv);

@@ -16,7 +16,7 @@ LOCAL_SRC_FILES := \
   , $(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/*.cpp) ))
 
-$(info libmodplug: include dirs $(LOCAL_C_INCLUDES))
-$(info libmodplug: src files $(LOCAL_SRC_FILES))
+# $(info libmodplug: include dirs $(LOCAL_C_INCLUDES))
+# $(info libmodplug: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

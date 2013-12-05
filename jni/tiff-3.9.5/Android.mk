@@ -16,9 +16,10 @@ LOCAL_SRC_FILES := \
 	  libtiff/tif_acorn.c libtiff/tif_apple.c libtiff/tif_atari.c \
 		libtiff/tif_msdos.c libtiff/tif_win3.c libtiff/tif_win32.c \
   , $(subst $(LOCAL_PATH)/,,\
+	${LOCAL_PATH}/port/lfind.c \
 	$(wildcard ${LOCAL_PATH}/libtiff/*.c) ))
 
-$(info libtiff: include dirs $(LOCAL_C_INCLUDES))
-$(info libtiff: src files $(LOCAL_SRC_FILES))
+# $(info libtiff: include dirs $(LOCAL_C_INCLUDES))
+# $(info libtiff: src files $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)
