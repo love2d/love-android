@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/utils/openal-info.c
+stdio.h
+-
+string.h
+-
+AL/alc.h
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/utils/AL/alc.h
+AL/al.h
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/utils/AL/al.h
+AL/alext.h
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/utils/AL/alext.h
+
+include/AL/al.h
+
+include/AL/alc.h
+
+include/AL/alext.h
+stddef.h
+-
+efx.h
+include/AL/efx.h
+
+include/AL/efx.h
+

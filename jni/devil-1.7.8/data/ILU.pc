@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+
+Name: ILU
+Description: Developer's Image Library - ILU part (image library utilities)
+Version: 1.7.8
+URL: http://openil.sourceforge.net
+Requires: IL
+Libs: -L${exec_prefix}/lib -lILU 
+Libs.private:  -lIL
+Cflags: -I${prefix}/include  

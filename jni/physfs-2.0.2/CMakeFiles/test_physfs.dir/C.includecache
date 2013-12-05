@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/test/test_physfs.c
+stdio.h
+-
+stdlib.h
+-
+errno.h
+-
+string.h
+-
+SIOUX.h
+-
+unistd.h
+-
+readline/readline.h
+-
+readline/history.h
+-
+time.h
+-
+physfs.h
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/test/physfs.h
+
+physfs.h
+

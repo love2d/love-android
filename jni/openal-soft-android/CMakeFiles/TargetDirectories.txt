@@ -1,0 +1,2 @@
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/openal.dir
+/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/openal-info.dir

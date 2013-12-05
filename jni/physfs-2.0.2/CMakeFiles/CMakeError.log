@@ -1,0 +1,16 @@
+Determining if the include file sys/ucred.h exists failed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/usr/bin/gcc    -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:23: fatal error: sys/ucred.h: No such file or directory
+compilation terminated.
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/CMakeTmp'
+make[1]: *** [CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o] Error 1
+make: *** [cmTryCompileExec/fast] Error 2
+
+

@@ -1,0 +1,1 @@
+/usr/bin/gcc     CMakeFiles/test_physfs.dir/test/test_physfs.o  -o test_physfs -rdynamic libphysfs.so.2.0.2 -Wl,-rpath,/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2: 

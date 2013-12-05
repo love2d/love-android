@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+
+Name: ILUT
+Description: Developer's Image Library - ILUT part (connection to higher level libraries)
+Version: 1.7.8
+URL: http://openil.sourceforge.net
+Libs: -L${exec_prefix}/lib -lILUT -ILU -lIL
+Libs.private: 
+Cflags: -I${prefix}/include  

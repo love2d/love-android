@@ -1,0 +1,4 @@
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/dist.dir
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/physfs.dir
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/physfs-static.dir
+/home/hagish/workspace/adt/love-native-android/jni/physfs-2.0.2/CMakeFiles/test_physfs.dir

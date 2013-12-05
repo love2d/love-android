@@ -1,0 +1,755 @@
+The target system is: Linux - 1 - 
+The host system is: Linux - 2.6.38-12-generic-pae - i686
+Determining if the include file sys/types.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the include file stdint.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the include file stddef.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining size of long passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CheckTypeSize/SIZEOF_LONG.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining size of long long passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG_LONG.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG_LONG.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CheckTypeSize/SIZEOF_LONG_LONG.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/SIZEOF_LONG_LONG.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Performing C SOURCE FILE Test HAVE___RESTRICT succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE___RESTRICT -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE___RESTRICT  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+int *__restrict foo;
+                         int main() {return 0;}
+Performing C SOURCE FILE Test HAVE_W_EXTRA succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -Wextra -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -Wextra  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+
+Performing C SOURCE FILE Test HAVE_GCC_DESTRUCTOR succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_DESTRUCTOR -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_DESTRUCTOR  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+int foo() __attribute__((destructor));
+                             int main() {return 0;}
+Performing C SOURCE FILE Test HAVE_GCC_PROTECTED_VISIBILITY succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_PROTECTED_VISIBILITY  -Wattributes -Werror -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_PROTECTED_VISIBILITY  -Wattributes -Werror  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+int foo() __attribute__((visibility("protected")));
+                             int main() {return 0;}
+Performing C SOURCE FILE Test HAVE_VISIBILITY_INTERNAL_SWITCH succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -fvisibility=internal  -Wattributes -Werror -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -fvisibility=internal  -Wattributes -Werror  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+
+Performing C SOURCE FILE Test HAVE_GCC_FORMAT succeded with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/src.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_FORMAT -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/src.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DHAVE_GCC_FORMAT  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/src.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+Source file was:
+int foo(const char *str, ...) __attribute__((format(printf, 1, 2)));
+                         int main() {return 0;}
+Determining if the include file float.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function pow exists in the m passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=pow -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+/usr/share/cmake-2.8/Modules/CheckFunctionExists.c:3: warning: conflicting types for built-in function 'pow'
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=pow  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the powf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef powf
+  cmakeRequireSymbol(0,&powf);
+#endif
+  return 0;
+}
+
+Determining if the sqrtf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef sqrtf
+  cmakeRequireSymbol(0,&sqrtf);
+#endif
+  return 0;
+}
+
+Determining if the cosf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef cosf
+  cmakeRequireSymbol(0,&cosf);
+#endif
+  return 0;
+}
+
+Determining if the sinf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef sinf
+  cmakeRequireSymbol(0,&sinf);
+#endif
+  return 0;
+}
+
+Determining if the acosf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef acosf
+  cmakeRequireSymbol(0,&acosf);
+#endif
+  return 0;
+}
+
+Determining if the asinf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef asinf
+  cmakeRequireSymbol(0,&asinf);
+#endif
+  return 0;
+}
+
+Determining if the atanf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef atanf
+  cmakeRequireSymbol(0,&atanf);
+#endif
+  return 0;
+}
+
+Determining if the atan2f exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef atan2f
+  cmakeRequireSymbol(0,&atan2f);
+#endif
+  return 0;
+}
+
+Determining if the fabsf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef fabsf
+  cmakeRequireSymbol(0,&fabsf);
+#endif
+  return 0;
+}
+
+Determining if the log10f exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef log10f
+  cmakeRequireSymbol(0,&log10f);
+#endif
+  return 0;
+}
+
+Determining if the floorf exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef floorf
+  cmakeRequireSymbol(0,&floorf);
+#endif
+  return 0;
+}
+
+Determining if the function stat exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=stat -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=stat  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function strcasecmp exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=strcasecmp -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+/usr/share/cmake-2.8/Modules/CheckFunctionExists.c:3: warning: conflicting types for built-in function 'strcasecmp'
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=strcasecmp  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function strncasecmp exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=strncasecmp -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+/usr/share/cmake-2.8/Modules/CheckFunctionExists.c:3: warning: conflicting types for built-in function 'strncasecmp'
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=strncasecmp  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function snprintf exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=snprintf -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+/usr/share/cmake-2.8/Modules/CheckFunctionExists.c:3: warning: conflicting types for built-in function 'snprintf'
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=snprintf  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function vsnprintf exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=vsnprintf -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+/usr/share/cmake-2.8/Modules/CheckFunctionExists.c:3: warning: conflicting types for built-in function 'vsnprintf'
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=vsnprintf  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the isfinite exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef isfinite
+  cmakeRequireSymbol(0,&isfinite);
+#endif
+  return 0;
+}
+
+Determining if the isnan exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <math.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef isnan
+  cmakeRequireSymbol(0,&isnan);
+#endif
+  return 0;
+}
+
+Determining if the include file dlfcn.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function dlopen exists in the dl passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=dlopen -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=dlopen  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -ldl -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function gettimeofday exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=gettimeofday -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=gettimeofday  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the function nanosleep exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=nanosleep -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb  -DCHECK_FUNCTION_EXISTS=nanosleep  -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckFunctionExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the include file pthread.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the include file android/api-level.h exists passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckIncludeFile.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+
+Determining if the __ANDROID_API__ exist passed with the following output:
+Change Dir: /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec.dir/build.make CMakeFiles/cmTryCompileExec.dir/build
+make[1]: Entering directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb   -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/include -I/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/include   -o CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o   -c /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec.dir/link.txt --verbose=1
+/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-gcc   --sysroot=/opt/android-ndk-r6/platforms/android-5/arch-arm -fPIC -DANDROID -Wno-psabi -fsigned-char -mthumb    -L"/opt/android-ndk-r6/sources/cxx-stl/gnu-libstdc++/libs/" -L"/libs/" -lstdc++ -lsupc++ CMakeFiles/cmTryCompileExec.dir/CheckSymbolExists.c.o  -o cmTryCompileExec -rdynamic -L/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib -lm -Wl,-rpath,/opt/android-ndk-r6/platforms/android-5/arch-arm/usr/lib 
+make[1]: Leaving directory `/home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp'
+
+File /home/hagish/workspace/adt/love-native-android/jni/openal-soft-android/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <android/api-level.h>
+
+void cmakeRequireSymbol(int dummy,...){(void)dummy;}
+int main()
+{
+#ifndef __ANDROID_API__
+  cmakeRequireSymbol(0,&__ANDROID_API__);
+#endif
+  return 0;
+}
+
