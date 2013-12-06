@@ -1,6 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 
-# libogg
+# libjpeg
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := libjpeg
