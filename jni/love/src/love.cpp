@@ -20,7 +20,6 @@
 
 #include "modules/love/love.h"
 #include <SDL.h>
-#include <SDL_opengles.h>
 
 #ifdef LOVE_BUILD_EXE
 

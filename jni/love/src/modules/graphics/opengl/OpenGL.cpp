@@ -31,6 +31,8 @@
 // C
 #include <cstring>
 
+#include <SDL.h>
+
 namespace love
 {
 namespace graphics
@@ -52,8 +54,10 @@ bool OpenGL::initContext()
 	if (contextInitialized)
 		return true;
 
-	if (!gladLoadGL())
-		return false;
+	if (!gladLoadGL()) {
+		SDL_Log ("Initialization of OpenGL failed! Aborting!");
+		abort();
+	}
 
 	initOpenGLFunctions();
 	initVendor();

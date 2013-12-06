@@ -28,6 +28,9 @@
 #include <vector>
 #include <algorithm>
 
+#include "libraries/glad/gladfuncs.hpp"
+using namespace glad;
+
 namespace love
 {
 namespace window
@@ -95,6 +98,28 @@ bool Window::setWindow(int width, int height, WindowAttributes *attribs)
 
 	Uint32 sdlflags = SDL_WINDOW_OPENGL;
 
+#ifdef __ANDROID__
+	f.fullscreen = true;
+	f.resizable = false;
+
+	if (window) {
+		int query_width, query_height;
+		SDL_GetWindowSize (window, &query_width, &query_height);
+		SDL_Log ("Overriding windows size to = %d,%d", query_width, query_height);
+
+		width = query_width;
+		height = query_height;
+	} else {
+		SDL_DisplayMode mode = {};
+
+		SDL_GetDesktopDisplayMode(f.display, &mode);
+		SDL_Log ("Overriding windows size to = %d,%d", mode.w, mode.h);
+
+		width = mode.w;
+		height = mode.h;
+	}
+#endif
+
 	if (f.fullscreen)
 	{
 		if (f.fstype == FULLSCREEN_TYPE_DESKTOP)
@@ -105,8 +130,10 @@ bool Window::setWindow(int width, int height, WindowAttributes *attribs)
 
 			// Fullscreen window creation will bug out if no mode can be used.
 			SDL_DisplayMode mode = {0, width, height, 0, 0};
-			if (SDL_GetClosestDisplayMode(f.display, &mode, &mode) == 0)
+			if (SDL_GetClosestDisplayMode(f.display, &mode, &mode) == 0) {
+				displayError ("SDL", "Could not get closest display mode");
 				return false;
+			}
 		}
 	}
 

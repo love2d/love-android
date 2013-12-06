@@ -372,6 +372,7 @@ function love.init()
 		love._openConsole()
 	end
 
+	SDL.log("setting window mode to " .. tostring(c.window.width) .. "x" .. tostring(c.window.width) )
 	-- Setup window here.
 	if c.window and c.modules.window then
 		assert(love.window.setMode(c.window.width, c.window.height,
@@ -394,6 +395,7 @@ function love.init()
 		end
 	end
 
+	SDL.log("starting timer")
 	-- Our first timestep, because window creation can take some time
 	if love.timer then
 		love.timer.step()
@@ -451,21 +453,33 @@ function love.init()
 end
 
 function love.run()
+	SDL.log ("started love.run")
 
+ 	SDL.log ("checking love.math")
 	if love.math then
+	 	SDL.log ("setting random seed")
 		love.math.setRandomSeed(os.time())
 	end
 
+ 	SDL.log ("checking love.event")
+
 	if love.event then
+	 	SDL.log ("pumping event")
 		love.event.pump()
 	end
 
-	if love.load then love.load(arg) end
+ 	SDL.log ("checking ")
+	if love.load then 
+	 	SDL.log ("running love.load")
+		love.load(arg)
+	end
 
 	-- We don't want the first frame's dt to include time taken by love.load.
 	if love.timer then love.timer.step() end
 
 	local dt = 0
+
+	SDL.log ("entering main loop")
 
 	-- Main loop time.
 	while true do
@@ -491,13 +505,24 @@ function love.run()
 			dt = love.timer.getDelta()
 		end
 
+		SDL.log ("calling update")
+
 		-- Call update and draw
 		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
 
+		SDL.log ("calling draw")
+
 		if love.window and love.graphics and love.window.isCreated() then
+			SDL.log ("calling clear")
 			love.graphics.clear()
+			SDL.log ("calling origin")
 			love.graphics.origin()
-			if love.draw then love.draw() end
+			if love.draw then
+				SDL.log ("calling setcolor")
+				love.graphics.setColor(255, 255, 255)
+--				love.draw()
+			end
+			SDL.log ("calling present")
 			love.graphics.present()
 		end
 
@@ -512,7 +537,6 @@ end
 -----------------------------------------------------------
 
 function love.nogame()
-
 	local baby_png =
 	"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAL1klEQVR4nO2deZAU1R3HPz3X\
 	3ruzuywEXZVLBJHAilfUpAQNGo1RPDAxKiaKkpQHlZBKhTIRjSaWlCmrrCJBDR7RaMSUBx6x\
@@ -1317,14 +1341,18 @@ function love.nogame()
 	local create_rain
 
 	function love.load()
+		SDL.log ("in love.load()")
 		-- Subtractive blending isn't supported on some ancient systems, so
 		-- we should make sure it still looks decent in that case.
 		if love.graphics.isSupported("subtractive") then
+			SDL.log ("calling love.graphics.setBackgroundColor")
 			love.graphics.setBackgroundColor(137, 194, 218)
 		else
+			SDL.log ("calling love.graphics.setBackgroundColor")
 			love.graphics.setBackgroundColor(11, 88, 123)
 		end
 
+		SDL.log ("in getting graphics width/height")
 		local win_w = love.graphics.getWidth()
 		local win_h = love.graphics.getHeight()
 
@@ -1478,10 +1506,12 @@ function love.nogame()
 	end
 
 	function love.draw()
+		sdl.log("setting color")
 		love.graphics.setColor(255, 255, 255)
 
-		draw_grid()
-		draw_inspector()
+		sdl.log("setting color")
+--		draw_grid()
+--		draw_inspector()
 	end
 	
 	function love.keyreleased(key)
@@ -1511,6 +1541,7 @@ local function error_printer(msg, layer)
 end
 
 function love.errhand(msg)
+	SDL.log ("###################### LÖVE Error: " .. msg)
 	msg = tostring(msg)
 
 	error_printer(msg, 2)
@@ -1604,10 +1635,15 @@ end
 -----------------------------------------------------------
 
 return function()
+	SDL.log ("calling love.boot")
 	local result = xpcall(love.boot, error_printer)
 	if not result then return 1 end
+
+	SDL.log ("calling love.init")
 	local result = xpcall(love.init, deferErrhand)
 	if not result then return 1 end
+
+	SDL.log ("calling love.run")
 	local result, retval = xpcall(love.run, deferErrhand)
 	if not result then return 1 end
 

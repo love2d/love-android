@@ -99,9 +99,7 @@ LOCAL_SHARED_LIBRARIES := SDL2 libphysfs liblua libvorbis libogg  libopenal libm
 # $(info liblove: src files $(LOCAL_SRC_FILES))
 
 SDL_PATH := ../SDL2-2.0.1
-LOCAL_SRC_FILES += $(SDL_PATH)/src/main/android/SDL_android_main.c \
-LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog 
-
-LOCAL_LDFLAGS := -lz
+LOCAL_SRC_FILES += $(SDL_PATH)/src/main/android/SDL_android_main.c 
+LOCAL_LDLIBS := -lz -lGLESv1_CM -lGLESv2 -ldl -landroid
 
 include $(BUILD_SHARED_LIBRARY)
