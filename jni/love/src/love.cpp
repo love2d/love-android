@@ -134,12 +134,27 @@ static int love_preload(lua_State *L, lua_CFunction f, const char *name)
 	return 0;
 }
 
+static int l_sdl_log(lua_State *L) {
+	if ((lua_gettop(L) != 1) || !lua_isstring(L, -1)) {
+		SDL_Log ("[LöveSDL] invalid error message: expected string");
+		return 0;
+	}
+
+    SDL_Log ("[LöveSDL] %s", lua_tostring(L, -1));
+
+	return 0;
+}
+
+static const struct luaL_Reg sdl_lib[] = {
+		{"log", l_sdl_log},
+		{NULL, NULL}
+};
+
 int main(int argc, char **argv)
 {
+	SDL_SetHint("LOVE_GRAPHICS_USE_OPENGLES", "1");
 
-   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
-   SDL_Log ("Hello from love main");
-
+	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
 
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
 	int hack_argc = 0;	char **hack_argv = 0;
@@ -166,6 +181,8 @@ int main(int argc, char **argv)
 	// Create the virtual machine.
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
+
+	luaL_register (L, "SDL", sdl_lib);
 
 	// Add love to package.preload for easy requiring.
 	love_preload(L, luaopen_love, "love");
