@@ -3190,6 +3190,12 @@ SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)
         retval = 0;
     }
 #endif
+#if __ANDROID__
+    if (retval == -1) {
+        SDL_Log ("SDL_ShowMessageBox[%s]: %s", messageboxdata->title, messageboxdata->message);
+        retval = 0;
+    }
+#endif
     if (retval == -1) {
         SDL_SetError("No message system available");
     }
