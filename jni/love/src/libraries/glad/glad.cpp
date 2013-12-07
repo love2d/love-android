@@ -1,5 +1,6 @@
 #include <string.h>
 #include "glad.hpp"
+#include <dlfcn.h>
 
 #define GLAD_USE_SDL
 
@@ -10,13 +11,22 @@ namespace glad {
 #if !SDL_VERSION_ATLEAST(2,0,0)
 #error SDL 2 is required!
 #endif
+
+void* LoaderDlsymOrSDLGetProc (const char* name) {
+	void* proc = dlsym(RTLD_DEFAULT, name);
+	if (!proc) {
+		proc = SDL_GL_GetProcAddress (name);
+	}
+	return proc;
+}
+
 #else
 #include <assert.h>
 #endif
 
 bool gladLoadGL(void) {
 #ifdef GLAD_USE_SDL
-    return gladLoadGLLoader(SDL_GL_GetProcAddress);
+    return gladLoadGLLoader(LoaderDlsymOrSDLGetProc);
 #else
     // generic gladLoadGL is not implemented, use gladLoadGLLoader or define GLAD_USE_SDL
     assert(0);
