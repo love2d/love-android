@@ -135,8 +135,6 @@ void Graphics::setViewportSize(int width, int height)
 
 bool Graphics::setMode(int width, int height)
 {
-	SDL_Log ("Graphics::setMode %d,%d", width, height);
-
 	this->width = width;
 	this->height = height;
 

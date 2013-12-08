@@ -7893,7 +7893,6 @@ static void find_core(void) {
 bool gladLoadGLLoader(LOADER load) {
 	GLVersion.major = 0; GLVersion.minor = 0; GLVersion.gles = 0;
 	fp_glGetString = (pfn_glGetString)load("glGetString");
-	SDL_Log ("glad fp_glGetString %s", fp_glGetString);
 	if(fp_glGetString == NULL) return false;
 	find_core();
 	load_GL_VERSION_1_0(load);
