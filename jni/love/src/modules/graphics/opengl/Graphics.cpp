@@ -1053,7 +1053,7 @@ void Graphics::push()
 {
 	if (gl.matrices.transform.size() == matrixLimit)
 		throw Exception("Maximum stack depth reached. (More pushes than pops?)");
-	gl.matrices.transform.push(Matrix());
+	gl.matrices.transform.push(gl.matrices.transform.top());
 	pixel_size_stack.push_back(pixel_size_stack.back());
 }
 
