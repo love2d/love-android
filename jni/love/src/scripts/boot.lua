@@ -244,6 +244,8 @@ function love.boot()
 	local o = love.arg.options
 
 	local arg0 = love.arg.getLow(arg)
+	SDL.log("trying to load lovegame")
+	arg0 = "/sdcard/lovegame/"
 	love.filesystem.init(arg0)
 
 	-- Is this one of those fancy "fused" games?
