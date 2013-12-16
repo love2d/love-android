@@ -26,7 +26,7 @@
 #include "Decoder.h"
 
 // SDL_sound
-#include <libmodplug/modplug.h>
+#include <modplug.h>
 
 namespace love
 {
