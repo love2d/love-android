@@ -103,7 +103,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define HOG_ARCHIVE_DESCRIPTION  "Descent I/II HOG file format"
  #define MVL_ARCHIVE_DESCRIPTION  "Descent II Movielib format"
  #define QPAK_ARCHIVE_DESCRIPTION "Quake I/II format"
- #define APK_ARCHIVE_DESCRIPTION  "APK compatible"
  #define ZIP_ARCHIVE_DESCRIPTION  "PkZip/WinZip/Info-Zip compatible"
  #define WAD_ARCHIVE_DESCRIPTION  "DOOM engine format"
  #define LZMA_ARCHIVE_DESCRIPTION "LZMA (7zip) format"
@@ -203,7 +202,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define HOG_ARCHIVE_DESCRIPTION  "Descent I/II HOG file format"
  #define MVL_ARCHIVE_DESCRIPTION  "Descent II Movielib format"
  #define QPAK_ARCHIVE_DESCRIPTION "Quake I/II format"
- #define APK_ARCHIVE_DESCRIPTION  "APK kompatibel"
  #define ZIP_ARCHIVE_DESCRIPTION  "PkZip/WinZip/Info-Zip kompatibel"
  #define WAD_ARCHIVE_DESCRIPTION  "DOOM engine format" /* !!! FIXME: translate this line if needed */
  #define LZMA_ARCHIVE_DESCRIPTION "LZMA (7zip) format" /* !!! FIXME: translate this line if needed */
@@ -302,7 +300,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define GRP_ARCHIVE_DESCRIPTION  "Формат группового файла Build engine"
  #define HOG_ARCHIVE_DESCRIPTION  "Descent I/II HOG file format"
  #define MVL_ARCHIVE_DESCRIPTION  "Descent II Movielib format"
- #define APK_ARCHIVE_DESCRIPTION  "APK совместимый"
  #define ZIP_ARCHIVE_DESCRIPTION  "PkZip/WinZip/Info-Zip совместимый"
  #define WAD_ARCHIVE_DESCRIPTION  "DOOM engine format" /* !!! FIXME: translate this line if needed */
  #define LZMA_ARCHIVE_DESCRIPTION "LZMA (7zip) format" /* !!! FIXME: translate this line if needed */
@@ -403,7 +400,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define HOG_ARCHIVE_DESCRIPTION  "Descent I/II HOG file format"
  #define MVL_ARCHIVE_DESCRIPTION  "Descent II Movielib format"
  #define QPAK_ARCHIVE_DESCRIPTION "Quake I/II format"
- #define APK_ARCHIVE_DESCRIPTION  "Compatible APK"
  #define ZIP_ARCHIVE_DESCRIPTION  "Compatible PkZip/WinZip/Info-Zip"
  #define WAD_ARCHIVE_DESCRIPTION  "Format WAD du moteur DOOM"
  #define LZMA_ARCHIVE_DESCRIPTION "LZMA (7zip) format" /* !!! FIXME: translate this line if needed */
@@ -503,7 +499,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define HOG_ARCHIVE_DESCRIPTION  "Formato Descent I/II HOG file"
  #define MVL_ARCHIVE_DESCRIPTION  "Formato Descent II Movielib"
  #define QPAK_ARCHIVE_DESCRIPTION "Formato Quake I/II"
- #define APK_ARCHIVE_DESCRIPTION  "Formato compatível APK"
  #define ZIP_ARCHIVE_DESCRIPTION  "Formato compatível PkZip/WinZip/Info-Zip"
  #define WAD_ARCHIVE_DESCRIPTION  "Formato WAD do engine DOOM"
  #define WAD_ARCHIVE_DESCRIPTION  "DOOM engine format" /* !!! FIXME: translate this line if needed */
@@ -604,7 +599,6 @@ void __PHYSFS_smallFree(void *ptr);
  #define HOG_ARCHIVE_DESCRIPTION  "Formato Descent I/II HOG file"
  #define MVL_ARCHIVE_DESCRIPTION  "Formato Descent II Movielib"
  #define QPAK_ARCHIVE_DESCRIPTION "Formato Quake I/II"
- #define APK_ARCHIVE_DESCRIPTION  "Compatible con APK"
  #define ZIP_ARCHIVE_DESCRIPTION  "Compatible con PkZip/WinZip/Info-Zip"
  #define WAD_ARCHIVE_DESCRIPTION  "DOOM engine format" /* !!! FIXME: translate this line if needed */
  #define LZMA_ARCHIVE_DESCRIPTION "LZMA (7zip) format" /* !!! FIXME: translate this line if needed */
@@ -976,7 +970,8 @@ char *__PHYSFS_convertToDependent(const char *prepend,
 #define PHYSFS_LIL_ENDIAN  1234
 #define PHYSFS_BIG_ENDIAN  4321
 
-#if  defined(__i386__) || defined(__ia64__) || defined(_M_IX86) || defined(_M_IA64) || \
+#if  defined(__i386__) || defined(__ia64__) || \
+     defined(_M_IX86) || defined(_M_IA64) || defined(_M_X64) || \
     (defined(__alpha__) || defined(__alpha)) || \
      defined(__arm__) || defined(ARM) || \
     (defined(__mips__) && defined(__MIPSEL__)) || \
@@ -1231,8 +1226,7 @@ int __PHYSFS_platformSeek(void *opaque, PHYSFS_uint64 pos);
  *
  * Not all file types can "tell"; this is to be expected by the caller.
  *
- * On error, call __PHYSFS_setError() and return zero. On success, return
- *  a non-zero value.
+ * On error, call __PHYSFS_setError() and return -1. On success, return >= 0.
  */
 PHYSFS_sint64 __PHYSFS_platformTell(void *opaque);
 
@@ -1311,12 +1305,12 @@ char *__PHYSFS_platformGetUserName(void);
 char *__PHYSFS_platformGetUserDir(void);
 
 /*
- * Return a number that uniquely identifies the current thread.
- *  On a platform without threading, (1) will suffice. These numbers are
+ * Return a pointer that uniquely identifies the current thread.
+ *  On a platform without threading, (0x1) will suffice. These numbers are
  *  arbitrary; the only requirement is that no two threads have the same
- *  number.
+ *  pointer.
  */
-PHYSFS_uint64 __PHYSFS_platformGetThreadID(void);
+void *__PHYSFS_platformGetThreadID(void);
 
 /*
  * Return non-zero if filename (in platform-dependent notation) exists.

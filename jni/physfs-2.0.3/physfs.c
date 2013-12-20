@@ -43,7 +43,7 @@ typedef struct __PHYSFS_FILEHANDLE__
 
 typedef struct __PHYSFS_ERRMSGTYPE__
 {
-    PHYSFS_uint64 tid;
+    void *tid;
     int errorAvailable;
     char errorString[80];
     struct __PHYSFS_ERRMSGTYPE__ *next;
@@ -51,8 +51,6 @@ typedef struct __PHYSFS_ERRMSGTYPE__
 
 
 /* The various i/o drivers...some of these may not be compiled in. */
-extern const PHYSFS_ArchiveInfo    __PHYSFS_ArchiveInfo_APK;
-extern const PHYSFS_Archiver       __PHYSFS_Archiver_APK;
 extern const PHYSFS_ArchiveInfo    __PHYSFS_ArchiveInfo_ZIP;
 extern const PHYSFS_Archiver       __PHYSFS_Archiver_ZIP;
 extern const PHYSFS_ArchiveInfo    __PHYSFS_ArchiveInfo_LZMA;
@@ -72,9 +70,6 @@ extern const PHYSFS_Archiver       __PHYSFS_Archiver_DIR;
 
 static const PHYSFS_ArchiveInfo *supported_types[] =
 {
-#if (defined PHYSFS_SUPPORTS_APK)
-    &__PHYSFS_ArchiveInfo_APK,
-#endif
 #if (defined PHYSFS_SUPPORTS_ZIP)
     &__PHYSFS_ArchiveInfo_ZIP,
 #endif
@@ -99,12 +94,9 @@ static const PHYSFS_ArchiveInfo *supported_types[] =
     NULL
 };
 
-static const PHYSFS_Archiver *archivers[] =
+static const PHYSFS_Archiver * const archivers[] =
 {
     &__PHYSFS_Archiver_DIR,
-#if (defined PHYSFS_SUPPORTS_APK)
-    &__PHYSFS_Archiver_APK,
-#endif
 #if (defined PHYSFS_SUPPORTS_ZIP)
     &__PHYSFS_Archiver_ZIP,
 #endif
@@ -269,14 +261,15 @@ void __PHYSFS_sort(void *entries, PHYSFS_uint32 max,
      * Quicksort w/ Bubblesort fallback algorithm inspired by code from here:
      *   http://www.cs.ubc.ca/spider/harrison/Java/sorting-demo.html
      */
-    __PHYSFS_quick_sort(entries, 0, max - 1, cmpfn, swapfn);
+    if (max > 0)
+        __PHYSFS_quick_sort(entries, 0, max - 1, cmpfn, swapfn);
 } /* __PHYSFS_sort */
 
 
 static ErrMsg *findErrorForCurrentThread(void)
 {
     ErrMsg *i;
-    PHYSFS_uint64 tid;
+    void *tid;
 
     if (errorLock != NULL)
         __PHYSFS_platformGrabMutex(errorLock);
@@ -424,7 +417,7 @@ static DirHandle *tryOpenDir(const PHYSFS_Archiver *funcs,
 static DirHandle *openDirectory(const char *d, int forWriting)
 {
     DirHandle *retval = NULL;
-    const PHYSFS_Archiver **i;
+    const PHYSFS_Archiver * const *i;
     const char *ext;
 
     BAIL_IF_MACRO(!__PHYSFS_platformExists(d), ERR_NO_SUCH_FILE, NULL);

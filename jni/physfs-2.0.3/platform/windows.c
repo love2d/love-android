@@ -462,6 +462,7 @@ static int determineUserDir(void)
              */	
     		rc = pGetUserProfileDirectoryW(accessToken, &dummy, &psize);
             assert(!rc);  /* !!! FIXME: handle this gracefully. */
+            (void)rc;
 
             /* Allocate memory for the profile directory */
             wstr = (LPWSTR) __PHYSFS_smallAlloc(psize * sizeof (WCHAR));
@@ -559,9 +560,9 @@ char *__PHYSFS_platformGetUserDir(void)
 } /* __PHYSFS_platformGetUserDir */
 
 
-PHYSFS_uint64 __PHYSFS_platformGetThreadID(void)
+void *__PHYSFS_platformGetThreadID(void)
 {
-    return((PHYSFS_uint64) GetCurrentThreadId());
+    return( (void *) ((size_t) GetCurrentThreadId()) );
 } /* __PHYSFS_platformGetThreadID */
 
 
@@ -1142,7 +1143,7 @@ PHYSFS_sint64 __PHYSFS_platformTell(void *opaque)
     if ( (LowPos == PHYSFS_INVALID_SET_FILE_POINTER) &&
          (GetLastError() != NO_ERROR) )
     {
-        BAIL_MACRO(winApiStrError(), 0);
+        BAIL_MACRO(winApiStrError(), -1);
     } /* if */
     else
     {
@@ -1181,14 +1182,18 @@ PHYSFS_sint64 __PHYSFS_platformFileLength(void *opaque)
 
 int __PHYSFS_platformEOF(void *opaque)
 {
+    const PHYSFS_sint64 FileLength = __PHYSFS_platformFileLength(opaque);
     PHYSFS_sint64 FilePosition;
     int retval = 0;
 
+    if (FileLength == 0)
+        return 1;  /* we're definitely at EOF. */
+
     /* Get the current position in the file */
-    if ((FilePosition = __PHYSFS_platformTell(opaque)) != 0)
+    if ((FilePosition = __PHYSFS_platformTell(opaque)) != -1)
     {
         /* Non-zero if EOF is equal to the file length */
-        retval = FilePosition == __PHYSFS_platformFileLength(opaque);
+        retval = (FilePosition == FileLength);
     } /* if */
 
     return(retval);
