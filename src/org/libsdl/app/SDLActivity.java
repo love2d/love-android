@@ -4,6 +4,9 @@ import java.util.Arrays;
 
 import android.app.*;
 import android.content.*;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.view.*;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -231,7 +234,7 @@ public class SDLActivity extends Activity {
     }
 
     // C functions we call
-    public static native void nativeInit();
+    public static native void nativeInit(String apkPath);
     public static native void nativeLowMemory();
     public static native void nativeQuit();
     public static native void nativePause();
@@ -413,10 +416,17 @@ public class SDLActivity extends Activity {
     Simple nativeInit() runnable
 */
 class SDLMain implements Runnable {
+	public String path;
+	
+	public SDLMain (String path) {
+		this.path = path;
+	}
+	
     @Override
     public void run() {
         // Runs SDL_main()
-        SDLActivity.nativeInit();
+    	Log.v("Java", "calling with arg " + this.path);
+        SDLActivity.nativeInit(this.path);
 
         //Log.v("SDL", "SDL thread terminated");
     }
@@ -544,7 +554,19 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             // This is the entry point to the C app.
             // Start up the C app thread and enable sensor input for the first time
 
-            SDLActivity.mSDLThread = new Thread(new SDLMain(), "SDLThread");
+    		String apkFilePath = null;
+    		ApplicationInfo appInfo = null;
+    		Context context = getContext();
+    		PackageManager packMgmr = context.getPackageManager();
+    		try {
+    		    appInfo = packMgmr.getApplicationInfo("org.love2d.android", 0);
+        		} catch (NameNotFoundException e) {
+    		    e.printStackTrace();
+    		    throw new RuntimeException("Unable to locate assets, aborting...");
+    		}
+    		apkFilePath = appInfo.sourceDir;
+        	        	
+            SDLActivity.mSDLThread = new Thread(new SDLMain(apkFilePath), "SDLThread");
             enableSensor(Sensor.TYPE_ACCELEROMETER, true);
             SDLActivity.mSDLThread.start();
         }

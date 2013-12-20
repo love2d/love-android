@@ -244,10 +244,14 @@ function love.boot()
 	local o = love.arg.options
 
 	local arg0 = love.arg.getLow(arg)
-	SDL.log("trying to load lovegame")
-	arg0 = "/sdcard/lovegame/"
+--	SDL.log("trying to load lovegame")
+--	arg0 = "/sdcard/lovegame/"
 	love.filesystem.init(arg0)
 
+	for i,a in ipairs (o.game.arg) do
+		SDL.log("arg " .. tostring(i) .. " = " .. tostring(a))
+	end
+	
 	-- Is this one of those fancy "fused" games?
 	local can_has_game = pcall(love.filesystem.setSource, arg0)
 	is_fused_game = can_has_game

@@ -22,12 +22,21 @@ void Java_org_libsdl_app_SDLActivity_nativeInit(JNIEnv* env, jclass cls, jobject
 
     SDL_SetMainReady();
 
+    jboolean isCopy;
+    const char* str = (*env)->GetStringUTFChars(env, obj, &isCopy);
+
     /* Run the application code! */
     int status;
-    char *argv[2];
+    char *argv[4];
     argv[0] = SDL_strdup("SDL_app");
-    argv[1] = NULL;
-    status = SDL_main(1, argv);
+    argv[1] = SDL_strdup("--package-path");
+    argv[2] = SDL_strdup(str);
+    argv[3] = NULL;
+
+    if (isCopy == JNI_TRUE)
+    	(*env)->ReleaseStringUTFChars(env, obj, str);
+
+    status = SDL_main(3, argv);
 
     /* Do not issue an exit or the whole application will terminate instead of just the SDL thread */
     /* exit(status); */
