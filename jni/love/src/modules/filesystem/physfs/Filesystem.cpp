@@ -30,6 +30,13 @@
 #include "SDL.h"
 #include <string>
 
+#ifdef __ANDROID__
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#endif
+
 namespace
 {
 	size_t getDriveDelim(const std::string &input)
@@ -52,6 +59,54 @@ namespace
 	}
 
 #ifdef __ANDROID__
+	bool androidDirectoryExists(const char* path) {
+		SDL_Log ("Checking directory exists for %s", path);
+		struct stat s;
+		int err = stat(path, &s);
+		if (err == -1) {
+			if (errno == ENOENT)
+				return false;
+			else {
+				SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror (errno));
+				return false;
+			}
+		} else if(S_ISDIR(s.st_mode)) {
+			SDL_Log ("Directory %s exists!", path);
+			return true;
+		}
+		return false;
+	}
+
+	bool androidMkdir (const char* path) {
+		int err = mkdir (path, 0770);
+		if (err == -1) {
+			SDL_Log ("Error: Could not create directory %s", path);
+		    return false;
+		}
+
+		return true;
+	}
+
+	bool androidCreateStorageDirectories () {
+	    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
+
+	    std::string save_directory = internal_storage_path + "/save";
+	    if (!androidDirectoryExists (save_directory.c_str())) {
+	    	if (!androidMkdir(save_directory.c_str()))
+	    		return false;
+	    }
+
+	    std::string game_directory = internal_storage_path + "/game";
+   	    if (!androidDirectoryExists (game_directory.c_str())) {
+	    	if (!androidMkdir(game_directory.c_str()))
+	    		return false;
+   	    }
+
+   	    SDL_Log ("Creating storage directories successful!");
+
+		return true;
+	}
+
 	bool androidCopyGameFromAssets () {
 	    SDL_RWops *asset_game_file = SDL_RWFromFile("game.love", "rb");
 
@@ -69,7 +124,7 @@ namespace
 	    SDL_Log ("Found game.love in assets. Size: %d", (int) file_size);
 
 	    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
-	    std::string internal_game_file = internal_storage_path + "/game.love";
+	    std::string internal_game_file = internal_storage_path + "/game/game.love";
 	    SDL_RWops *storage_game_file = SDL_RWFromFile (internal_game_file.c_str(), "wb");
 
 	    if (!storage_game_file) {
@@ -157,6 +212,8 @@ bool Filesystem::isFused() const
 
 bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 {
+	SDL_Log ("identity = %s", ident);
+
 	if (!initialized)
 		return false;
 
@@ -175,6 +232,31 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 	else
 		save_path_full += save_path_relative;
 
+#ifdef __ANDROID__
+    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
+
+    std::string save_directory = internal_storage_path + "/save";
+
+	save_path_full = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/save/") + save_identity;
+
+
+    if (androidDirectoryExists (save_path_full.c_str())) {
+       	SDL_Log ("dir exists");
+       } else {
+       	SDL_Log ("does not exist");
+       }
+
+
+	if (!androidDirectoryExists (save_path_full.c_str())) {
+		if (!androidMkdir (save_path_full.c_str())) {
+			SDL_Log ("Error: Could not create save directory %s!", save_path_full.c_str());
+		} else {
+			SDL_Log ("Save directory %s successfuly created!", save_path_full.c_str());
+		}
+	} else {
+		SDL_Log ("Save directory %s exists!", save_path_full.c_str());
+	}
+#endif
 	// We now have something like:
 	// save_identity: game
 	// save_path_relative: ./LOVE/game
@@ -209,8 +291,12 @@ bool Filesystem::setSource(const char *source)
 	std::string new_search_path = source;
 
 #ifdef __ANDROID__
+	if (!androidCreateStorageDirectories ()) {
+		SDL_Log ("Error creating storage directories!");
+	}
+
 	if (androidCopyGameFromAssets())
-		new_search_path = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/game.love");
+		new_search_path = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/game/game.love");
 	else {
 	    SDL_RWops *sdcard_main = SDL_RWFromFile("/sdcard/lovegame/main.lua", "rb");
 
