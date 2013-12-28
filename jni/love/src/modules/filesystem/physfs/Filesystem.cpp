@@ -27,6 +27,9 @@
 
 #include "Filesystem.h"
 
+#include "SDL.h"
+#include <string>
+
 namespace
 {
 	size_t getDriveDelim(const std::string &input)
@@ -47,6 +50,62 @@ namespace
 	{
 		return input.substr(getDriveDelim(input)+1);
 	}
+
+#ifdef __ANDROID__
+	bool androidCopyGameFromAssets () {
+	    SDL_RWops *asset_game_file = SDL_RWFromFile("game.love", "rb");
+
+	    if (!asset_game_file) {
+	      	SDL_Log ("Could not find game.love in assets.");
+	    	return false;
+	    }
+	    Sint64 file_size = asset_game_file->size(asset_game_file);
+
+	    if (file_size == 0) {
+	    	SDL_Log ("Could not find valid game.love in assets. File has zero size.", (int) file_size);
+	    	return false;
+	    }
+
+	    SDL_Log ("Found game.love in assets. Size: %d", (int) file_size);
+
+	    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
+	    std::string internal_game_file = internal_storage_path + "/game.love";
+	    SDL_RWops *storage_game_file = SDL_RWFromFile (internal_game_file.c_str(), "wb");
+
+	    if (!storage_game_file) {
+	    	SDL_Log ("Error creating internal storage game file: %s", SDL_GetError());
+	       	asset_game_file->close(asset_game_file);
+	       	return false;
+	    }
+
+	    char data_buffer[file_size + 1];
+	    size_t bytes_read = asset_game_file->read(asset_game_file, data_buffer, sizeof(char), (size_t) file_size);
+	    data_buffer[bytes_read] = '\0';
+
+	    if (bytes_read != file_size) {
+	    	SDL_Log ("Error copying asset game file from assets to internal storage %s. Error: %s",  internal_game_file.c_str(), SDL_GetError());
+	       	asset_game_file->close(asset_game_file);
+	       	storage_game_file->close(storage_game_file);
+	       	return false;
+	    }
+
+	    size_t bytes_written = storage_game_file->write(storage_game_file, data_buffer, sizeof(char), file_size);
+
+	    if (bytes_written != file_size) {
+	    	SDL_Log ("Error copying asset game to internal storage: %s", SDL_GetError());
+	       	asset_game_file->close(asset_game_file);
+	       	storage_game_file->close(storage_game_file);
+	       	return false;
+	    }
+
+	   	asset_game_file->close(asset_game_file);
+	   	storage_game_file->close(storage_game_file);
+
+	   	SDL_Log ("Copying of asset game to internal storage %s successful!", internal_game_file.c_str());
+
+	   	return true;
+	}
+#endif
 }
 
 namespace love
@@ -147,12 +206,30 @@ bool Filesystem::setSource(const char *source)
 	if (!game_source.empty())
 		return false;
 
+	std::string new_search_path = source;
+
+#ifdef __ANDROID__
+	if (androidCopyGameFromAssets())
+		new_search_path = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/game.love");
+	else {
+	    SDL_RWops *sdcard_main = SDL_RWFromFile("/sdcard/lovegame/main.lua", "rb");
+
+	    if (sdcard_main) {
+	    	SDL_Log ("using game from /sdcard/lovegame");
+	    	new_search_path = "/sdcard/lovegame";
+	    	sdcard_main->close(sdcard_main);
+	    }
+	}
+#endif
+
 	// Add the directory.
-	if (!PHYSFS_addToSearchPath(source, 1))
+	if (!PHYSFS_addToSearchPath(new_search_path.c_str(), 1)) {
+		SDL_Log ("mounting of %s failed", new_search_path.c_str());
 		return false;
+	}
 
 	// Save the game source.
-	game_source = std::string(source);
+	game_source = new_search_path;
 
 	return true;
 }

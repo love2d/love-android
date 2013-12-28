@@ -418,6 +418,9 @@ public class SDLActivity extends Activity {
 class SDLMain implements Runnable {
 	public String path;
 	
+	public SDLMain () {
+		this.path = "";
+	}
 	public SDLMain (String path) {
 		this.path = path;
 	}
@@ -425,10 +428,7 @@ class SDLMain implements Runnable {
     @Override
     public void run() {
         // Runs SDL_main()
-    	Log.v("Java", "calling with arg " + this.path);
         SDLActivity.nativeInit(this.path);
-
-        //Log.v("SDL", "SDL thread terminated");
     }
 }
 
@@ -566,7 +566,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     		}
     		apkFilePath = appInfo.sourceDir;
         	        	
-            SDLActivity.mSDLThread = new Thread(new SDLMain(apkFilePath), "SDLThread");
+            SDLActivity.mSDLThread = new Thread(new SDLMain(), "SDLThread");
             enableSensor(Sensor.TYPE_ACCELEROMETER, true);
             SDLActivity.mSDLThread.start();
         }
