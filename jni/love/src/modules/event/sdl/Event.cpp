@@ -27,6 +27,7 @@
 #include "graphics/Graphics.h"
 #include "window/Window.h"
 #include "common/Exception.h"
+#include "audio/Audio.h"
 
 #include <cmath>
 
@@ -414,6 +415,22 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 		arg1->release();
 		arg2->release();
 		break;
+#ifdef __ANDROID__
+	case SDL_WINDOWEVENT_MINIMIZED:
+	{
+		audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+		if (audio)
+			audio->pause();
+	}
+	break;
+	case SDL_WINDOWEVENT_RESTORED:
+	{
+		audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+		if (audio)
+			audio->resume();
+	}
+	break;
+#endif
 	}
 
 	return msg;
