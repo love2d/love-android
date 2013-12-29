@@ -109,6 +109,12 @@ public class SDLActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         Log.v("SDL", "onDestroy()");
+        
+        if (!isFinishing()) {
+            Log.v("SDL", "Not quitting native app as isFinishing() is false");
+        	return;
+        }
+        
         // Send a quit message to the application
         SDLActivity.nativeQuit();
 
