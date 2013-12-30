@@ -193,6 +193,27 @@ Message *Event::convert(const SDL_Event &e) const
 			arg3->release();
 		}
 		break;
+	case SDL_FINGERDOWN:
+	case SDL_FINGERUP:
+		arg1 = new Variant((double) e.tfinger.x);
+		arg2 = new Variant((double) e.tfinger.y);
+		arg3 = new Variant((double) e.tfinger.fingerId);
+		msg = new Message((e.type == SDL_FINGERDOWN) ?
+						  "fingerpressed" : "fingerreleased",
+						  arg1, arg2, arg3);
+		arg1->release();
+		arg2->release();
+		arg3->release();
+		break;
+	case SDL_FINGERMOTION:
+		arg1 = new Variant((double) e.tfinger.x);
+		arg2 = new Variant((double) e.tfinger.y);
+		arg3 = new Variant((double) e.tfinger.fingerId);
+		msg = new Message("fingermotion", arg1, arg2, arg3);
+		arg1->release();
+		arg2->release();
+		arg3->release();
+		break;
 	case SDL_JOYBUTTONDOWN:
 	case SDL_JOYBUTTONUP:
 	case SDL_JOYAXISMOTION:
