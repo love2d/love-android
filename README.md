@@ -8,8 +8,15 @@ Install the Android SDK and Android NDK and run
 
     ndk-build
 
+and after that
+
+    ant debug
+
 in the root folder of this project or load the project using Eclipse and
 compile/run it using Eclipse.
+
+This should give you a .apk file in the bin/ subdirectory that you can then
+install on your phone.
 
 License:
 --------
