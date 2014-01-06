@@ -243,6 +243,11 @@ end
 
 -- This can't be overriden.
 function love.boot()
+	if type(jit) == 'table' then
+		SDL.log ("Lua Version = " .. jit.version)
+	else
+		SDL.log ("Lua Version = Stock Lua")   
+	end
 
 	-- This is absolutely needed.
 	require("love")
@@ -253,7 +258,7 @@ function love.boot()
 	local o = love.arg.options
 
 	local arg0 = love.arg.getLow(arg)
---	SDL.log("trying to load lovegame")
+	SDL.log("trying to load lovegame")
 --	arg0 = "/sdcard/lovegame/"
 	love.filesystem.init(arg0)
 
@@ -285,7 +290,9 @@ function love.boot()
 	if can_has_game and not (love.filesystem.exists("main.lua") or love.filesystem.exists("conf.lua")) then
 		no_game_code = true
 	end
-
+	
+	SDL.log("loaded game")
+	
 	if not can_has_game then
 		love.nogame()
 	end

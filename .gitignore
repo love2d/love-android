@@ -4,3 +4,7 @@ obj/
 .*.swp
 .*~
 *~
+*.o
+*.so
+*.a
+!jni/LuaJIT-2.0.1/src/libluajit.a

@@ -32,7 +32,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../mpg123-1.13.4/src/libmpg123 \
 	${LOCAL_PATH}/../libmodplug-0.8.8.4/src \
 	${LOCAL_PATH}/../libvorbis-1.3.2/include \
-	${LOCAL_PATH}/../lua-5.1.4/src \
+	${LOCAL_PATH}/../LuaJIT-2.0.1/src \
 	${LOCAL_PATH}/../libogg-1.3.0/include 
 		
 LOCAL_SRC_FILES := \
@@ -94,7 +94,9 @@ LOCAL_SRC_FILES := \
 
 LOCAL_CXXFLAGS := -std=c++0x
 
-LOCAL_SHARED_LIBRARIES := SDL2 libphysfs liblua libvorbis libogg  libopenal libmpg123 libmodplug libdevil libtiff libmng libfreetype liblcms libjasper libpng libjpeg 
+LOCAL_SHARED_LIBRARIES := SDL2 libphysfs libvorbis libogg libopenal libmpg123 libmodplug libdevil libtiff libmng libfreetype liblcms libjasper libpng libjpeg
+
+LOCAL_STATIC_LIBRARIES := libluajit
 
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
