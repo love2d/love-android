@@ -133,25 +133,34 @@ namespace
 	       	return false;
 	    }
 
-	    char data_buffer[file_size + 1];
-	    size_t bytes_read = asset_game_file->read(asset_game_file, data_buffer, sizeof(char), (size_t) file_size);
-	    data_buffer[bytes_read] = '\0';
+			size_t buff_size = 128 * 1024;
+	    char *data_buffer = new char[buff_size];
 
-	    if (bytes_read != file_size) {
-	    	SDL_Log ("Error copying asset game file from assets to internal storage %s. Error: %s",  internal_game_file.c_str(), SDL_GetError());
-	       	asset_game_file->close(asset_game_file);
-	       	storage_game_file->close(storage_game_file);
-	       	return false;
-	    }
+			if (!data_buffer) {
+				SDL_Log ("Error allocating memory for file copy buffer!");
+				asset_game_file->close(asset_game_file);
+				storage_game_file->close(storage_game_file);
+				return false;
+			}
 
-	    size_t bytes_written = storage_game_file->write(storage_game_file, data_buffer, sizeof(char), file_size);
+			size_t bytes_copied = 0;
+			while (bytes_copied != (size_t) file_size) {
+				size_t bytes_read = asset_game_file->read(asset_game_file, data_buffer, sizeof(char), (size_t) buff_size);
+				size_t bytes_written = storage_game_file->write(storage_game_file, data_buffer, sizeof(char), bytes_read);
 
-	    if (bytes_written != file_size) {
-	    	SDL_Log ("Error copying asset game to internal storage: %s", SDL_GetError());
-	       	asset_game_file->close(asset_game_file);
-	       	storage_game_file->close(storage_game_file);
-	       	return false;
-	    }
+				bytes_copied += bytes_written;
+				SDL_Log ("Copied %d of %d bytes", bytes_copied, file_size);
+
+				if (bytes_written != bytes_read) {
+					SDL_Log ("Error copying asset game to internal storage: %s", SDL_GetError());
+					asset_game_file->close(asset_game_file);
+					storage_game_file->close(storage_game_file);
+					return false;
+				}
+			}
+
+			delete[] data_buffer;
+			data_buffer = NULL;
 
 	   	asset_game_file->close(asset_game_file);
 	   	storage_game_file->close(storage_game_file);
