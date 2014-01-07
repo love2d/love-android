@@ -1,4 +1,6 @@
+assets/
 bin/
+gen/
 libs/
 obj/
 .*.swp
