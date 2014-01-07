@@ -4,6 +4,7 @@
       android:versionCode="1"
       android:versionName="1.0"
       android:installLocation="auto">
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application android:label="Löve for Android"
                  android:icon="@drawable/ic_launcher"
