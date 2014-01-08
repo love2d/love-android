@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_THREAD_WINDOWS
 
@@ -231,6 +231,12 @@ void
 SDL_SYS_WaitThread(SDL_Thread * thread)
 {
     WaitForSingleObject(thread->handle, INFINITE);
+    CloseHandle(thread->handle);
+}
+
+void
+SDL_SYS_DetachThread(SDL_Thread * thread)
+{
     CloseHandle(thread->handle);
 }
 

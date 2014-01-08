@@ -95,8 +95,10 @@ elseif(APPLE)
     set(MACOSX TRUE)
   endif()
   # TODO: iOS?
-elseif(CMAKE_SYSTEM_NAME MATCHES "Haiku.*|BeOS.*")
-  set(BEOS TRUE)
+elseif(CMAKE_SYSTEM_NAME MATCHES "BeOS.*")
+  message_error("BeOS support has been removed as of SDL 2.0.2.")
+elseif(CMAKE_SYSTEM_NAME MATCHES "Haiku.*")
+  set(HAIKU TRUE)
 endif()
 
 # Don't mistake osx for unix
@@ -216,6 +218,7 @@ set_option(RPATH               "Use an rpath when linking SDL" ${UNIX_SYS})
 set_option(CLOCK_GETTIME       "Use clock_gettime() instead of gettimeofday()" OFF)
 set_option(INPUT_TSLIB         "Use the Touchscreen library for input" ${UNIX_SYS})
 set_option(VIDEO_X11           "Use X11 video driver" ${UNIX_SYS})
+set_option(VIDEO_WAYLAND       "Use Wayland video driver" ${UNIX_SYS})
 dep_option(X11_SHARED          "Dynamically load X11 support" ON "VIDEO_X11" OFF)
 set(SDL_X11_OPTIONS Xcursor Xinerama XInput Xrandr Xscrnsaver XShape Xvm)
 foreach(_SUB ${SDL_X11_OPTIONS})
@@ -237,6 +240,7 @@ file(GLOB SOURCE_FILES
   ${SDL2_SOURCE_DIR}/src/atomic/*.c
   ${SDL2_SOURCE_DIR}/src/audio/*.c
   ${SDL2_SOURCE_DIR}/src/cpuinfo/*.c
+  ${SDL2_SOURCE_DIR}/src/dynapi/*.c
   ${SDL2_SOURCE_DIR}/src/events/*.c
   ${SDL2_SOURCE_DIR}/src/file/*.c
   ${SDL2_SOURCE_DIR}/src/libm/*.c
@@ -264,7 +268,7 @@ endif(ASSERTIONS STREQUAL "auto")
 set(HAVE_ASSERTIONS ${ASSERTIONS})
 
 # Compiler option evaluation
-if(USE_GCC)
+if(USE_GCC OR USE_CLANG)
   if(DEPENDENCY_TRACKING)
     check_c_source_compiles("
         #if !defined(__GNUC__) || __GNUC__ < 3
@@ -308,11 +312,11 @@ if(USE_GCC)
 
   check_c_compiler_flag(-Wall HAVE_GCC_WALL)
   if(HAVE_GCC_WALL)
-    if(CMAKE_SYSTEM_NAME MATCHES "Haiku|BeOS")
+    if(HAIKU)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-multichar")
-    endif(CMAKE_SYSTEM_NAME MATCHES "Haiku|BeOS")
+    endif(HAIKU)
   endif(HAVE_GCC_WALL)
-endif(USE_GCC)
+endif(USE_GCC OR USE_CLANG)
 
 if(ASSEMBLY)
   if(USE_GCC OR USE_CLANG)
@@ -471,8 +475,8 @@ if(LIBC)
             malloc calloc realloc free qsort abs memset memcpy memmove memcmp
             strlen _strrev _strupr _strlwr strchr strrchr strstr itoa _ltoa
             _ultoa strtol strtoul strtoll strtod atoi atof strcmp strncmp
-            _stricmp _strnicmp sscanf atan atan2 ceil copysign cos cosf fabs
-            floor log pow scalbn sin sinf sqrt)
+            _stricmp _strnicmp sscanf atan atan2 acos asin ceil copysign cos
+            cosf fabs floor log pow scalbn sin sinf sqrt)
       string(TOUPPER ${_FN} _UPPER)
       set(HAVE_${_UPPER} 1)
     endforeach()
@@ -506,7 +510,7 @@ if(LIBC)
             strdup _strrev _strupr _strlwr strchr strrchr strstr itoa _ltoa
             _uitoa _ultoa strtol strtoul _i64toa _ui64toa strtoll strtoull
             atoi atof strcmp strncmp _stricmp strcasecmp _strnicmp strncasecmp
-            sscanf snprintf vsnprintf fseeko fseeko64 sigaction setjmp
+            vsscanf vsnprintf fseeko fseeko64 sigaction setjmp
             nanosleep sysconf sysctlbyname
             )
       string(TOUPPER ${_FN} _UPPER)
@@ -639,6 +643,7 @@ if(UNIX AND NOT APPLE)
     CheckDirectFB()
     CheckOpenGLX11()
     CheckOpenGLESX11()
+    CheckWayland()
   endif(SDL_VIDEO)
 
   if(LINUX)
@@ -648,6 +653,21 @@ if(UNIX AND NOT APPLE)
         #error EVIOCGNAME() ioctl not available
         #endif
         int main(int argc, char** argv) {}" HAVE_INPUT_EVENTS)
+
+    check_c_source_compiles("
+        #include <linux/kd.h>
+        #include <linux/keyboard.h>
+
+        int main(int argc, char **argv) 
+        {
+            struct kbentry kbe;
+            kbe.kb_table = KG_CTRL;
+            ioctl(0, KDGKBENT, &kbe);
+        }" HAVE_INPUT_KD)
+
+    file(GLOB CORE_SOURCES ${SDL2_SOURCE_DIR}/src/core/linux/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${CORE_SOURCES})
+
     if(HAVE_INPUT_EVENTS)
       set(SDL_INPUT_LINUXEV 1)
     endif(HAVE_INPUT_EVENTS)
@@ -658,6 +678,10 @@ if(UNIX AND NOT APPLE)
       set(SOURCE_FILES ${SOURCE_FILES} ${HAPTIC_SOURCES})
       set(HAVE_SDL_HAPTIC TRUE)
     endif(SDL_HAPTIC AND HAVE_INPUT_EVENTS)
+
+    if(HAVE_INPUT_KD)
+      set(SDL_INPUT_LINUXKD 1)
+    endif(HAVE_INPUT_KD)
 
     check_include_file("libudev.h" HAVE_LIBUDEV_H)
 
@@ -746,8 +770,8 @@ elseif(WINDOWS)
     #include <windows.h>
     int main(int argc, char **argv) { }" HAVE_WIN32_CC)
 
-  file(GLOB WIN_SOURCES ${SDL2_SOURCE_DIR}/src/core/windows/*.c)
-  set(SOURCE_FILES ${SOURCE_FILES} ${WIN_SOURCES})
+  file(GLOB CORE_SOURCES ${SDL2_SOURCE_DIR}/src/core/windows/*.c)
+  set(SOURCE_FILES ${SOURCE_FILES} ${CORE_SOURCES})
 
   # Check for DirectX
   if(DIRECTX)
@@ -823,7 +847,7 @@ elseif(WINDOWS)
 
   if(SDL_FILESYSTEM)
     set(SDL_FILESYSTEM_WINDOWS 1)
-    file(GLOB FILESYSTEM_SOURCES ${SDL2_SOURCE_DIR}/src/filesytem/windows/*.c)
+    file(GLOB FILESYSTEM_SOURCES ${SDL2_SOURCE_DIR}/src/filesystem/windows/*.c)
     set(SOURCE_FILES ${SOURCE_FILES} ${FILESYSTEM_SOURCES})
     set(HAVE_SDL_FILESYSTEM TRUE)
   endif(SDL_FILESYSTEM)
@@ -987,15 +1011,15 @@ elseif(APPLE)
   endif(SDL_VIDEO)
 
   CheckPTHREAD()
-elseif(BEOS)
+elseif(HAIKU)
   if(SDL_VIDEO)
-    set(SDL_VIDEO_DRIVER_BWINDOW 1)
-    file(GLOB BWINDOW_SOURCES ${SDL2_SOURCE_DIR}/src/video/bwindow/*.c)
-    set(SOURCE_FILES ${SOURCE_FILES} ${BWINDOW_SOURCES})
+    set(SDL_VIDEO_DRIVER_HAIKU 1)
+    file(GLOB HAIKUVIDEO_SOURCES ${SDL2_SOURCE_DIR}/src/video/haiku/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${HAIKUVIDEO_SOURCES})
     set(HAVE_SDL_VIDEO TRUE)
 
-    set(SDL_FILESYSTEM_BEOS 1)
-    file(GLOB FILESYSTEM_SOURCES ${SDL2_SOURCE_DIR}/src/filesystem/beos/*.cc)
+    set(SDL_FILESYSTEM_HAIKU 1)
+    file(GLOB FILESYSTEM_SOURCES ${SDL2_SOURCE_DIR}/src/filesystem/haiku/*.cc)
     set(SOURCE_FILES ${SOURCE_FILES} ${FILESYSTEM_SOURCES})
     set(HAVE_SDL_FILESYSTEM TRUE)
 
@@ -1008,6 +1032,8 @@ elseif(BEOS)
       set(HAVE_VIDEO_OPENGL TRUE)
     endif(VIDEO_OPENGL)
   endif(SDL_VIDEO)
+
+  CheckPTHREAD()
 endif()
 
 # Dummies

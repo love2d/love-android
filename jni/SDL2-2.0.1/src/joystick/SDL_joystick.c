@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../SDL_internal.h"
 
 /* This is the joystick API for Simple DirectMedia Layer */
 
@@ -832,7 +832,7 @@ SDL_JoystickGUID SDL_JoystickGetGUIDFromString(const char *pchGUID)
     int maxoutputbytes= sizeof(guid);
     size_t len = SDL_strlen( pchGUID );
     Uint8 *p;
-    int i;
+    size_t i;
 
     /* Make sure it's even */
     len = ( len ) & ~0x1;

@@ -18,14 +18,14 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_VIDEO_DRIVER_ANDROID
 
 /* Android SDL video driver implementation */
 
 #include "SDL_video.h"
-#include "../SDL_egl.h"
+#include "../SDL_egl_c.h"
 #include "SDL_androidwindow.h"
 
 #include "SDL_androidvideo.h"

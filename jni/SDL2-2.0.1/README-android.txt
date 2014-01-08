@@ -4,13 +4,14 @@ Simple DirectMedia Layer for Android
 
 Requirements:
 
-Android SDK (version 10 or later)
+Android SDK (version 12 or later)
 http://developer.android.com/sdk/index.html
 
 Android NDK r7 or later
-http://developer.android.com/sdk/ndk/index.html
+http://developer.android.com/tools/sdk/ndk/index.html
 
 Minimum API level supported by SDL: 10 (Android 2.3.3)
+Joystick support is available for API level >=12 devices.
 
 ================================================================================
  How the port works
@@ -28,7 +29,7 @@ android-project/src/org/libsdl/app/SDLActivity.java
 
 The Java code loads your game code, the SDL shared library, and
 dispatches to native functions implemented in the SDL library:
-src/SDL_android.c
+src/core/android/SDL_android.c
 
 Your project must include some glue code that starts your main() routine:
 src/main/android/SDL_android_main.c
@@ -259,7 +260,7 @@ The best place to start is with docs/OVERVIEW.TXT
 ================================================================================
 
 First make sure that you've installed Eclipse and the Android extensions as described here:
-	http://developer.android.com/sdk/eclipse-adt.html
+	http://developer.android.com/tools/sdk/eclipse-adt.html
 
 Once you've copied the SDL android project and customized it, you can create an Eclipse project from it:
  * File -> New -> Other
@@ -396,8 +397,11 @@ When you're done instrumenting with valgrind, you can disable the wrapper:
  Why is API level 10 the minimum required?
 ================================================================================
 
-API level 10 is required because SDL requires some functionality for running not
-available on older devices and some for building which is not in older NDK/SDKs.
+API level 10 is the minimum required level at runtime (that is, on the device) 
+because SDL requires some functionality for running not
+available on older devices. Since the incorporation of joystick support into SDL,
+the minimum SDK required to *build* SDL is version 12. Devices running API levels
+10-11 are still supported, only with the joystick functionality disabled.
 
 Support for native OpenGL ES and ES2 applications was introduced in the NDK for
 API level 4 and 8. EGL was made a stable API in the NDK for API level 9, which
@@ -429,4 +433,6 @@ Reference: http://www.khronos.org/registry/egl/specs/EGLTechNote0001.html
  Known issues
 ================================================================================
 
-- TODO. I'm sure there's a bunch more stuff I haven't thought of 
+- The number of buttons reported for each joystick is hardcoded to be 36, which
+is the current maximum number of buttons Android can report.
+

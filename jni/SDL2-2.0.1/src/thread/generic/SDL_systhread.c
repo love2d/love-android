@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 /* Thread management routines for SDL */
 
@@ -58,6 +58,12 @@ SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority)
 
 void
 SDL_SYS_WaitThread(SDL_Thread * thread)
+{
+    return;
+}
+
+void
+SDL_SYS_DetachThread(SDL_Thread * thread)
 {
     return;
 }

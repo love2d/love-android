@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifdef SDL_JOYSTICK_DINPUT
 
@@ -630,7 +630,11 @@ SDL_SYS_JoystickInit(void)
         /* spin up the thread to detect hotplug of devices */
 #if defined(__WIN32__) && !defined(HAVE_LIBC)
 #undef SDL_CreateThread
+#if SDL_DYNAMIC_API
+        s_threadJoystick= SDL_CreateThread_REAL( SDL_JoystickThread, "SDL_joystick", NULL, NULL, NULL );
+#else
         s_threadJoystick= SDL_CreateThread( SDL_JoystickThread, "SDL_joystick", NULL, NULL, NULL );
+#endif
 #else
         s_threadJoystick = SDL_CreateThread( SDL_JoystickThread, "SDL_joystick", NULL );
 #endif

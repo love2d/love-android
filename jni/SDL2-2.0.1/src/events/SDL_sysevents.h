@@ -18,14 +18,14 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../SDL_internal.h"
 
 #include "../video/SDL_sysvideo.h"
 
 /* Useful functions and variables from SDL_sysevents.c */
 
-#if defined(__BEOS__) || defined(__HAIKU__) 
-/* The Be and Haiku event loops run in a separate thread */
+#if defined(__HAIKU__)
+/* The Haiku event loops run in a separate thread */
 #define MUST_THREAD_EVENTS
 #endif
 

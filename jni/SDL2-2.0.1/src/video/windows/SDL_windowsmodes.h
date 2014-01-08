@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifndef _SDL_windowsmodes_h
 #define _SDL_windowsmodes_h
@@ -31,6 +31,8 @@ typedef struct
 typedef struct
 {
     DEVMODE DeviceMode;
+	float ScaleX;
+	float ScaleY;
 } SDL_DisplayModeData;
 
 extern int WIN_InitModes(_THIS);

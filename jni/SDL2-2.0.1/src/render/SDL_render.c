@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../SDL_internal.h"
 
 /* The SDL 2D rendering system */
 
@@ -348,8 +348,7 @@ SDL_GetRendererOutputSize(SDL_Renderer * renderer, int *w, int *h)
         return 0;
     } else {
         /* This should never happen */
-        SDL_SetError("Renderer doesn't support querying output size");
-        return -1;
+        return SDL_SetError("Renderer doesn't support querying output size");
     }
 }
 

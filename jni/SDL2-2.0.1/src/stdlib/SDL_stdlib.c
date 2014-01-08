@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../SDL_internal.h"
 
 /* This file contains portable stdlib functions for SDL */
 
@@ -47,12 +47,53 @@ SDL_atan2(double x, double y)
 }
 
 double
+SDL_acos(double val)
+{
+#if defined(HAVE_ACOS)
+    return acos(val);
+#else
+    double result;
+    if (val == -1.0) {
+        result = M_PI;
+    } else {
+        result = SDL_atan(SDL_sqrt(1.0 - val * val) / val);
+        if (result < 0.0)
+        {
+            result += M_PI;
+        }
+    }
+    return result;
+#endif
+}
+
+double
+SDL_asin(double val)
+{
+#if defined(HAVE_ASIN)
+    return asin(val);
+#else
+    double result;
+    if (val == -1.0) {
+        result = -(M_PI / 2.0);
+    } else {
+        result = (M_PI / 2.0) - SDL_acos(val);
+    }
+    return result;
+#endif
+}
+
+double
 SDL_ceil(double x)
 {
 #ifdef HAVE_CEIL
     return ceil(x);
 #else
-    return (double)(int)((x)+0.5);
+    double integer = SDL_floor(x);
+    double fraction = x - integer;
+    if (fraction > 0.0) {
+        integer += 1.0;
+    }
+    return integer;
 #endif /* HAVE_CEIL */
 }
 

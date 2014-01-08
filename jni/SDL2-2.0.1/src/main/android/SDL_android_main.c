@@ -1,5 +1,5 @@
 
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifdef __ANDROID__
 
@@ -22,30 +22,12 @@ void Java_org_libsdl_app_SDLActivity_nativeInit(JNIEnv* env, jclass cls, jobject
 
     SDL_SetMainReady();
 
-    /* get argument from SDLMain in SDLActivity.java */
-    jboolean isCopy;
-    const char* str = (*env)->GetStringUTFChars(env, obj, &isCopy);
-
     /* Run the application code! */
     int status;
-    int argc;
-
-    if (SDL_strlen(str) > 0)
-    	argc = 2;
-    else
-        argc = 1;
-
-    /* assemble argv depending on whether we have an argument or not */
-    char *argv[argc + 1];
+    char *argv[2];
     argv[0] = SDL_strdup("SDL_app");
-    if (SDL_strlen(str) > 0)
-    	argv[1] = SDL_strdup(str);
-    argv[argc] = NULL;
-
-    if (isCopy == JNI_TRUE)
-    	(*env)->ReleaseStringUTFChars(env, obj, str);
-
-    status = SDL_main(argc, argv);
+    argv[1] = NULL;
+    status = SDL_main(1, argv);
 
     /* Do not issue an exit or the whole application will terminate instead of just the SDL thread */
     /* exit(status); */

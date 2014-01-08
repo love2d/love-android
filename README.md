@@ -4,7 +4,7 @@ Copyright (c) 2013 Martin Felis <martin@fysx.org>
 Instructions:
 -------------
 
-Install the Android SDK and Android NDK and run
+Install the Android NDK and the Android SDK with SDK API 12 and run
 
     ndk-build
 

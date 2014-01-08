@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 /* NSOpenGL implementation of SDL OpenGL support */
 
@@ -35,27 +35,17 @@
 
 #define DEFAULT_OPENGL  "/System/Library/Frameworks/OpenGL.framework/Libraries/libGL.dylib"
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED < 1070
-/* New methods for converting to and from backing store pixels, taken from
- * AppKite/NSView.h in 10.8 SDK. */
-@interface NSView (Backing)
-- (NSPoint)convertPointToBacking:(NSPoint)aPoint;
-- (NSPoint)convertPointFromBacking:(NSPoint)aPoint;
-- (NSSize)convertSizeToBacking:(NSSize)aSize;
-- (NSSize)convertSizeFromBacking:(NSSize)aSize;
-- (NSRect)convertRectToBacking:(NSRect)aRect;
-- (NSRect)convertRectFromBacking:(NSRect)aRect;
-@end
-#endif
-
 #ifndef kCGLPFAOpenGLProfile
 #define kCGLPFAOpenGLProfile 99
 #endif
 #ifndef kCGLOGLPVersion_Legacy
 #define kCGLOGLPVersion_Legacy 0x1000
 #endif
-#ifndef kCGLOGLPVersion_3_2_Core
-#define kCGLOGLPVersion_3_2_Core 0x3200
+#ifndef kCGLOGLPVersion_GL3_Core
+#define kCGLOGLPVersion_GL3_Core 0x3200
+#endif
+#ifndef kCGLOGLPVersion_GL4_Core
+#define kCGLOGLPVersion_GL4_Core 0x4100
 #endif
 
 @implementation SDLOpenGLContext : NSOpenGLContext
@@ -179,14 +169,14 @@ Cocoa_GL_CreateContext(_THIS, SDL_Window * window)
     int i = 0;
 
     if (_this->gl_config.profile_mask == SDL_GL_CONTEXT_PROFILE_ES) {
-        SDL_SetError ("OpenGL ES not supported on this platform");
+        SDL_SetError ("OpenGL ES is not supported on this platform");
         return NULL;
     }
 
     /* Sadly, we'll have to update this as life progresses, since we need to
        set an enum for context profiles, not a context version number */
-    if (wantver > 0x0302) {
-        SDL_SetError ("OpenGL > 3.2 is not supported on this platform");
+    if (wantver > 0x0401) {
+        SDL_SetError ("OpenGL > 4.1 is not supported on this platform");
         return NULL;
     }
 
@@ -197,7 +187,13 @@ Cocoa_GL_CreateContext(_THIS, SDL_Window * window)
         NSOpenGLPixelFormatAttribute profile = kCGLOGLPVersion_Legacy;
         if (_this->gl_config.profile_mask == SDL_GL_CONTEXT_PROFILE_CORE) {
             if (wantver == 0x0302) {
-                profile = kCGLOGLPVersion_3_2_Core;
+                profile = kCGLOGLPVersion_GL3_Core;
+            } else if ((wantver == 0x0401) && (data->osversion >= 0x1090)) {
+                profile = kCGLOGLPVersion_GL4_Core;
+            } else {
+                SDL_SetError("Requested GL version is not supported on this platform");
+                [pool release];
+                return NULL;
             }
         }
         attr[i++] = kCGLPFAOpenGLProfile;

@@ -248,10 +248,6 @@ int main(int argc, char **argv)
 #endif // LOVE_LEGENDARY_UTF8_ARGV_HACK || LOVE_LEGENDARY_APP_ARGV_HACK
 	SDL_Quit();
 
-#ifdef __ANDROID__
-	exit(retval);
-#endif
-
 	return retval;
 }
 

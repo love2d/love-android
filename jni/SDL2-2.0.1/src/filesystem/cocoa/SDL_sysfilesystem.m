@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifdef SDL_FILESYSTEM_COCOA
 
@@ -77,7 +77,7 @@ SDL_GetPrefPath(const char *org, const char *app)
         NSString *str = [array objectAtIndex:0];
         const char *base = [str fileSystemRepresentation];
         if (base) {
-            const size_t len = SDL_strlen(base) + SDL_strlen(app) + 4;
+            const size_t len = SDL_strlen(base) + SDL_strlen(org) + SDL_strlen(app) + 4;
             retval = (char *) SDL_malloc(len);
             if (retval == NULL) {
                 SDL_OutOfMemory();

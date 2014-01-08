@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_VIDEO_DRIVER_ANDROID
 
@@ -262,6 +262,7 @@ static SDL_Scancode Android_Keycodes[] = {
     SDL_SCANCODE_UNKNOWN, /* AKEYCODE_ASSIST */
     SDL_SCANCODE_BRIGHTNESSDOWN, /* AKEYCODE_BRIGHTNESS_DOWN */
     SDL_SCANCODE_BRIGHTNESSUP, /* AKEYCODE_BRIGHTNESS_UP */
+    SDL_SCANCODE_UNKNOWN, /* AKEYCODE_MEDIA_AUDIO_TRACK */
 };
 
 static SDL_Scancode

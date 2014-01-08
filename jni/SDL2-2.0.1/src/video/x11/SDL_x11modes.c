@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_VIDEO_DRIVER_X11
 
@@ -552,7 +552,8 @@ X11_InitModes(_THIS)
                    in all cases.  Anybody want to give this some love?
                  */
                 crtc = X11_XRRGetCrtcInfo(data->display, res, output_info->crtc);
-                if (!crtc || crtc->x != displaydata->x || crtc->y != displaydata->y) {
+                if (!crtc || crtc->x != displaydata->x || crtc->y != displaydata->y ||
+                    crtc->width != mode.w || crtc->height != mode.h) {
                     X11_XRRFreeOutputInfo(output_info);
                     X11_XRRFreeCrtcInfo(crtc);
                     continue;

@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifdef SDL_HAPTIC_DINPUT
 
@@ -428,7 +428,11 @@ SDL_SYS_HapticOpenFromXInput(SDL_Haptic * haptic, Uint8 userid)
 
 #if defined(__WIN32__) && !defined(HAVE_LIBC)  /* !!! FIXME: this is nasty. */
     #undef SDL_CreateThread
+    #if SDL_DYNAMIC_API
+    haptic->hwdata->thread = SDL_CreateThread_REAL(SDL_RunXInputHaptic, threadName, haptic->hwdata, NULL, NULL);
+    #else
     haptic->hwdata->thread = SDL_CreateThread(SDL_RunXInputHaptic, threadName, haptic->hwdata, NULL, NULL);
+    #endif
 #else
     haptic->hwdata->thread = SDL_CreateThread(SDL_RunXInputHaptic, threadName, haptic->hwdata);
 #endif

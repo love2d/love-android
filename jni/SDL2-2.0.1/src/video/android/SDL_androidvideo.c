@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_VIDEO_DRIVER_ANDROID
 
@@ -45,7 +45,7 @@
 static int Android_VideoInit(_THIS);
 static void Android_VideoQuit(_THIS);
 
-#include "../SDL_egl.h"
+#include "../SDL_egl_c.h"
 /* GL functions (SDL_androidgl.c) */
 extern SDL_GLContext Android_GLES_CreateContext(_THIS, SDL_Window * window);
 extern int Android_GLES_MakeCurrent(_THIS, SDL_Window * window, SDL_GLContext context);

@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #if SDL_VIDEO_DRIVER_WINDOWS
 
@@ -207,7 +207,7 @@ WIN_SetRelativeMouseMode(SDL_bool enabled)
 
 
     /* (Un)register raw input for mice */
-    if(RegisterRawInputDevices(&rawMouse, 1, sizeof(RAWINPUTDEVICE)) == FALSE) {
+    if (RegisterRawInputDevices(&rawMouse, 1, sizeof(RAWINPUTDEVICE)) == FALSE) {
 
         /* Only return an error when registering. If we unregister and fail, then
         it's probably that we unregistered twice. That's OK. */
@@ -216,7 +216,7 @@ WIN_SetRelativeMouseMode(SDL_bool enabled)
         }
     }
 
-    if(enabled) {
+    if (enabled) {
         LONG cx, cy;
         RECT rect;
         GetWindowRect(hWnd, &rect);
@@ -231,10 +231,9 @@ WIN_SetRelativeMouseMode(SDL_bool enabled)
         rect.bottom = cy+1;
 
         ClipCursor(&rect);
-    }
-    else
+    } else {
         ClipCursor(NULL);
-
+    }
     return 0;
 }
 
@@ -251,6 +250,8 @@ WIN_InitMouse(_THIS)
     mouse->SetRelativeMouseMode = WIN_SetRelativeMouseMode;
 
     SDL_SetDefaultCursor(WIN_CreateDefaultCursor());
+
+    SDL_SetDoubleClickTime(GetDoubleClickTime());
 }
 
 void

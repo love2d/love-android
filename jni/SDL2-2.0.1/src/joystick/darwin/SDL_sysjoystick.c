@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifdef SDL_JOYSTICK_IOKIT
 
@@ -32,12 +32,7 @@
 #include <mach/mach_error.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOCFPlugIn.h>
-#ifdef MACOS_10_0_4
-#include <IOKit/hidsystem/IOHIDUsageTables.h>
-#else
-/* The header was moved here in Mac OS X 10.1 */
 #include <Kernel/IOKit/hidsystem/IOHIDUsageTables.h>
-#endif
 #include <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
 #include <CoreFoundation/CoreFoundation.h>

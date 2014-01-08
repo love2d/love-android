@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
 
 #ifndef _SDL_rpiopengles_h
 #define _SDL_rpiopengles_h
@@ -26,7 +26,7 @@
 #if SDL_VIDEO_DRIVER_RPI && SDL_VIDEO_OPENGL_EGL
 
 #include "../SDL_sysvideo.h"
-#include "../SDL_egl.h"
+#include "../SDL_egl_c.h"
 
 /* OpenGLES functions */
 #define RPI_GLES_GetAttribute SDL_EGL_GetAttribute
