@@ -95,6 +95,7 @@ bool Window::setWindow(int width, int height, WindowAttributes *attribs)
 
 	Uint32 sdlflags = SDL_WINDOW_OPENGL;
 
+
 	if (f.fullscreen)
 	{
 		if (f.fstype == FULLSCREEN_TYPE_DESKTOP)

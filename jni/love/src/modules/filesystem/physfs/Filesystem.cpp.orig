@@ -221,6 +221,8 @@ bool Filesystem::isFused() const
 
 bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 {
+	SDL_Log ("identity = %s", ident);
+
 	if (!initialized)
 		return false;
 
