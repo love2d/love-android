@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="org.love2d.android"
-      android:versionCode="3"
-      android:versionName="0.9.0-alpha5"
-      android:installLocation="auto">
+<manifest package="org.love2d.android"
+      android:versionCode="4"
+      android:versionName="0.9.0-alpha6"
+      android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application android:label="Löve for Android"
@@ -12,7 +11,7 @@
                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="GameActivity"
                   android:label="Löve for Android"
-                  android:screenOrientation="unspecified">
+                  android:screenOrientation="landscape" android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
