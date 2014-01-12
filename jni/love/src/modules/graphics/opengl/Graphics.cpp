@@ -268,14 +268,30 @@ void Graphics::clear()
 
 void Graphics::present()
 {
+	// Make sure we don't have a canvas active.
+	Canvas *c = Canvas::current;
+	Canvas::bindDefaultCanvas();
+
 	if (GLAD_EXT_discard_framebuffer)
 	{
+		GLenum attachments[] = {GL_STENCIL_EXT, GL_DEPTH_EXT};
+
+		if (gl.getDefaultFBO() != 0)
+		{
+			// A non-zero FBO needs different attachment enums.
+			attachments[0] = GL_STENCIL_ATTACHMENT;
+			attachments[1] = GL_DEPTH_ATTACHMENT;
+		}
+
 		// Hint for the driver that it doesn't need to save these buffers.
-		GLenum attachments[] = {GL_STENCIL_ATTACHMENT, GL_DEPTH_ATTACHMENT};
 		glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, attachments);
 	}
 
 	currentWindow->swapBuffers();
+
+	// Restore the currently active canvas, if there is one.
+	if (c != nullptr)
+		c->startGrab(c->getAttachedCanvases());
 }
 
 int Graphics::getWidth() const
@@ -305,19 +321,16 @@ void Graphics::setScissor()
 	glDisable(GL_SCISSOR_TEST);
 }
 
-int Graphics::getScissor(lua_State *L) const
+bool Graphics::getScissor(int &x, int &y, int &width, int &height) const
 {
-	if (glIsEnabled(GL_SCISSOR_TEST) == GL_FALSE)
-		return 0;
-
 	OpenGL::Viewport scissor = gl.getScissor();
 
-	lua_pushinteger(L, scissor.x);
-	lua_pushinteger(L, scissor.y);
-	lua_pushinteger(L, scissor.w);
-	lua_pushinteger(L, scissor.h);
+	x = scissor.x;
+	y = scissor.y;
+	width = scissor.w;
+	height = scissor.h;
 
-	return 4;
+	return glIsEnabled(GL_SCISSOR_TEST) == GL_TRUE;
 }
 
 void Graphics::defineStencil()
@@ -348,7 +361,7 @@ void Graphics::discardStencil()
 	glDisable(GL_STENCIL_TEST);
 }
 
-int Graphics::getMaxImageSize() const
+int Graphics::getMaxTextureSize() const
 {
 	return gl.getMaxTextureSize();
 }

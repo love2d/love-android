@@ -117,18 +117,15 @@ const void *VertexArray::getPointer(size_t offset) const
 // VBO
 
 VBO::VBO(size_t size, GLenum target, GLenum usage, MemoryBacking backing)
-	: VertexBuffer(size, target, usage, backing)
+	// FIXME:
+	// ES2 can't do glGetBufferSubData.
+	: VertexBuffer(size, target, usage, GLAD_ES_VERSION_2_0 ? BACKING_FULL : backing)
 	, vbo(0)
 	, memory_map(0)
 	, is_dirty(false)
 {
 	if (!(GLAD_ARB_vertex_buffer_object || GLAD_VERSION_1_5 || GLAD_ES_VERSION_2_0))
 		throw love::Exception("Not supported");
-
-	// FIXME:
-	// ES2 can't do glGetBufferSubData.
-	if (GLAD_ES_VERSION_2_0)
-		backing = BACKING_FULL;
 
 	if (getMemoryBacking() == BACKING_FULL)
 		memory_map = malloc(getSize());

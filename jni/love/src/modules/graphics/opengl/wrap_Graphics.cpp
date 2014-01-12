@@ -104,7 +104,16 @@ int w_setScissor(lua_State *L)
 
 int w_getScissor(lua_State *L)
 {
-	return instance->getScissor(L);
+	int x, y, w, h;
+	if (!instance->getScissor(x, y, w, h))
+		return 0;
+
+	lua_pushinteger(L, x);
+	lua_pushinteger(L, y);
+	lua_pushinteger(L, w);
+	lua_pushinteger(L, h);
+
+	return 4;
 }
 
 static int setStencil(lua_State *L, bool invert)
@@ -135,9 +144,9 @@ int w_setInvertedStencil(lua_State *L)
 	return setStencil(L, true);
 }
 
-int w_getMaxImageSize(lua_State *L)
+int w_getMaxTextureSize(lua_State *L)
 {
-	lua_pushinteger(L, instance->getMaxImageSize());
+	lua_pushinteger(L, instance->getMaxTextureSize());
 	return 1;
 }
 
@@ -1369,7 +1378,7 @@ static const luaL_Reg functions[] =
 	{ "getPointSize", w_getPointSize },
 	{ "getPointStyle", w_getPointStyle },
 	{ "getMaxPointSize", w_getMaxPointSize },
-	{ "getMaxImageSize", w_getMaxImageSize },
+	{ "getMaxTextureSize", w_getMaxTextureSize },
 	{ "newScreenshot", w_newScreenshot },
 	{ "setCanvas", w_setCanvas },
 	{ "getCanvas", w_getCanvas },
@@ -1412,6 +1421,9 @@ static const luaL_Reg functions[] =
 	{ "translate", w_translate },
 	{ "shear", w_shear },
 	{ "origin", w_origin },
+
+	// Deprecated since 0.9.1.
+	{ "getMaxImageSize", w_getMaxTextureSize },
 
 	{ 0, 0 }
 };

@@ -163,10 +163,10 @@ public:
 	void setScissor();
 
 	/**
-	 * This native Lua function gets the current scissor box in the order of:
-	 * x, y, width, height
-	 **/
-	int getScissor(lua_State *L) const;
+	 * Gets the current scissor box.
+	 * @return Whether the scissor is enabled.
+	 */
+	bool getScissor(int &x, int &y, int &width, int &height) const;
 
 	/**
 	 * Enables the stencil buffer and set stencil function to fill it
@@ -187,10 +187,9 @@ public:
 	void discardStencil();
 
 	/**
-	 * Gets the maximum supported width or height of Images and Canvases on this
-	 * system.
+	 * Gets the maximum supported width or height of Textures on this system.
 	 **/
-	int getMaxImageSize() const;
+	int getMaxTextureSize() const;
 
 	/**
 	 * Creates an Image object with padding and/or optimization.
