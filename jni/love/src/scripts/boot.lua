@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2013 LOVE Development Team
+Copyright (c) 2006-2014 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -280,6 +280,8 @@ function love.boot()
 		no_game_code = true
 	end
 
+	love.filesystem.setFused(is_fused_game)
+
 	if not can_has_game then
 		love.nogame()
 	end
@@ -409,7 +411,6 @@ function love.init()
 	end
 
 	if love.filesystem then
-		love.filesystem.setFused(is_fused_game)
 		love.filesystem.setIdentity(c.identity or love.filesystem.getIdentity(), c.appendidentity)
 		if love.filesystem.exists("main.lua") then
 			require("main")

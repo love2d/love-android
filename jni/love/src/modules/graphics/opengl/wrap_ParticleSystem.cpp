@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -18,11 +18,19 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
+// LOVE
 #include "wrap_ParticleSystem.h"
-
 #include "common/Vector.h"
 
+#include "Image.h"
+#include "Canvas.h"
+#include "wrap_Texture.h"
+
+// C
 #include <cstring>
+
+// C++
+#include <typeinfo>
 
 namespace love
 {
@@ -36,20 +44,42 @@ ParticleSystem *luax_checkparticlesystem(lua_State *L, int idx)
 	return luax_checktype<ParticleSystem>(L, idx, "ParticleSystem", GRAPHICS_PARTICLE_SYSTEM_T);
 }
 
-int w_ParticleSystem_setImage(lua_State *L)
+int w_ParticleSystem_clone(lua_State *L)
 {
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
-	Image *i = luax_checkimage(L, 2);
-	t->setImage(i);
+
+	ParticleSystem *clone = nullptr;
+	EXCEPT_GUARD(clone = t->clone();)
+
+	luax_pushtype(L, "ParticleSystem", GRAPHICS_PARTICLE_SYSTEM_T, clone);
+	return 1;
+}
+
+int w_ParticleSystem_setTexture(lua_State *L)
+{
+	ParticleSystem *t = luax_checkparticlesystem(L, 1);
+	Texture *tex = luax_checktexture(L, 2);
+	t->setTexture(tex);
 	return 0;
 }
 
-int w_ParticleSystem_getImage(lua_State *L)
+int w_ParticleSystem_getTexture(lua_State *L)
 {
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
-	Image *i = t->getImage();
-	i->retain();
-	luax_pushtype(L, "Image", GRAPHICS_IMAGE_T, i);
+	Texture *tex = t->getTexture();
+	tex->retain();
+
+	// FIXME: big hack right here.
+	if (typeid(*tex) == typeid(Image))
+		luax_pushtype(L, "Image", GRAPHICS_IMAGE_T, tex);
+	else if (typeid(*tex) == typeid(Canvas))
+		luax_pushtype(L, "Canvas", GRAPHICS_CANVAS_T, tex);
+	else
+	{
+		tex->release();
+		return luaL_error(L, "Unable to determine texture type.");
+	}
+
 	return 1;
 }
 
@@ -604,8 +634,9 @@ int w_ParticleSystem_update(lua_State *L)
 
 static const luaL_Reg functions[] =
 {
-	{ "setImage", w_ParticleSystem_setImage },
-	{ "getImage", w_ParticleSystem_getImage },
+	{ "clone", w_ParticleSystem_clone },
+	{ "setTexture", w_ParticleSystem_setTexture },
+	{ "getTexture", w_ParticleSystem_getTexture },
 	{ "setBufferSize", w_ParticleSystem_setBufferSize },
 	{ "getBufferSize", w_ParticleSystem_getBufferSize },
 	{ "setInsertMode", w_ParticleSystem_setInsertMode },
@@ -656,6 +687,11 @@ static const luaL_Reg functions[] =
 	{ "isPaused", w_ParticleSystem_isPaused },
 	{ "isStopped", w_ParticleSystem_isStopped },
 	{ "update", w_ParticleSystem_update },
+
+	// Deprecated since 0.9.1.
+	{ "setImage", w_ParticleSystem_setTexture },
+	{ "getImage", w_ParticleSystem_getTexture },
+
 	{ 0, 0 }
 };
 

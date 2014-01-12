@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -19,8 +19,7 @@
  **/
 
 #include "wrap_Shader.h"
-#include "wrap_Image.h"
-#include "wrap_Canvas.h"
+#include "wrap_Texture.h"
 #include <string>
 #include <iostream>
 
@@ -253,23 +252,13 @@ int w_Shader_sendMatrix(lua_State *L)
 	return 0;
 }
 
-int w_Shader_sendImage(lua_State *L)
+int w_Shader_sendTexture(lua_State *L)
 {
 	Shader *shader = luax_checkshader(L, 1);
 	const char *name = luaL_checkstring(L, 2);
-	Image *img = luax_checkimage(L, 3);
+	Texture *texture = luax_checktexture(L, 3);
 
-	EXCEPT_GUARD(shader->sendImage(name, *img);)
-	return 0;
-}
-
-int w_Shader_sendCanvas(lua_State *L)
-{
-	Shader *shader = luax_checkshader(L, 1);
-	const char *name = luaL_checkstring(L, 2);
-	Canvas *canvas = luax_checkcanvas(L, 3);
-
-	EXCEPT_GUARD(shader->sendCanvas(name, *canvas);)
+	EXCEPT_GUARD(shader->sendTexture(name, texture);)
 	return 0;
 }
 
@@ -318,7 +307,7 @@ static void w_convertMatrices(lua_State *L, int idx)
 int w_Shader_send(lua_State *L)
 {
 	int ttype = lua_type(L, 3);
-	Proxy *p = 0;
+	Proxy *p = nullptr;
 
 	switch (ttype)
 	{
@@ -328,13 +317,11 @@ int w_Shader_send(lua_State *L)
 		return w_Shader_sendFloat(L);
 		break;
 	case LUA_TUSERDATA:
-		// Image or Canvas.
+		// Texture (Image or Canvas).
 		p = (Proxy *) lua_touserdata(L, 3);
 
-		if (p->flags[GRAPHICS_IMAGE_ID])
-			return w_Shader_sendImage(L);
-		else if (p->flags[GRAPHICS_CANVAS_ID])
-			return w_Shader_sendCanvas(L);
+		if (p->flags[GRAPHICS_TEXTURE_ID])
+			return w_Shader_sendTexture(L);
 
 		break;
 	case LUA_TTABLE:
@@ -366,9 +353,13 @@ static const luaL_Reg functions[] =
 	{ "sendBoolean", w_Shader_sendInt },
 	{ "sendFloat",   w_Shader_sendFloat },
 	{ "sendMatrix",  w_Shader_sendMatrix },
-	{ "sendImage",   w_Shader_sendImage },
-	{ "sendCanvas",  w_Shader_sendCanvas },
+	{ "sendTexture", w_Shader_sendTexture },
 	{ "send",        w_Shader_send },
+
+	// Deprecated since 0.9.1.
+	{ "sendImage",   w_Shader_sendTexture },
+	{ "sendCanvas",  w_Shader_sendTexture },
+
 	{ 0, 0 }
 };
 

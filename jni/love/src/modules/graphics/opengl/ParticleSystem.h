@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -27,8 +27,8 @@
 #include "common/Vector.h"
 #include "graphics/Drawable.h"
 #include "graphics/Color.h"
-#include "Image.h"
 #include "VertexBuffer.h"
+#include "Texture.h"
 
 // STL
 #include <vector>
@@ -77,9 +77,10 @@ public:
 	static const uint32 MAX_PARTICLES = LOVE_INT32_MAX / 4;
 
 	/**
-	 * Creates a particle system with the specified buffersize and image.
+	 * Creates a particle system with the specified buffer size and texture.
 	 **/
-	ParticleSystem(Image *image, uint32 buffer);
+	ParticleSystem(Texture *texture, uint32 buffer);
+	ParticleSystem(const ParticleSystem &p);
 
 	/**
 	 * Deletes any allocated memory.
@@ -87,15 +88,22 @@ public:
 	virtual ~ParticleSystem();
 
 	/**
-	 * Sets the image used in the particle system.
-	 * @param image The new image.
+	 * Creates an identical copy of this ParticleSystem. The clone does not
+	 * duplicate any existing particles from this ParticleSystem, just the
+	 * settable parameters.
 	 **/
-	void setImage(Image *image);
+	ParticleSystem *clone();
 
 	/**
-	 * Returns the image used when drawing the particle system.
+	 * Sets the texture used in the particle system.
+	 * @param texture The new texture.
 	 **/
-	Image *getImage() const;
+	void setTexture(Texture *texture);
+
+	/**
+	 * Returns the texture used when drawing the particle system.
+	 **/
+	Texture *getTexture() const;
 
 	/**
 	 * Clears the current buffer and allocates the appropriate amount of space for the buffer.
@@ -509,9 +517,6 @@ protected:
 		Colorf color;
 	};
 
-	// The max amount of particles.
-	int bufferSize;
-
 	// Pointer to the beginning of the allocated memory.
 	particle *pMem;
 
@@ -530,8 +535,8 @@ protected:
 	// Vertex index buffer.
 	VertexIndex *ibo;
 
-	// The image to be drawn.
-	Image *image;
+	// The texture to be drawn.
+	Texture *texture;
 
 	// Whether the particle emitter is active.
 	bool active;

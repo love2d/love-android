@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -23,6 +23,7 @@
 #include "OpenGL.h"
 
 #include "Shader.h"
+#include "Canvas.h"
 #include "common/Exception.h"
 
 // C++
@@ -102,7 +103,7 @@ bool OpenGL::initContext()
 		GLenum curgltextureunit;
 		glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint *) &curgltextureunit);
 
-		state.curTextureUnit = curgltextureunit - GL_TEXTURE0;
+		state.curTextureUnit = (int) curgltextureunit - GL_TEXTURE0;
 
 		// Retrieve currently bound textures for each texture unit.
 		for (size_t i = 0; i < state.textureUnits.size(); i++)
@@ -238,6 +239,12 @@ void OpenGL::prepareDraw()
 	const Matrix &proj = matrices.projection.top();
 
 	Shader *shader = Shader::current;
+
+	// Make sure the active shader has the correct values for the built-in
+	// screen params uniform.
+	if (shader)
+		shader->checkSetScreenParams();
+
 	if (GLAD_ES_VERSION_2_0 && shader)
 	{
 		// Send built-in uniforms to the current shader.
@@ -363,8 +370,7 @@ void OpenGL::setViewport(const OpenGL::Viewport &v)
 	// glScissor starts from the lower left, so we compensate when setting the
 	// scissor. When the viewport is changed, we need to manually update the
 	// scissor again.
-	if (v.h != state.viewport.h)
-		setScissor(state.scissor);
+	setScissor(state.scissor);
 }
 
 OpenGL::Viewport OpenGL::getViewport() const
@@ -374,9 +380,15 @@ OpenGL::Viewport OpenGL::getViewport() const
 
 void OpenGL::setScissor(const OpenGL::Viewport &v)
 {
-	// We need to compensate for glScissor starting from the lower left of the
-	// viewport instead of the top left.
-	glScissor(v.x,  state.viewport.h - (v.y + v.h), v.w, v.h);
+	if (Canvas::current)
+		glScissor(v.x, v.y, v.w, v.h);
+	else
+	{
+		// With no Canvas active, we need to compensate for glScissor starting
+		// from the lower left of the viewport instead of the top left.
+		glScissor(v.x, state.viewport.h - (v.y + v.h), v.w, v.h);
+	}
+
 	state.scissor = v;
 }
 
@@ -413,7 +425,7 @@ void OpenGL::setTextureUnit(int textureunit)
 		if (state.textureUnits.size() > 1)
 			glActiveTexture(GL_TEXTURE0 + textureunit);
 		else
-			throw love::Exception("Multitexturing not supported.");
+			throw love::Exception("Multitexturing is not supported.");
 	}
 
 	state.curTextureUnit = textureunit;
@@ -460,26 +472,26 @@ void OpenGL::deleteTexture(GLuint texture)
 	glDeleteTextures(1, &texture);
 }
 
-float OpenGL::setTextureFilter(const graphics::Image::Filter &f)
+float OpenGL::setTextureFilter(graphics::Texture::Filter &f)
 {
 	GLint gmin, gmag;
 
-	if (f.mipmap == Image::FILTER_NONE)
+	if (f.mipmap == Texture::FILTER_NONE)
 	{
-		if (f.min == Image::FILTER_NEAREST)
+		if (f.min == Texture::FILTER_NEAREST)
 			gmin = GL_NEAREST;
-		else // f.min == Image::FILTER_LINEAR
+		else // f.min == Texture::FILTER_LINEAR
 			gmin = GL_LINEAR;
 	}
 	else
 	{
-		if (f.min == Image::FILTER_NEAREST && f.mipmap == Image::FILTER_NEAREST)
+		if (f.min == Texture::FILTER_NEAREST && f.mipmap == Texture::FILTER_NEAREST)
 			gmin = GL_NEAREST_MIPMAP_NEAREST;
-		else if (f.min == Image::FILTER_NEAREST && f.mipmap == Image::FILTER_LINEAR)
+		else if (f.min == Texture::FILTER_NEAREST && f.mipmap == Texture::FILTER_LINEAR)
 			gmin = GL_NEAREST_MIPMAP_LINEAR;
-		else if (f.min == Image::FILTER_LINEAR && f.mipmap == Image::FILTER_NEAREST)
+		else if (f.min == Texture::FILTER_LINEAR && f.mipmap == Texture::FILTER_NEAREST)
 			gmin = GL_LINEAR_MIPMAP_NEAREST;
-		else if (f.min == Image::FILTER_LINEAR && f.mipmap == Image::FILTER_LINEAR)
+		else if (f.min == Texture::FILTER_LINEAR && f.mipmap == Texture::FILTER_LINEAR)
 			gmin = GL_LINEAR_MIPMAP_LINEAR;
 		else
 			gmin = GL_LINEAR;
@@ -488,10 +500,10 @@ float OpenGL::setTextureFilter(const graphics::Image::Filter &f)
 
 	switch (f.mag)
 	{
-	case Image::FILTER_NEAREST:
+	case Texture::FILTER_NEAREST:
 		gmag = GL_NEAREST;
 		break;
-	case Image::FILTER_LINEAR:
+	case Texture::FILTER_LINEAR:
 	default:
 		gmag = GL_LINEAR;
 		break;
@@ -500,60 +512,58 @@ float OpenGL::setTextureFilter(const graphics::Image::Filter &f)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gmin);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gmag);
 
-	float anisotropy = 1.0f;
-
 	if (GLAD_EXT_texture_filter_anisotropic)
 	{
-		anisotropy = std::min(std::max(f.anisotropy, 1.0f), maxAnisotropy);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
+		f.anisotropy = std::min(std::max(f.anisotropy, 1.0f), maxAnisotropy);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, f.anisotropy);
 	}
 
-	return anisotropy;
+	return f.anisotropy;
 }
 
-graphics::Image::Filter OpenGL::getTextureFilter()
+Texture::Filter OpenGL::getTextureFilter()
 {
 	GLint gmin, gmag;
 	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &gmin);
 	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &gmag);
 
-	Image::Filter f;
+	Texture::Filter f;
 
 	switch (gmin)
 	{
 	case GL_NEAREST:
-		f.min = Image::FILTER_NEAREST;
-		f.mipmap = Image::FILTER_NONE;
+		f.min = Texture::FILTER_NEAREST;
+		f.mipmap = Texture::FILTER_NONE;
 		break;
 	case GL_NEAREST_MIPMAP_NEAREST:
-		f.min = f.mipmap = Image::FILTER_NEAREST;
+		f.min = f.mipmap = Texture::FILTER_NEAREST;
 		break;
 	case GL_NEAREST_MIPMAP_LINEAR:
-		f.min = Image::FILTER_NEAREST;
-		f.mipmap = Image::FILTER_LINEAR;
+		f.min = Texture::FILTER_NEAREST;
+		f.mipmap = Texture::FILTER_LINEAR;
 		break;
 	case GL_LINEAR_MIPMAP_NEAREST:
-		f.min = Image::FILTER_LINEAR;
-		f.mipmap = Image::FILTER_NEAREST;
+		f.min = Texture::FILTER_LINEAR;
+		f.mipmap = Texture::FILTER_NEAREST;
 		break;
 	case GL_LINEAR_MIPMAP_LINEAR:
-		f.min = f.mipmap = Image::FILTER_LINEAR;
+		f.min = f.mipmap = Texture::FILTER_LINEAR;
 		break;
 	case GL_LINEAR:
 	default:
-		f.min = Image::FILTER_LINEAR;
-		f.mipmap = Image::FILTER_NONE;
+		f.min = Texture::FILTER_LINEAR;
+		f.mipmap = Texture::FILTER_NONE;
 		break;
 	}
 
 	switch (gmag)
 	{
 	case GL_NEAREST:
-		f.mag = Image::FILTER_NEAREST;
+		f.mag = Texture::FILTER_NEAREST;
 		break;
 	case GL_LINEAR:
 	default:
-		f.mag = Image::FILTER_LINEAR;
+		f.mag = Texture::FILTER_LINEAR;
 		break;
 	}
 
@@ -563,16 +573,16 @@ graphics::Image::Filter OpenGL::getTextureFilter()
 	return f;
 }
 
-void OpenGL::setTextureWrap(const graphics::Image::Wrap &w)
+void OpenGL::setTextureWrap(const graphics::Texture::Wrap &w)
 {
 	GLint gs, gt;
 
 	switch (w.s)
 	{
-	case Image::WRAP_CLAMP:
+	case Texture::WRAP_CLAMP:
 		gs = GL_CLAMP_TO_EDGE;
 		break;
-	case Image::WRAP_REPEAT:
+	case Texture::WRAP_REPEAT:
 	default:
 		gs = GL_REPEAT;
 		break;
@@ -580,10 +590,10 @@ void OpenGL::setTextureWrap(const graphics::Image::Wrap &w)
 
 	switch (w.t)
 	{
-	case Image::WRAP_CLAMP:
+	case Texture::WRAP_CLAMP:
 		gt = GL_CLAMP_TO_EDGE;
 		break;
-	case Image::WRAP_REPEAT:
+	case Texture::WRAP_REPEAT:
 	default:
 		gt = GL_REPEAT;
 		break;
@@ -593,34 +603,34 @@ void OpenGL::setTextureWrap(const graphics::Image::Wrap &w)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gt);
 }
 
-graphics::Image::Wrap OpenGL::getTextureWrap()
+Texture::Wrap OpenGL::getTextureWrap()
 {
 	GLint gs, gt;
 
 	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, &gs);
 	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, &gt);
 
-	Image::Wrap w;
+	Texture::Wrap w;
 
 	switch (gs)
 	{
 	case GL_CLAMP_TO_EDGE:
-		w.s = Image::WRAP_CLAMP;
+		w.s = Texture::WRAP_CLAMP;
 		break;
 	case GL_REPEAT:
 	default:
-		w.s = Image::WRAP_REPEAT;
+		w.s = Texture::WRAP_REPEAT;
 		break;
 	}
 
 	switch (gt)
 	{
 	case GL_CLAMP_TO_EDGE:
-		w.t = Image::WRAP_CLAMP;
+		w.t = Texture::WRAP_CLAMP;
 		break;
 	case GL_REPEAT:
 	default:
-		w.t = Image::WRAP_REPEAT;
+		w.t = Texture::WRAP_REPEAT;
 		break;
 	}
 

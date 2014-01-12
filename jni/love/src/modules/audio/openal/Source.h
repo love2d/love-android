@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -29,7 +29,7 @@
 #include "sound/Decoder.h"
 
 // OpenAL
-#ifdef LOVE_MACOSX
+#ifdef LOVE_MACOSX_USE_FRAMEWORKS
 #include <OpenAL-Soft/alc.h>
 #include <OpenAL-Soft/al.h>
 #else
@@ -47,14 +47,35 @@ namespace openal
 class Audio;
 class Pool;
 
+// Basically just a reference-counted non-streaming OpenAL buffer object.
+class StaticDataBuffer : public love::Object
+{
+public:
+
+	StaticDataBuffer(ALenum format, const ALvoid *data, ALsizei size, ALsizei freq);
+	virtual ~StaticDataBuffer();
+
+	inline ALuint getBuffer() const
+	{
+		return buffer;
+	}
+
+private:
+
+	ALuint buffer;
+
+}; // StaticDataBuffer
+
 class Source : public love::audio::Source
 {
 public:
+
 	Source(Pool *pool, love::sound::SoundData *soundData);
 	Source(Pool *pool, love::sound::Decoder *decoder);
+	Source(const Source &s);
 	virtual ~Source();
 
-	virtual love::audio::Source *copy();
+	virtual love::audio::Source *clone();
 	virtual void play();
 	virtual void stop();
 	virtual void pause();
@@ -123,8 +144,11 @@ private:
 	Pool *pool;
 	ALuint source;
 	bool valid;
+
 	static const unsigned int MAX_BUFFERS = 32;
-	ALuint buffers[MAX_BUFFERS];
+	ALuint streamBuffers[MAX_BUFFERS];
+
+	StaticDataBuffer *staticBuffer;
 
 	float pitch;
 	float volume;

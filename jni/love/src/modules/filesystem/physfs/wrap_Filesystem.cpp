@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -493,7 +493,10 @@ int loader(lua_State *L)
 		}
 	}
 
-	lua_pushfstring(L, "\n\tno file \"%s\" in LOVE game directories.\n", (tmp + ".lua").c_str());
+	std::string errstr = "\n\tno file '%s' in LOVE game directories.";
+	errstr += errstr;
+
+	lua_pushfstring(L, errstr.c_str(), (tmp + ".lua").c_str(), (tmp + "/init.lua").c_str());
 	return 1;
 }
 
@@ -529,7 +532,7 @@ int extloader(lua_State *L)
 
 	if (!handle)
 	{
-		lua_pushfstring(L, "\n\tno extension \"%s\" in LOVE paths.\n", filename);
+		lua_pushfstring(L, "\n\tno file '%s' in LOVE paths.", tokenized_name.c_str());
 		return 1;
 	}
 
@@ -540,7 +543,7 @@ int extloader(lua_State *L)
 	if (!func)
 	{
 		SDL_UnloadObject(handle);
-		lua_pushfstring(L, "\n\textension \"%s\" is incompatible.\n", filename);
+		lua_pushfstring(L, "\n\tC library '%s' is incompatible.", tokenized_name.c_str());
 		return 1;
 	}
 
@@ -599,8 +602,9 @@ extern "C" int luaopen_love_filesystem(lua_State *L)
 	else
 		instance->retain();
 
-	love::luax_register_searcher(L, loader, 1);
-	love::luax_register_searcher(L, extloader, 2);
+	// The love loaders should be tried after package.preload.
+	love::luax_register_searcher(L, loader, 2);
+	love::luax_register_searcher(L, extloader, 3);
 
 	WrappedModule w;
 	w.module = instance;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -51,7 +51,7 @@ public:
 	Source(Type type);
 	virtual ~Source();
 
-	virtual Source *copy() = 0;
+	virtual Source *clone() = 0;
 
 	virtual void play() = 0;
 	virtual void stop() = 0;

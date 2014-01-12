@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -26,8 +26,7 @@
 #include "common/StringMap.h"
 #include "graphics/Graphics.h"
 #include "OpenGL.h"
-#include "Image.h"
-#include "Canvas.h"
+#include "Texture.h"
 
 // STL
 #include <string>
@@ -40,6 +39,9 @@ namespace graphics
 {
 namespace opengl
 {
+
+class Canvas;
+
 // A GLSL shader
 class Shader : public Object, public Volatile
 {
@@ -65,6 +67,7 @@ public:
 		BUILTIN_PROJECTION_MATRIX,
 		BUILTIN_TRANSFORM_PROJECTION_MATRIX,
 		BUILTIN_POINT_SIZE,
+		BUILTIN_SCREEN_PARAMS,
 		BUILTIN_MAX_ENUM
 	};
 
@@ -134,25 +137,19 @@ public:
 	void sendMatrix(const std::string &name, int size, const GLfloat *m, int count);
 
 	/**
-	 * Send an image to this Shader as a uniform.
+	 * Send a texture to this Shader as a uniform.
 	 *
 	 * @param name The name of the uniform variable in the source code.
 	 **/
-	void sendImage(const std::string &name, Image &image);
-
-	/**
-	 * Send a canvas to this Shader as a uniform.
-	 *
-	 * @param name The name of the uniform variable in the source code.
-	 **/
-	void sendCanvas(const std::string &name, Canvas &canvas);
+	void sendTexture(const std::string &name, Texture *texture);
 
 	/**
 	 * Internal use only.
 	 **/
-	bool hasBuiltinUniform(BuiltinExtern builtin) const;
+	bool hasBuiltinExtern(BuiltinExtern builtin) const;
 	bool sendBuiltinMatrix(BuiltinExtern builtin, int size, const GLfloat *m, int count);
 	bool sendBuiltinFloat(BuiltinExtern builtin, int size, const GLfloat *m, int count);
+	void checkSetScreenParams();
 
 	static std::string getGLSLVersion();
 	static bool isSupported();
@@ -196,8 +193,7 @@ private:
 
 	int getTextureUnit(const std::string &name);
 
-	void sendTexture(const std::string &name, GLuint texture);
-	void retainTexture(const std::string &name, Object *texture);
+	void retainObject(const std::string &name, Object *object);
 
 	// Get any warnings or errors generated only by the shader program object.
 	std::string getProgramWarnings() const;
@@ -212,21 +208,24 @@ private:
 	// volatile
 	GLuint program;
 
-	// Locations for any built-in uniform variables.
+	// Location values for any built-in uniform variables.
 	GLint builtinUniforms[BUILTIN_MAX_ENUM];
 
 	// Uniform location buffer map
 	std::map<std::string, Uniform> uniforms;
 
 	// Texture unit pool for setting images
-	std::map<std::string, GLint> textureUnitPool; // textureUnitPool[name] = textureunit
-	std::vector<GLuint> activeTextureUnits; // activeTextureUnits[textureunit-1] = textureid
+	std::map<std::string, GLint> texUnitPool; // texUnitPool[name] = textureunit
+	std::vector<GLuint> activeTexUnits; // activeTexUnits[textureunit-1] = textureid
 
 	// Uniform name to retainable objects
 	std::map<std::string, Object*> boundRetainables;
 
+	// Pointer to the active Canvas when the screen params were last checked.
+	Canvas *lastCanvas;
+
 	// Max GPU texture units available for sent images
-	static GLint maxTextureUnits;
+	static GLint maxTexUnits;
 
 	// Counts total number of textures bound to each texture unit in all shaders
 	static std::vector<int> textureCounters;
@@ -239,7 +238,7 @@ private:
 	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM>::Entry attribNameEntries[];
 	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM> attribNames;
 
-	// Names for the uniform matrices used in OpenGL ES 2.
+	// Names for the LOVE-defined built-in uniform variables.
 	static StringMap<BuiltinExtern, BUILTIN_MAX_ENUM>::Entry builtinNameEntries[];
 	static StringMap<BuiltinExtern, BUILTIN_MAX_ENUM> builtinNames;
 

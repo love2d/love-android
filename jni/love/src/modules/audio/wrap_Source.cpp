@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -18,6 +18,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
+#include <limits>
+
 #include "wrap_Source.h"
 
 namespace love
@@ -28,6 +30,15 @@ namespace audio
 Source *luax_checksource(lua_State *L, int idx)
 {
 	return luax_checktype<Source>(L, idx, "Source", AUDIO_SOURCE_T);
+}
+
+int w_Source_clone(lua_State *L)
+{
+	Source *t = luax_checksource(L, 1);
+	Source *clone = nullptr;
+	EXCEPT_GUARD(clone = t->clone();)
+	luax_pushtype(L, "Source", AUDIO_SOURCE_T, clone);
+	return 1;
 }
 
 int w_Source_play(lua_State *L)
@@ -69,6 +80,10 @@ int w_Source_setPitch(lua_State *L)
 {
 	Source *t = luax_checksource(L, 1);
 	float p = (float)luaL_checknumber(L, 2);
+	if (p > std::numeric_limits<lua_Number>::max() ||
+			p < std::numeric_limits<lua_Number>::min() ||
+			p != p)
+		return luaL_error(L, "Pitch has to be finite and not NaN.");
 	t->setPitch(p);
 	return 0;
 }
@@ -333,6 +348,8 @@ int w_Source_getChannels(lua_State *L)
 
 static const luaL_Reg functions[] =
 {
+	{ "clone", w_Source_clone },
+
 	{ "play", w_Source_play },
 	{ "stop", w_Source_stop },
 	{ "pause", w_Source_pause },

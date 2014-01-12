@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -25,8 +25,8 @@
 #include "OpenGL.h"
 
 // LOVE
-#include "Image.h"
 #include "VertexBuffer.h"
+#include "Texture.h"
 
 // C++
 #include <algorithm>
@@ -41,8 +41,8 @@ namespace graphics
 namespace opengl
 {
 
-SpriteBatch::SpriteBatch(Image *image, int size, int usage)
-	: image(image)
+SpriteBatch::SpriteBatch(Texture *texture, int size, int usage)
+	: texture(texture)
 	, size(size)
 	, next(0)
 	, color(0)
@@ -87,12 +87,12 @@ SpriteBatch::SpriteBatch(Image *image, int size, int usage)
 		throw love::Exception("Out of memory.");
 	}
 
-	image->retain();
+	texture->retain();
 }
 
 SpriteBatch::~SpriteBatch()
 {
-	image->release();
+	texture->release();
 
 	delete color;
 	delete array_buf;
@@ -106,7 +106,7 @@ int SpriteBatch::add(float x, float y, float a, float sx, float sy, float ox, fl
 		return -1;
 
 	// Needed for colors.
-	memcpy(sprite, image->getVertices(), sizeof(Vertex)*4);
+	memcpy(sprite, texture->getVertices(), sizeof(Vertex) * 4);
 
 	// Transform.
 	static Matrix t;
@@ -170,17 +170,17 @@ void SpriteBatch::unlock()
 	array_buf->unmap();
 }
 
-void SpriteBatch::setImage(Image *newimage)
+void SpriteBatch::setTexture(Texture *newtexture)
 {
-	Object::AutoRelease imagerelease(image);
+	Object::AutoRelease imagerelease(texture);
 
-	newimage->retain();
-	image = newimage;
+	newtexture->retain();
+	texture = newtexture;
 }
 
-Image *SpriteBatch::getImage()
+Texture *SpriteBatch::getTexture()
 {
-	return image;
+	return texture;
 }
 
 void SpriteBatch::setColor(const Color &color)
@@ -278,9 +278,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 	gl.matrices.transform.push(gl.matrices.transform.top());
 	gl.matrices.transform.top() *= t;
 
-	image->predraw();
-
-	gl.prepareDraw();
+	texture->predraw();
 
 	VertexBuffer::Bind array_bind(*array_buf);
 	VertexBuffer::Bind element_bind(*element_buf->getVertexBuffer());
@@ -300,6 +298,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 		gl.setVertexAttribArray(OpenGL::ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, sizeof(Vertex), array_buf->getPointer(color_offset));
 	}
 
+	gl.prepareDraw();
 	glDrawElements(GL_TRIANGLES, element_buf->getIndexCount(next), element_buf->getType(), element_buf->getPointer(0));
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
@@ -311,7 +310,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 		gl.setColor(curcolor);
 	}
 
-	image->postdraw();
+	texture->postdraw();
 
 	gl.matrices.transform.pop();
 }

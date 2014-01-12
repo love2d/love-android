@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -84,14 +84,14 @@ int w_Font_getLineHeight(lua_State *L)
 int w_Font_setFilter(lua_State *L)
 {
 	Font *t = luax_checkfont(L, 1);
-	Image::Filter f = t->getFilter();
+	Texture::Filter f = t->getFilter();
 
 	const char *minstr = luaL_checkstring(L, 2);
 	const char *magstr = luaL_optstring(L, 3, minstr);
 
-	if (!Image::getConstant(minstr, f.min))
+	if (!Texture::getConstant(minstr, f.min))
 		return luaL_error(L, "Invalid filter mode: %s", minstr);
-	if (!Image::getConstant(magstr, f.mag))
+	if (!Texture::getConstant(magstr, f.mag))
 		return luaL_error(L, "Invalid filter mode: %s", magstr);
 
 	f.anisotropy = (float) luaL_optnumber(L, 4, 1.0);
@@ -103,11 +103,11 @@ int w_Font_setFilter(lua_State *L)
 int w_Font_getFilter(lua_State *L)
 {
 	Font *t = luax_checkfont(L, 1);
-	const Image::Filter f = t->getFilter();
+	const Texture::Filter f = t->getFilter();
 	const char *minstr;
 	const char *magstr;
-	Image::getConstant(f.min, minstr);
-	Image::getConstant(f.mag, magstr);
+	Texture::getConstant(f.min, minstr);
+	Texture::getConstant(f.mag, magstr);
 	lua_pushstring(L, minstr);
 	lua_pushstring(L, magstr);
 	lua_pushnumber(L, f.anisotropy);

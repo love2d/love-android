@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -671,6 +671,7 @@ StringMap<Type, TYPE_MAX_ENUM>::Entry typeEntries[] =
 
 	// Graphics
 	{"Drawable", GRAPHICS_DRAWABLE_ID},
+	{"Texture", GRAPHICS_TEXTURE_ID},
 	{"Image", GRAPHICS_IMAGE_ID},
 	{"Quad", GRAPHICS_QUAD_ID},
 	{"Font", GRAPHICS_FONT_ID},

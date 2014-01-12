@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -18,16 +18,30 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#include "Drawable.h"
+#ifndef LOVE_GRAPHICS_OPENGL_WRAP_TEXTURE_H
+#define LOVE_GRAPHICS_OPENGL_WRAP_TEXTURE_H
+
+#include "Texture.h"
+#include "common/runtime.h"
 
 namespace love
 {
 namespace graphics
 {
-
-Drawable::~Drawable()
+namespace opengl
 {
-}
 
+Texture *luax_checktexture(lua_State *L, int idx);
+int w_Texture_getWidth(lua_State *L);
+int w_Texture_getHeight(lua_State *L);
+int w_Texture_getDimensions(lua_State *L);
+int w_Texture_setFilter(lua_State *L);
+int w_Texture_getFilter(lua_State *L);
+int w_Texture_setWrap(lua_State *L);
+int w_Texture_getWrap(lua_State *L);
+
+} // opengl
 } // graphics
 } // love
+
+#endif // LOVE_GRAPHICS_OPENGL_WRAP_TEXTURE_H

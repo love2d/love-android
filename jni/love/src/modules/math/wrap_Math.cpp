@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -223,9 +223,9 @@ int w_isConvex(lua_State *L)
 	}
 	else
 	{
-		size_t top = lua_gettop(L);
+		int top = lua_gettop(L);
 		vertices.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			Vertex v;
 			v.x = (float) luaL_checknumber(L, i);

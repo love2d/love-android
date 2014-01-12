@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -26,7 +26,7 @@
 #include "common/math.h"
 #include "common/StringMap.h"
 #include "graphics/Drawable.h"
-#include "Image.h"
+#include "Texture.h"
 #include "VertexBuffer.h"
 
 // C++
@@ -110,20 +110,20 @@ public:
 	size_t getVertexMapCount() const;
 
 	/**
-	 * Sets the Image used when drawing the Mesh.
+	 * Sets the texture used when drawing the Mesh.
 	 **/
-	void setImage(Image *img);
+	void setTexture(Texture *texture);
 
 	/**
-	 * Disables any Image from being used when drawing the Mesh.
+	 * Disables any texture from being used when drawing the Mesh.
 	 **/
-	void setImage();
+	void setTexture();
 
 	/**
-	 * Gets the Image used when drawing the Mesh. May return null if no Image is
-	 * set.
+	 * Gets the texture used when drawing the Mesh. May return null if no
+	 * texture is set.
 	 **/
-	Image *getImage() const;
+	Texture *getTexture() const;
 
 	/**
 	 * Sets the draw mode used when drawing the Mesh.
@@ -137,6 +137,15 @@ public:
 	 **/
 	void setVertexColors(bool enable);
 	bool hasVertexColors() const;
+
+	/**
+	 * Sets whether the Mesh will be drawn as wireframe lines instead of filled
+	 * triangles (has no effect for DRAW_MODE_POINTS.)
+	 * This should only be used as a debugging tool. The wireframe lines do not
+	 * behave the same as regular love.graphics lines.
+	 **/
+	void setWireframe(bool enable);
+	bool isWireframe() const;
 
 	// Implements Drawable.
 	void draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const;
@@ -158,10 +167,12 @@ private:
 
 	DrawMode draw_mode;
 
-	Image *image;
+	Texture *texture;
 
 	// Whether the per-vertex colors are used when drawing.
 	bool colors_enabled;
+
+	bool wireframe;
 
 	static StringMap<DrawMode, DRAW_MODE_MAX_ENUM>::Entry drawModeEntries[];
 	static StringMap<DrawMode, DRAW_MODE_MAX_ENUM> drawModes;

@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2013 LOVE Development Team
+Copyright (c) 2006-2014 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -1309,7 +1309,8 @@ do
 #define ProjectionMatrix gl_ProjectionMatrix
 #define TransformProjectionMatrix gl_ModelViewProjectionMatrix
 #define NormalMatrix gl_NormalMatrix
-uniform sampler2D _tex0_;]]
+uniform sampler2D _tex0_;
+uniform vec2 love_ScreenParams;]]
 
 	GLSLES.UNIFORMS = [[
 uniform mat4 TransformMatrix;
@@ -1317,7 +1318,8 @@ uniform mat4 ProjectionMatrix;
 uniform mat4 TransformProjectionMatrix;
 // uniform mat4 NormalMatrix;
 uniform float love_PointSize;
-uniform sampler2D _tex0_;]]
+uniform sampler2D _tex0_;
+uniform vec2 love_ScreenParams;]]
 
 	GLSL.VERTEX = {
 		HEADER = [[
@@ -1369,14 +1371,22 @@ void main() {
 void main() {
 	// fix crashing issue in OSX when _tex0_ is unused within effect()
 	float dummy = texture2D(_tex0_, vec2(.5)).r;
-	gl_FragColor = effect(VaryingColor, _tex0_, VaryingTexCoord.st, gl_FragCoord.xy);
+
+	// See Shader::checkSetScreenParams in Shader.cpp.
+	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenParams[0]) + love_ScreenParams[1]);
+
+	gl_FragColor = effect(VaryingColor, _tex0_, VaryingTexCoord.st, pixelcoord);
 }]],
 
 		FOOTER_MULTI_CANVAS = [[
 void main() {
 	// fix crashing issue in OSX when _tex0_ is unused within effect()
 	float dummy = texture2D(_tex0_, vec2(.5)).r;
-	effects(VaryingColor, _tex0_, VaryingTexCoord.st, gl_FragCoord.xy);
+
+	// See Shader::checkSetScreenParams in Shader.cpp.
+	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenParams[0]) + love_ScreenParams[1]);
+
+	effects(VaryingColor, _tex0_, VaryingTexCoord.st, pixelcoord);
 }]],
 	}
 

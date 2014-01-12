@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -97,7 +97,7 @@ DevilHandler::DecodedImage DevilHandler::decode(love::filesystem::FileData *data
 
 	try
 	{
-		bool success = ilLoadL(IL_TYPE_UNKNOWN, (void *)data->getData(), data->getSize()) == IL_TRUE;
+		bool success = ilLoadL(IL_TYPE_UNKNOWN, (void *)data->getData(), (ILuint) data->getSize()) == IL_TRUE;
 
 		if (!success)
 			throw love::Exception("Could not decode image!");
@@ -113,7 +113,7 @@ DevilHandler::DecodedImage DevilHandler::decode(love::filesystem::FileData *data
 		if (bpp != sizeof(pixel))
 			throw love::Exception("Could not convert image!");
 
-		img.size = ilGetInteger(IL_IMAGE_SIZE_OF_DATA);
+		img.size = (size_t) ilGetInteger(IL_IMAGE_SIZE_OF_DATA);
 
 		try
 		{

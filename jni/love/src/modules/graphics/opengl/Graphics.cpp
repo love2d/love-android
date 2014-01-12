@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -18,6 +18,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
+// LOVE
 #include "common/config.h"
 #include "common/math.h"
 #include "common/Vector.h"
@@ -26,10 +27,14 @@
 #include "window/sdl/Window.h"
 #include "Polyline.h"
 
+// C++
 #include <vector>
 #include <sstream>
 #include <algorithm>
 #include <iterator>
+
+// C
+#include <cmath>
 
 namespace love
 {
@@ -126,11 +131,24 @@ void Graphics::setViewportSize(int width, int height)
 	if (!isCreated())
 		return;
 
-	// Set the viewport to top-left corner
+	// We want to affect the main screen, not any Canvas that's currently active
+	// (not that any *should* be active when this is called.)
+	Canvas *c = Canvas::current;
+	Canvas::bindDefaultCanvas();
+
+	// Set the viewport to top-left corner.
 	gl.setViewport(OpenGL::Viewport(0, 0, width, height));
+
+	// If a canvas was bound before this function was called, it needs to be
+	// made aware of the new system viewport size.
+	Canvas::systemViewport = gl.getViewport();
 
 	// Set up orthographic view (no depth)
 	gl.matrices.projection.top() = Matrix::ortho(0.0, width, height, 0.0);
+
+	// Restore the previously active Canvas.
+	if (c != nullptr)
+		c->startGrab(c->getAttachedCanvases());
 }
 
 bool Graphics::setMode(int width, int height)
@@ -188,7 +206,7 @@ bool Graphics::setMode(int width, int height)
 	gl.setTextureUnit(0);
 
 	// Set pixel row alignment
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	// Reload all volatile objects.
 	if (!Volatile::loadAll())
@@ -234,19 +252,29 @@ void Graphics::reset()
 	discardStencil();
 	Canvas::bindDefaultCanvas();
 	Shader::detach();
+	origin();
 	restoreState(s);
-	pixel_size_stack.clear();
-	pixel_size_stack.reserve(5);
-	pixel_size_stack.push_back(1);
 }
 
 void Graphics::clear()
 {
-	glClear(GL_COLOR_BUFFER_BIT);
+	GLbitfield buffers = GL_COLOR_BUFFER_BIT;
+
+	if (GLAD_EXT_discard_framebuffer)
+		buffers |= GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+
+	glClear(buffers);
 }
 
 void Graphics::present()
 {
+	if (GLAD_EXT_discard_framebuffer)
+	{
+		// Hint for the driver that it doesn't need to save these buffers.
+		GLenum attachments[] = {GL_STENCIL_ATTACHMENT, GL_DEPTH_ATTACHMENT};
+		glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, attachments);
+	}
+
 	currentWindow->swapBuffers();
 }
 
@@ -329,7 +357,11 @@ Image *Graphics::newImage(love::image::ImageData *data)
 {
 	// Create the image.
 	Image *image = new Image(data);
-	bool success;
+
+	if (!isCreated())
+		return image;
+
+	bool success = false;
 	try
 	{
 		success = image->load();
@@ -352,7 +384,11 @@ Image *Graphics::newImage(love::image::CompressedData *cdata)
 {
 	// Create the image.
 	Image *image = new Image(cdata);
-	bool success;
+
+	if (!isCreated())
+		return image;
+
+	bool success = false;
 	try
 	{
 		success = image->load();
@@ -376,19 +412,19 @@ Quad *Graphics::newQuad(Quad::Viewport v, float sw, float sh)
 	return new Quad(v, sw, sh);
 }
 
-Font *Graphics::newFont(love::font::Rasterizer *r, const Image::Filter &filter)
+Font *Graphics::newFont(love::font::Rasterizer *r, const Texture::Filter &filter)
 {
 	return new Font(r, filter);
 }
 
-SpriteBatch *Graphics::newSpriteBatch(Image *image, int size, int usage)
+SpriteBatch *Graphics::newSpriteBatch(Texture *texture, int size, int usage)
 {
-	return new SpriteBatch(image, size, usage);
+	return new SpriteBatch(texture, size, usage);
 }
 
-ParticleSystem *Graphics::newParticleSystem(Image *image, int size)
+ParticleSystem *Graphics::newParticleSystem(Texture *texture, int size)
 {
-	return new ParticleSystem(image, size);
+	return new ParticleSystem(texture, size);
 }
 
 Canvas *Graphics::newCanvas(int width, int height, Canvas::TextureType texture_type)
@@ -633,23 +669,23 @@ Graphics::BlendMode Graphics::getBlendMode() const
 	throw Exception("Unknown blend mode");
 }
 
-void Graphics::setDefaultFilter(const Image::Filter &f)
+void Graphics::setDefaultFilter(const Texture::Filter &f)
 {
-	Image::setDefaultFilter(f);
+	Texture::setDefaultFilter(f);
 }
 
-const Image::Filter &Graphics::getDefaultFilter() const
+const Texture::Filter &Graphics::getDefaultFilter() const
 {
-	return Image::getDefaultFilter();
+	return Texture::getDefaultFilter();
 }
 
-void Graphics::setDefaultMipmapFilter(Image::FilterMode filter, float sharpness)
+void Graphics::setDefaultMipmapFilter(Texture::FilterMode filter, float sharpness)
 {
 	Image::setDefaultMipmapFilter(filter);
 	Image::setDefaultMipmapSharpness(sharpness);
 }
 
-void Graphics::getDefaultMipmapFilter(Image::FilterMode *filter, float *sharpness) const
+void Graphics::getDefaultMipmapFilter(Texture::FilterMode *filter, float *sharpness) const
 {
 	*filter = Image::getDefaultMipmapFilter();
 	*sharpness = Image::getDefaultMipmapSharpness();
@@ -726,13 +762,13 @@ int Graphics::getMaxPointSize() const
 
 void Graphics::print(const std::string &str, float x, float y , float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
-	if (currentFont != 0)
+	if (currentFont != nullptr)
 		currentFont->print(str, x, y, 0.0, angle, sx, sy, ox, oy, kx, ky);
 }
 
 void Graphics::printf(const std::string &str, float x, float y, float wrap, AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
-	if (currentFont == 0)
+	if (currentFont == nullptr)
 		return;
 
 	if (wrap < 0.0f)
@@ -1073,7 +1109,7 @@ void Graphics::rotate(float r)
 void Graphics::scale(float x, float y)
 {
 	gl.matrices.transform.top().scale(x, y);
-	pixel_size_stack.back() *= 2. / double(x + y);
+	pixel_size_stack.back() *= 2. / (fabs(x) + fabs(y));
 }
 
 void Graphics::translate(float x, float y)

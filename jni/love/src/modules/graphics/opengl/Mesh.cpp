@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -36,8 +36,9 @@ Mesh::Mesh(const std::vector<Vertex> &verts, Mesh::DrawMode mode)
 	, ibo(nullptr)
 	, element_count(0)
 	, draw_mode(mode)
-	, image(nullptr)
+	, texture(nullptr)
 	, colors_enabled(false)
+	, wireframe(false)
 {
 	setVertices(verts);
 }
@@ -169,27 +170,27 @@ size_t Mesh::getVertexMapCount() const
 	return element_count;
 }
 
-void Mesh::setImage(Image *img)
+void Mesh::setTexture(Texture *tex)
 {
-	img->retain();
+	tex->retain();
 
-	if (image)
-		image->release();
+	if (texture)
+		texture->release();
 
-	image = img;
+	texture = tex;
 }
 
-void Mesh::setImage()
+void Mesh::setTexture()
 {
-	if (image)
-		image->release();
+	if (texture)
+		texture->release();
 
-	image = nullptr;
+	texture = nullptr;
 }
 
-Image *Mesh::getImage() const
+Texture *Mesh::getTexture() const
 {
-	return image;
+	return texture;
 }
 
 void Mesh::setDrawMode(Mesh::DrawMode mode)
@@ -212,6 +213,16 @@ bool Mesh::hasVertexColors() const
 	return colors_enabled;
 }
 
+void Mesh::setWireframe(bool enable)
+{
+	wireframe = enable;
+}
+
+bool Mesh::isWireframe() const
+{
+	return wireframe;
+}
+
 void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
 {
 	const size_t pos_offset   = offsetof(Vertex, x);
@@ -221,8 +232,8 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 	if (vertex_count == 0)
 		return;
 
-	if (image)
-		image->predraw();
+	if (texture)
+		texture->predraw();
 	else
 		gl.bindTexture(0);
 
@@ -250,9 +261,12 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 		gl.setVertexAttribArray(OpenGL::ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, sizeof(Vertex), vbo->getPointer(color_offset));
 	}
 
-	gl.prepareDraw();
+	if (wireframe && GLAD_VERSION_1_0)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	GLenum mode = getGLDrawMode(draw_mode);
+
+	gl.prepareDraw();
 
 	if (ibo && element_count > 0)
 	{
@@ -273,6 +287,9 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
 
+	if (wireframe && GLAD_VERSION_1_0)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 	if (hasVertexColors())
 	{
 		gl.disableVertexAttribArray(OpenGL::ATTRIB_COLOR);
@@ -282,8 +299,8 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 
 	gl.matrices.transform.pop();
 
-	if (image)
-		image->postdraw();
+	if (texture)
+		texture->postdraw();
 }
 
 GLenum Mesh::getGLDrawMode(Mesh::DrawMode mode) const

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -58,10 +58,21 @@ public:
 	float getRadius() const;
 
 	/**
-	 * Sets the radius for the circle.
+	 * Sets the radius of the circle.
 	 **/
 	void setRadius(float r);
-};
+
+	/**
+	 * Gets the position of the circle.
+	 **/
+	void getPoint(float &x_o, float &y_o) const;
+
+	/**
+	 * Sets the position for the circle.
+	 **/
+	void setPoint(float x, float y);
+
+}; // CircleShape
 
 } // box2d
 } // physics

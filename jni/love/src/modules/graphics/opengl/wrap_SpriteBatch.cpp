@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -18,8 +18,14 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#include "Image.h"
+// LOVE
 #include "wrap_SpriteBatch.h"
+#include "Image.h"
+#include "Canvas.h"
+#include "wrap_Texture.h"
+
+// C++
+#include <typeinfo>
 
 namespace love
 {
@@ -36,7 +42,7 @@ SpriteBatch *luax_checkspritebatch(lua_State *L, int idx)
 int w_SpriteBatch_add(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
-	Quad *quad = 0;
+	Quad *quad = nullptr;
 	int startidx = 2;
 
 	if (luax_istype(L, 2, GRAPHICS_QUAD_T))
@@ -74,7 +80,7 @@ int w_SpriteBatch_set(lua_State *L)
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
 	int id = luaL_checkinteger(L, 2);
 
-	Quad *quad = 0;
+	Quad *quad = nullptr;
 	int startidx = 3;
 
 	if (luax_istype(L, 3, GRAPHICS_QUAD_T))
@@ -126,20 +132,31 @@ int w_SpriteBatch_unbind(lua_State *L)
 	return 0;
 }
 
-int w_SpriteBatch_setImage(lua_State *L)
+int w_SpriteBatch_setTexture(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
-	Image *image = luax_checktype<Image>(L, 2, "Image", GRAPHICS_IMAGE_T);
-	t->setImage(image);
+	Texture *tex = luax_checktexture(L, 2);
+	t->setTexture(tex);
 	return 0;
 }
 
-int w_SpriteBatch_getImage(lua_State *L)
+int w_SpriteBatch_getTexture(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
-	Image *image = t->getImage();
-	image->retain();
-	luax_pushtype(L, "Image", GRAPHICS_IMAGE_T, image);
+	Texture *tex = t->getTexture();
+	tex->retain();
+
+	// FIXME: big hack right here.
+	if (typeid(*tex) == typeid(Image))
+		luax_pushtype(L, "Image", GRAPHICS_IMAGE_T, tex);
+	else if (typeid(*tex) == typeid(Canvas))
+		luax_pushtype(L, "Canvas", GRAPHICS_CANVAS_T, tex);
+	else
+	{
+		tex->release();
+		return luaL_error(L, "Unable to determine texture type.");
+	}
+
 	return 1;
 }
 
@@ -224,13 +241,17 @@ static const luaL_Reg functions[] =
 	{ "clear", w_SpriteBatch_clear },
 	{ "bind", w_SpriteBatch_bind },
 	{ "unbind", w_SpriteBatch_unbind },
-	{ "setImage", w_SpriteBatch_setImage },
-	{ "getImage", w_SpriteBatch_getImage },
+	{ "setTexture", w_SpriteBatch_setTexture },
+	{ "getTexture", w_SpriteBatch_getTexture },
 	{ "setColor", w_SpriteBatch_setColor },
 	{ "getColor", w_SpriteBatch_getColor },
 	{ "getCount", w_SpriteBatch_getCount },
 	{ "setBufferSize", w_SpriteBatch_setBufferSize },
 	{ "getBufferSize", w_SpriteBatch_getBufferSize },
+
+	// Deprecated since 0.9.1.
+	{ "setImage", w_SpriteBatch_setTexture },
+	{ "getImage", w_SpriteBatch_getTexture },
 	{ 0, 0 }
 };
 

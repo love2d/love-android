@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -36,7 +36,7 @@ namespace font
 GlyphData::GlyphData(uint32 glyph, GlyphMetrics glyphMetrics, GlyphData::Format f)
 	: glyph(glyph)
 	, metrics(glyphMetrics)
-	, data(0)
+	, data(nullptr)
 	, format(f)
 {
 	if (metrics.width > 0 && metrics.height > 0)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -165,7 +165,7 @@ void *VBO::map()
 
 	if (is_dirty)
 	{
-		glGetBufferSubData(getTarget(), 0, getSize(), memory_map);
+		glGetBufferSubData(getTarget(), 0, (GLsizeiptr) getSize(), memory_map);
 		is_dirty = false;
 	}
 
@@ -189,8 +189,8 @@ void VBO::unmap()
 
 	// "orphan" current buffer to avoid implicit synchronisation on the GPU:
 	// http://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
-	glBufferData(getTarget(), getSize(), NULL,       getUsage());
-	glBufferData(getTarget(), getSize(), memory_map, getUsage());
+	glBufferData(getTarget(), (GLsizeiptr) getSize(), NULL,       getUsage());
+	glBufferData(getTarget(), (GLsizeiptr) getSize(), memory_map, getUsage());
 
 	is_mapped = false;
 }
@@ -230,7 +230,7 @@ void VBO::fill(size_t offset, size_t size, const void *data)
 				// Now we tell the driver it only needs to deal with the data
 				// we changed.
 				memcpy(static_cast<char *>(mapdata) + offset, data, size);
-				glFlushMappedBufferRangeAPPLE(getTarget(), offset, size);
+				glFlushMappedBufferRangeAPPLE(getTarget(), (GLintptr) offset, (GLsizei) size);
 			}
 
 			glUnmapBuffer(getTarget());
@@ -238,7 +238,7 @@ void VBO::fill(size_t offset, size_t size, const void *data)
 		else
 		{
 			// Fall back to a possibly slower SubData (more chance of syncing.)
-			glBufferSubData(getTarget(), offset, size, data);
+			glBufferSubData(getTarget(), (GLintptr) offset, (GLsizeiptr) size, data);
 		}
 
 		if (getMemoryBacking() != BACKING_FULL)
@@ -280,7 +280,7 @@ bool VBO::load(bool restore)
 		glBufferParameteriAPPLE(getTarget(), GL_BUFFER_FLUSHING_UNMAP_APPLE, GL_FALSE);
 
 	// Note that if 'src' is '0', no data will be copied.
-	glBufferData(getTarget(), getSize(), src, getUsage());
+	glBufferData(getTarget(), (GLsizeiptr) getSize(), src, getUsage());
 	GLenum err = glGetError();
 
 	return (GL_NO_ERROR == err);

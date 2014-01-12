@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -115,7 +115,8 @@ struct FramebufferStrategyCore : public FramebufferStrategy
 		glGenTextures(1, &img);
 		gl.bindTexture(img);
 
-		gl.setTextureFilter(Image::getDefaultFilter());
+		Texture::Filter filter = Texture::getDefaultFilter();
+		gl.setTextureFilter(filter);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height,
 			0, GL_RGBA, format, NULL);
@@ -183,7 +184,7 @@ struct FramebufferStrategyCore : public FramebufferStrategy
 		for (size_t i = 0; i < canvases.size(); i++)
 		{
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i,
-				GL_TEXTURE_2D, canvases[i]->getTextureName(), 0);
+				GL_TEXTURE_2D, canvases[i]->getGLTexture(), 0);
 			drawbuffers.push_back(GL_COLOR_ATTACHMENT1 + i);
 		}
 
@@ -244,7 +245,8 @@ struct FramebufferStrategyPackedEXT : public FramebufferStrategy
 		glGenTextures(1, &img);
 		gl.bindTexture(img);
 
-		gl.setTextureFilter(Image::getDefaultFilter());
+		Texture::Filter filter = Texture::getDefaultFilter();
+		gl.setTextureFilter(filter);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height,
 			0, GL_RGBA, format, NULL);
@@ -312,7 +314,7 @@ struct FramebufferStrategyPackedEXT : public FramebufferStrategy
 		for (size_t i = 0; i < canvases.size(); i++)
 		{
 			glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1_EXT + i,
-								   GL_TEXTURE_2D, canvases[i]->getTextureName(), 0);
+								   GL_TEXTURE_2D, canvases[i]->getGLTexture(), 0);
 			drawbuffers.push_back(GL_COLOR_ATTACHMENT1_EXT + i);
 		}
 
@@ -365,6 +367,7 @@ FramebufferStrategyPackedEXT strategyPackedEXT;
 FramebufferStrategyEXT strategyEXT;
 
 Canvas *Canvas::current = NULL;
+OpenGL::Viewport Canvas::systemViewport = OpenGL::Viewport();
 
 static void getStrategy()
 {
@@ -387,37 +390,36 @@ static int maxFBOColorAttachments = 0;
 static int maxDrawBuffers = 0;
 
 Canvas::Canvas(int width, int height, TextureType texture_type)
-	: width(width)
-	, height(height)
-	, fbo(0)
+	: fbo(0)
 	, depth_stencil(0)
 	, img(0)
 	, texture_type(texture_type)
 {
+	this->width = width;
+	this->height = height;
+
 	float w = static_cast<float>(width);
 	float h = static_cast<float>(height);
 
 	// world coordinates
 	vertices[0].x = 0;
-	vertices[0].y = h;
-	vertices[1].x = w;
+	vertices[0].y = 0;
+	vertices[1].x = 0;
 	vertices[1].y = h;
 	vertices[2].x = w;
-	vertices[2].y = 0;
-	vertices[3].x = 0;
+	vertices[2].y = h;
+	vertices[3].x = w;
 	vertices[3].y = 0;
 
 	// texture coordinates
 	vertices[0].s = 0;
 	vertices[0].t = 0;
-	vertices[1].s = 1;
-	vertices[1].t = 0;
+	vertices[1].s = 0;
+	vertices[1].t = 1;
 	vertices[2].s = 1;
 	vertices[2].t = 1;
-	vertices[3].s = 0;
-	vertices[3].t = 1;
-
-	settings.filter = Image::getDefaultFilter();
+	vertices[3].s = 1;
+	vertices[3].t = 0;
 
 	getStrategy();
 
@@ -433,36 +435,103 @@ Canvas::~Canvas()
 	unloadVolatile();
 }
 
-bool Canvas::isSupported()
+bool Canvas::loadVolatile()
 {
-	getStrategy();
-	return (strategy != &strategyNone);
-}
+	fbo = depth_stencil = img = 0;
 
-bool Canvas::isHDRSupported()
-{
-	return GLAD_VERSION_3_0 || (isSupported() && GLAD_ARB_texture_float);
-}
-
-bool Canvas::isMultiCanvasSupported()
-{
-	if (!(isSupported() && (GLAD_VERSION_2_0 || GLAD_ES_VERSION_3_0 || GLAD_ARB_draw_buffers)))
-		return false;
-
-	if (maxFBOColorAttachments == 0 || maxDrawBuffers == 0)
+	// glTexImage2D is guaranteed to error in this case.
+	if (width > gl.getMaxTextureSize() || height > gl.getMaxTextureSize())
 	{
-		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxFBOColorAttachments);
-		glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+		status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+		return false;
 	}
 
-	// system must support at least 4 simultanious active canvases
-	return maxFBOColorAttachments >= 4 && maxDrawBuffers >= 4;
+	status = strategy->createFBO(fbo, img, width, height, texture_type);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+		return false;
+
+	setFilter(filter);
+	setWrap(wrap);
+	clear(Color(0, 0, 0, 0));
+	return true;
 }
 
-void Canvas::bindDefaultCanvas()
+void Canvas::unloadVolatile()
 {
-	if (current != NULL)
-		current->stopGrab();
+	strategy->deleteFBO(fbo, depth_stencil, img);
+	fbo = depth_stencil = img = 0;
+
+	for (size_t i = 0; i < attachedCanvases.size(); i++)
+		attachedCanvases[i]->release();
+
+	attachedCanvases.clear();
+}
+
+void Canvas::drawv(const Matrix &t, const Vertex *v) const
+{
+	gl.matrices.transform.push(gl.matrices.transform.top());
+	gl.matrices.transform.top() *= t;
+
+	gl.prepareDraw();
+
+	predraw();
+
+	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
+	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+
+	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *) &v[0].x);
+	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *) &v[0].s);
+
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
+	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+
+	postdraw();
+
+	gl.matrices.transform.pop();
+
+}
+
+void Canvas::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
+{
+	static Matrix t;
+	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
+
+	drawv(t, vertices);
+}
+
+void Canvas::drawq(Quad *quad, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
+{
+	static Matrix t;
+	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
+
+	const Vertex *v = quad->getVertices();
+	drawv(t, v);
+}
+
+void Canvas::setFilter(const Texture::Filter &f)
+{
+	filter = f;
+	gl.bindTexture(img);
+	gl.setTextureFilter(filter);
+}
+
+void Canvas::setWrap(const Texture::Wrap &w)
+{
+	wrap = w;
+	gl.bindTexture(img);
+	gl.setTextureWrap(wrap);
+}
+
+GLuint Canvas::getGLTexture() const
+{
+	return img;
+}
+
+void Canvas::predraw() const
+{
+	gl.bindTexture(img);
 }
 
 void Canvas::setupGrab()
@@ -476,12 +545,12 @@ void Canvas::setupGrab()
 		current->stopGrab();
 
 	// bind the framebuffer object.
-	glPushAttrib(GL_VIEWPORT_BIT | GL_TRANSFORM_BIT);
+	systemViewport = gl.getViewport();
 	strategy->bindFBO(fbo);
 	gl.setViewport(OpenGL::Viewport(0, 0, width, height));
 
 	// Set up orthographic view (no depth)
-	gl.matrices.projection.push(Matrix::ortho(0.0, width, height, 0.0));
+	gl.matrices.projection.push(Matrix::ortho(0.0, width, 0.0, height));
 
 	// indicate we are using this fbo
 	current = this;
@@ -555,11 +624,20 @@ void Canvas::stopGrab()
 	if (current != this)
 		return;
 
+	if (depth_stencil != 0 && GLAD_EXT_discard_framebuffer)
+	{
+		// Hint for the driver that it doesn't need to save these buffers.
+		GLenum attachments[] = {GL_STENCIL_ATTACHMENT, GL_DEPTH_ATTACHMENT};
+		glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, attachments);
+	}
+
 	// bind default
 	strategy->bindFBO(gl.getDefaultFBO());
 	gl.matrices.projection.pop();
-	glPopAttrib();
-	current = NULL;
+
+	current = nullptr;
+
+	gl.setViewport(systemViewport);
 }
 
 void Canvas::clear(Color c)
@@ -571,7 +649,7 @@ void Canvas::clear(Color c)
 
 	if (current != this)
 	{
-		if (current != NULL)
+		if (current != nullptr)
 			previous = current->fbo;
 
 		strategy->bindFBO(fbo);
@@ -614,30 +692,6 @@ void Canvas::clear(Color c)
 		strategy->bindFBO(previous);
 }
 
-void Canvas::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
-{
-	static Matrix t;
-	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
-
-	drawv(t, vertices);
-}
-
-void Canvas::drawq(Quad *quad, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
-{
-	static Matrix t;
-	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
-
-	const Vertex *v = quad->getVertices();
-
-	// flip texture coordinates vertically.
-	Vertex w[4];
-	memcpy(w, v, sizeof(Vertex) * 4);
-	for (size_t i = 0; i < 4; i++)
-		w[i].t = 1.0f - w[i].t;
-
-	drawv(t, w);
-}
-
 bool Canvas::checkCreateStencil()
 {
 	// Do nothing if we've already created the stencil buffer.
@@ -662,7 +716,6 @@ love::image::ImageData *Canvas::getImageData(love::image::Image *image)
 	int row = 4 * width;
 	int size = row * height;
 	GLubyte *pixels  = new GLubyte[size];
-	GLubyte *flipped = new GLubyte[size];
 
 	strategy->bindFBO(fbo);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -671,15 +724,8 @@ love::image::ImageData *Canvas::getImageData(love::image::Image *image)
 	else
 		strategy->bindFBO(gl.getDefaultFBO());
 
-	GLubyte *src = pixels, *dst = flipped + size - row;
-	for (int i = 0; i < height; ++i, dst -= row, src += row)
-		memcpy(dst, src, row);
-
-	love::image::ImageData *img = image->newImageData(width, height, (void *)flipped, true);
-
-	// The new ImageData now owns the flipped data, so we don't delete it here.
-	delete[] pixels;
-
+	// The new ImageData now owns the pixel data, so we don't delete it here.
+	love::image::ImageData *img = image->newImageData(width, height, (void *)pixels, true);
 	return img;
 }
 
@@ -696,99 +742,36 @@ void Canvas::getPixel(unsigned char* pixel_rgba, int x, int y)
 		strategy->bindFBO(gl.getDefaultFBO());
 }
 
-const std::vector<Canvas *> &Canvas::getAttachedCanvases() const
+bool Canvas::isSupported()
 {
-	return attachedCanvases;
+	getStrategy();
+	return (strategy != &strategyNone);
 }
 
-void Canvas::setFilter(const Image::Filter &f)
+bool Canvas::isHDRSupported()
 {
-	settings.filter = f;
-	gl.bindTexture(img);
-	settings.filter.anisotropy = gl.setTextureFilter(f);
+	return GLAD_VERSION_3_0 || (isSupported() && GLAD_ARB_texture_float);
 }
 
-Image::Filter Canvas::getFilter() const
+bool Canvas::isMultiCanvasSupported()
 {
-	gl.bindTexture(img);
-	return gl.getTextureFilter();
-}
-
-void Canvas::setWrap(const Image::Wrap &w)
-{
-	settings.wrap = w;
-	gl.bindTexture(img);
-	gl.setTextureWrap(w);
-}
-
-Image::Wrap Canvas::getWrap() const
-{
-	return settings.wrap;
-}
-
-bool Canvas::loadVolatile()
-{
-	fbo = depth_stencil = img = 0;
-
-	// glTexImage2D is guaranteed to error in this case.
-	if (width > gl.getMaxTextureSize() || height > gl.getMaxTextureSize())
-	{
-		status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+	if (!(isSupported() && (GLAD_VERSION_2_0 || GLAD_ARB_draw_buffers)))
 		return false;
+
+	if (maxFBOColorAttachments == 0 || maxDrawBuffers == 0)
+	{
+		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxFBOColorAttachments);
+		glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
 	}
 
-	status = strategy->createFBO(fbo, img, width, height, texture_type);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-		return false;
-
-	setFilter(settings.filter);
-	setWrap(settings.wrap);
-	clear(Color(0, 0, 0, 0));
-	return true;
+	// system must support at least 4 simultanious active canvases
+	return maxFBOColorAttachments >= 4 && maxDrawBuffers >= 4;
 }
 
-void Canvas::unloadVolatile()
+void Canvas::bindDefaultCanvas()
 {
-	strategy->deleteFBO(fbo, depth_stencil, img);
-	fbo = depth_stencil = img = 0;
-
-	for (size_t i = 0; i < attachedCanvases.size(); i++)
-		attachedCanvases[i]->release();
-
-	attachedCanvases.clear();
-}
-
-int Canvas::getWidth()
-{
-	return width;
-}
-
-int Canvas::getHeight()
-{
-	return height;
-}
-
-void Canvas::drawv(const Matrix &t, const Vertex *v) const
-{
-	gl.matrices.transform.push(gl.matrices.transform.top());
-	gl.matrices.transform.top() *= t;
-
-	gl.prepareDraw();
-
-	gl.bindTexture(img);
-
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-
-	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *) &v[0].x);
-	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *) &v[0].s);
-
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-
-	gl.matrices.transform.pop();
+	if (current != nullptr)
+		current->stopGrab();
 }
 
 bool Canvas::getConstant(const char *in, Canvas::TextureType &out)

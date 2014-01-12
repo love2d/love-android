@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2012 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -32,7 +32,7 @@ namespace lullaby
 {
 
 // Callbacks
-wuff_sint32 read_callback(void *userdata, wuff_uint8 *buffer, size_t *size)
+static wuff_sint32 read_callback(void *userdata, wuff_uint8 *buffer, size_t *size)
 {
 	WaveFile *input = (WaveFile *) userdata;
 	size_t bytes_left = input->size - input->offset;
@@ -43,14 +43,14 @@ wuff_sint32 read_callback(void *userdata, wuff_uint8 *buffer, size_t *size)
 	return WUFF_SUCCESS;
 }
 
-wuff_sint32 seek_callback(void *userdata, wuff_uint64 offset)
+static wuff_sint32 seek_callback(void *userdata, wuff_uint64 offset)
 {
 	WaveFile *input = (WaveFile *)userdata;
 	input->offset = (size_t) (offset < input->size ? offset : input->size);
 	return WUFF_SUCCESS;
 }
 
-wuff_sint32 tell_callback(void *userdata, wuff_uint64 *offset)
+static wuff_sint32 tell_callback(void *userdata, wuff_uint64 *offset)
 {
 	WaveFile *input = (WaveFile *)userdata;
 	*offset = input->offset;

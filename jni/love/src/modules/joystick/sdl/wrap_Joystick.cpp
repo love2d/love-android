@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -135,7 +135,7 @@ int w_Joystick_isDown(lua_State *L)
 
 	std::vector<int> buttons;
 	for (int i = 2; i <= lua_gettop(L); i++)
-		buttons.push_back(luaL_checkint(L, i));
+		buttons.push_back(luaL_checkint(L, i) - 1);
 
 	luax_pushboolean(L, j->isDown(buttons));
 	return 1;

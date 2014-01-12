@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2013 LOVE Development Team
+ * Copyright (c) 2006-2014 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,6 @@
 #include "common/config.h"
 #include "Font.h"
 #include "font/GlyphData.h"
-#include "Image.h"
 
 #include "libraries/utf8/utf8.h"
 
@@ -41,14 +40,14 @@ namespace opengl
 const int Font::TEXTURE_WIDTHS[]  = {128, 256, 256, 512, 512, 1024, 1024};
 const int Font::TEXTURE_HEIGHTS[] = {128, 128, 256, 256, 512, 512,  1024};
 
-Font::Font(love::font::Rasterizer *r, const Image::Filter &filter)
+Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	: rasterizer(r)
 	, height(r->getHeight())
 	, lineHeight(1)
 	, mSpacing(1)
 	, filter(filter)
 {
-	this->filter.mipmap = Image::FILTER_NONE;
+	this->filter.mipmap = Texture::FILTER_NONE;
 
 	// Try to find the best texture size match for the font size. default to the
 	// largest texture size if no rough match is found.
@@ -94,7 +93,7 @@ Font::~Font()
 	unloadVolatile();
 }
 
-bool Font::initializeTexture(GLint format)
+bool Font::initializeTexture(GLenum format)
 {
 	GLint internalformat = (format == GL_LUMINANCE_ALPHA) ? GL_LUMINANCE_ALPHA : GL_RGBA;
 
@@ -130,7 +129,7 @@ void Font::createTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	GLint format = (type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA);
+	GLenum format = (type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA);
 
 	// Initialize the texture, attempting smaller sizes if initialization fails.
 	bool initialized = false;
@@ -156,7 +155,7 @@ void Font::createTexture()
 
 		throw love::Exception("Could not create font texture!");
 	}
-	
+
 	// Fill the texture with transparent black.
 	std::vector<GLubyte> emptyData(textureWidth * textureHeight * (type == FONT_TRUETYPE ? 2 : 4), 0);
 	glTexSubImage2D(GL_TEXTURE_2D,
@@ -520,18 +519,18 @@ float Font::getSpacing() const
 	return mSpacing;
 }
 
-void Font::setFilter(const Image::Filter &f)
+void Font::setFilter(const Texture::Filter &f)
 {
 	filter = f;
 
 	for (auto it = textures.begin(); it != textures.end(); ++it)
 	{
 		gl.bindTexture(*it);
-		filter.anisotropy = gl.setTextureFilter(f);
+		gl.setTextureFilter(filter);
 	}
 }
 
-const Image::Filter &Font::getFilter()
+const Texture::Filter &Font::getFilter()
 {
 	return filter;
 }

@@ -37,6 +37,7 @@ LOCAL_C_INCLUDES  :=  \
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
+	  src/modules/graphics/opengl/GLee.* \
 	  src/libraries/luasocket/libluasocket/wsocket.c \
 	,$(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/love.cpp) \
