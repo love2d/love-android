@@ -18,6 +18,16 @@ compile/run it using Eclipse.
 This should give you a .apk file in the bin/ subdirectory that you can then
 install on your phone.
 
+Changelog:
+----------
+
+alpha8:
+- love.system.getOS() now returns "Android"
+- hardware search key is reported as "search"
+- switched to mobile-common branch
+- using new love.touch module (love.touchpressed(id,x,y,p), love.touchmoved(id,x,y,p), love.touchmoved(id,x,y,p))
+- added LOVE_ANDROID define
+
 License:
 --------
 
