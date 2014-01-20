@@ -21,7 +21,7 @@ install on your phone.
 Changelog:
 ----------
 
-alpha8:
+alpha7:
 - love.system.getOS() now returns "Android"
 - hardware search key is reported as "search"
 - switched to mobile-common branch
