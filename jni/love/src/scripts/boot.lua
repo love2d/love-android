@@ -164,20 +164,20 @@ function love.createhandlers()
 		textedit = function (t,s,l)
 			if love.textedit then return love.textedit(t,s,l) end
 		end,
-		mousepressed = function (x,y,b)
-			if love.mousepressed then return love.mousepressed(x,y,b) end
+		mousepressed = function (x,y,b,t)
+			if love.mousepressed then return love.mousepressed(x,y,b,t) end
 		end,
-		mousereleased = function (x,y,b)
-			if love.mousereleased then return love.mousereleased(x,y,b) end
+		mousereleased = function (x,y,b,t)
+			if love.mousereleased then return love.mousereleased(x,y,b,t) end
 		end,
-		fingerpressed = function (x,y,b)
-			if love.fingerpressed then return love.fingerpressed(x,y,b) end
+		touchpressed = function (id,x,y,p)
+			if love.touchpressed then return love.touchpressed(id,x,y,p) end
 		end,
-		fingerreleased = function (x,y,b)
-			if love.fingerreleased then return love.fingerreleased(x,y,b) end
+		touchreleased = function (id,x,y,p)
+			if love.touchreleased then return love.touchreleased(id,x,y,p) end
 		end,
-		fingermotion = function (x,y,b)
-			if love.fingermotion then return love.fingermotion(x,y,b) end
+		touchmoved = function (id,x,y,p)
+			if love.touchmoved then return love.touchmoved(id,x,y,p) end
 		end,
 		joystickpressed = function (j,b)
 			if love.joystickpressed then return love.joystickpressed(j,b) end
@@ -309,6 +309,7 @@ function love.init()
 			borderless = false,
 			resizable = false,
 			centered = true,
+			highdpi = false,
 		},
 		modules = {
 			event = true,
@@ -325,6 +326,7 @@ function love.init()
 			system = true,
 			font = true,
 			thread = true,
+			touch = true,
 			window = true,
 		},
 		console = false, -- Only relevant for windows.
@@ -359,6 +361,7 @@ function love.init()
 		"keyboard",
 		"joystick",
 		"mouse",
+		"touch",
 		"sound",
 		"system",
 		"audio",
@@ -397,6 +400,7 @@ function love.init()
 			borderless = c.window.borderless,
 			centered = c.window.centered,
 			display = c.window.display,
+			highdpi = c.window.highdpi,
 		}), "Could not set window mode")
 		love.window.setTitle(c.window.title or c.title)
 		if c.window.icon then
@@ -482,8 +486,8 @@ function love.run()
 		-- Process events.
 		if love.event then
 			love.event.pump()
-			for e,a,b,c,d in love.event.poll() do
-				if e == "quit" then
+			for n,a,b,c,d in love.event.poll() do
+				if n == "quit" then
 					if not love.quit or not love.quit() then
 						if love.audio then
 							love.audio.stop()
@@ -491,7 +495,7 @@ function love.run()
 						return
 					end
 				end
-				love.handlers[e](a,b,c,d)
+				love.handlers[n](a,b,c,d)
 			end
 		end
 
@@ -1382,8 +1386,9 @@ function love.nogame()
 		local ox = rain.ox
 		local oy = rain.oy
 
-		local batch_w = 2 * math.ceil(love.graphics.getWidth() / sx) + 2
-		local batch_h = 2 * math.ceil(love.graphics.getHeight() / sy) + 2
+		local m = 1 / love.window.getPixelScale()
+		local batch_w = 2 * math.ceil(m * love.graphics.getWidth() / sx) + 2
+		local batch_h = 2 * math.ceil(m * love.graphics.getHeight() / sy) + 2
 
 		batch:clear()
 
@@ -1418,8 +1423,9 @@ function love.nogame()
 		g_time = g_time + dt / 2
 		local int, frac = math.modf(g_time)
 		update_rain(frac)
-		inspector.x = love.graphics.getWidth() * 0.45
-		inspector.y = love.graphics.getHeight() * 0.55
+		local scale = love.window.getPixelScale()
+		inspector.x = love.graphics.getWidth() * 0.45 / scale
+		inspector.y = love.graphics.getHeight() * 0.55 / scale
 	end
 
 	local function draw_grid()
@@ -1490,8 +1496,13 @@ function love.nogame()
 	function love.draw()
 		love.graphics.setColor(255, 255, 255)
 
+		love.graphics.push()
+		love.graphics.scale(love.window.getPixelScale())
+
 		draw_grid()
 		draw_inspector()
+
+		love.graphics.pop()
 	end
 	
 	function love.keyreleased(key)
@@ -1507,6 +1518,7 @@ function love.nogame()
 		t.modules.physics = false
 		t.modules.joystick = false
 		t.window.resizable = true
+		t.window.highdpi = true
 	end
 end
 

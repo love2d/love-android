@@ -219,6 +219,7 @@ std::map<Keyboard::Key, SDL_Keycode> Keyboard::createKeyMap()
 	k[Keyboard::KEY_EXECUTE] = SDLK_EXECUTE;
 	k[Keyboard::KEY_HELP] = SDLK_HELP;
 	k[Keyboard::KEY_MENU] = SDLK_MENU;
+	k[Keyboard::KEY_SEARCH] = SDLK_AC_SEARCH;
 	k[Keyboard::KEY_SELECT] = SDLK_SELECT;
 	k[Keyboard::KEY_STOP] = SDLK_STOP;
 	k[Keyboard::KEY_AGAIN] = SDLK_AGAIN;

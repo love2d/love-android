@@ -30,7 +30,7 @@
 #include "SDL.h"
 #include <string>
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -58,7 +58,7 @@ namespace
 		return input.substr(getDriveDelim(input)+1);
 	}
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 	bool androidDirectoryExists(const char* path) {
 		SDL_Log ("Checking directory exists for %s", path);
 		struct stat s;
@@ -239,7 +239,7 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 	else
 		save_path_full += save_path_relative;
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
     std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
 
     std::string save_directory = internal_storage_path + "/save";
@@ -297,7 +297,7 @@ bool Filesystem::setSource(const char *source)
 
 	std::string new_search_path = source;
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 	if (!androidCreateStorageDirectories ()) {
 		SDL_Log ("Error creating storage directories!");
 	}

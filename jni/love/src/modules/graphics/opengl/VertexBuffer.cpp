@@ -127,6 +127,11 @@ VBO::VBO(size_t size, GLenum target, GLenum usage, MemoryBacking backing)
 	if (!(GLAD_ARB_vertex_buffer_object || GLAD_VERSION_1_5 || GLAD_ES_VERSION_2_0))
 		throw love::Exception("Not supported");
 
+	// FIXME:
+	// ES2 can't do glGetBufferSubData.
+	if (GLAD_ES_VERSION_2_0)
+		backing = BACKING_FULL;
+
 	if (getMemoryBacking() == BACKING_FULL)
 		memory_map = malloc(getSize());
 

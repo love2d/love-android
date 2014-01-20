@@ -151,7 +151,7 @@ static const struct luaL_Reg sdl_lib[] = {
 
 int main(int argc, char **argv)
 {
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 	SDL_SetHint("LOVE_GRAPHICS_USE_OPENGLES", "1");
 #endif
 
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 #endif // LOVE_LEGENDARY_UTF8_ARGV_HACK || LOVE_LEGENDARY_APP_ARGV_HACK
 	SDL_Quit();
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 	exit(retval);
 #endif
 

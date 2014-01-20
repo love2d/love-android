@@ -18,65 +18,23 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_EVENT_EVENT_H
-#define LOVE_EVENT_EVENT_H
+#ifndef LOVE_TOUCH_WRAP_TOUCH_H
+#define LOVE_TOUCH_WRAP_TOUCH_H
 
 // LOVE
-#include "common/Module.h"
-#include "common/StringMap.h"
-#include "common/Variant.h"
-#include "keyboard/Keyboard.h"
-#include "mouse/Mouse.h"
-#include "joystick/Joystick.h"
-#include "thread/threads.h"
-
-// STL
-#include <queue>
-#include <vector>
+#include "Touch.h"
+#include "common/runtime.h"
 
 namespace love
 {
-namespace event
+namespace touch
 {
 
-class Message : public Object
-{
-public:
+int w_getTouchCount(lua_State *L);
+int w_getTouch(lua_State *L);
+extern "C" LOVE_EXPORT int luaopen_love_touch(lua_State *L);
 
-	Message(const std::string &name, const std::vector<Variant *> &vargs = std::vector<Variant *>());
-	~Message();
-
-	int toLua(lua_State *L);
-	static Message *fromLua(lua_State *L, int n);
-
-private:
-
-	std::string name;
-	std::vector<Variant *> args;
-
-}; // Message
-
-class Event : public Module
-{
-public:
-
-	Event();
-	virtual ~Event();
-
-	void push(Message *msg);
-	bool poll(Message *&msg);
-	virtual void clear();
-
-	virtual void pump() = 0;
-
-protected:
-
-	thread::Mutex *mutex;
-	std::queue<Message *> queue;
-
-}; // Event
-
-} // event
+} // touch
 } // love
 
-#endif // LOVE_EVENT_EVENT_H
+#endif // LOVE_TOUCH_WRAP_TOUCH_H

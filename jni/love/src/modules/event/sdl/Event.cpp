@@ -38,6 +38,24 @@ namespace event
 namespace sdl
 {
 
+// SDL reports mouse coordinates in the window coordinate system in OS X, but
+// we want them in pixel coordinates (may be different with high-DPI enabled.)
+static void windowToPixelCoords(int *x, int *y)
+{
+	double scale = 1.0;
+
+	window::Window *window = (window::Window *) Module::findInstance("love.window.");
+	if (window != nullptr)
+		scale = window->getPixelScale();
+
+	if (x != nullptr)
+		*x = int(double(*x) * scale);
+
+	if (y != nullptr)
+		*y = int(double(*y) * scale);
+}
+
+
 const char *Event::getName() const
 {
 	return "love.event.sdl";
@@ -96,19 +114,22 @@ void Event::clear()
 
 Message *Event::convert(const SDL_Event &e) const
 {
-	Message *msg = NULL;
+	Message *msg = nullptr;
 
-	love::keyboard::Keyboard *kb = 0;
+	std::vector<Variant *> vargs;
+	vargs.reserve(4);
+
+	love::keyboard::Keyboard *kb = nullptr;
 
 	love::keyboard::Keyboard::Key key;
 	love::mouse::Mouse::Button button;
-	Variant *arg1, *arg2, *arg3;
 	const char *txt;
 	std::map<SDL_Keycode, love::keyboard::Keyboard::Key>::const_iterator keyit;
 
 	switch (e.type)
 	{
 	case SDL_KEYDOWN:
+		SDL_Log ("got keydown for key %d search %d equal = %d", e.key.keysym.sym, SDLK_AC_SEARCH, e.key.keysym.sym == SDLK_AC_SEARCH);
 		if (e.key.repeat)
 		{
 			kb = (love::keyboard::Keyboard *) Module::findInstance("love.keyboard.");
@@ -124,11 +145,10 @@ Message *Event::convert(const SDL_Event &e) const
 
 		if (!love::keyboard::Keyboard::getConstant(key, txt))
 			txt = "unknown";
-		arg1 = new Variant(txt, strlen(txt));
-		arg2 = new Variant(e.key.repeat != 0);
-		msg = new Message("keypressed", arg1, arg2);
-		arg1->release();
-		arg2->release();
+
+		vargs.push_back(new Variant(txt, strlen(txt)));
+		vargs.push_back(new Variant(e.key.repeat != 0));
+		msg = new Message("keypressed", vargs);
 		break;
 	case SDL_KEYUP:
 		keyit = keys.find(e.key.keysym.sym);
@@ -139,39 +159,36 @@ Message *Event::convert(const SDL_Event &e) const
 
 		if (!love::keyboard::Keyboard::getConstant(key, txt))
 			txt = "unknown";
-		arg1 = new Variant(txt, strlen(txt));
-		msg = new Message("keyreleased", arg1);
-		arg1->release();
+
+		vargs.push_back(new Variant(txt, strlen(txt)));
+		msg = new Message("keyreleased", vargs);
 		break;
 	case SDL_TEXTINPUT:
 		txt = e.text.text;
-		arg1 = new Variant(txt, strlen(txt));
-		msg = new Message("textinput", arg1);
-		arg1->release();
+		vargs.push_back(new Variant(txt, strlen(txt)));
+		msg = new Message("textinput", vargs);
 		break;
 	case SDL_TEXTEDITING:
 		txt = e.edit.text;
-		arg1 = new Variant(txt, strlen(txt));
-		arg2 = new Variant((double) e.edit.start);
-		arg3 = new Variant((double) e.edit.length);
-		msg = new Message("textedit", arg1, arg2, arg3);
-		arg1->release();
-		arg2->release();
-		arg3->release();
+		vargs.push_back(new Variant(txt, strlen(txt)));
+		vargs.push_back(new Variant((double) e.edit.start));
+		vargs.push_back(new Variant((double) e.edit.length));
+		msg = new Message("textedit", vargs);
 		break;
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
 		if (buttons.find(e.button.button, button) && mouse::Mouse::getConstant(button, txt))
 		{
-			arg1 = new Variant((double) e.button.x);
-			arg2 = new Variant((double) e.button.y);
-			arg3 = new Variant(txt, strlen(txt));
+			int x = e.button.x;
+			int y = e.button.y;
+			windowToPixelCoords(&x, &y);
+			vargs.push_back(new Variant((double) x));
+			vargs.push_back(new Variant((double) y));
+			vargs.push_back(new Variant(txt, strlen(txt)));
+			vargs.push_back(new Variant(e.button.which == SDL_TOUCH_MOUSEID));
 			msg = new Message((e.type == SDL_MOUSEBUTTONDOWN) ?
 							  "mousepressed" : "mousereleased",
-							  arg1, arg2, arg3);
-			arg1->release();
-			arg2->release();
-			arg3->release();
+							  vargs);
 		}
 		break;
 	case SDL_MOUSEWHEEL:
@@ -183,36 +200,29 @@ Message *Event::convert(const SDL_Event &e) const
 
 			int mx, my;
 			SDL_GetMouseState(&mx, &my);
+			windowToPixelCoords(&mx, &my);
 
-			arg1 = new Variant((double) mx);
-			arg2 = new Variant((double) my);
-			arg3 = new Variant(txt, strlen(txt));
-			msg = new Message("mousepressed", arg1, arg2, arg3);
-			arg1->release();
-			arg2->release();
-			arg3->release();
+			vargs.push_back(new Variant((double) mx));
+			vargs.push_back(new Variant((double) my));
+			vargs.push_back(new Variant(txt, strlen(txt)));
+			vargs.push_back(new Variant(false));
+			msg = new Message("mousepressed", vargs);
 		}
 		break;
 	case SDL_FINGERDOWN:
 	case SDL_FINGERUP:
-		arg1 = new Variant((double) e.tfinger.x);
-		arg2 = new Variant((double) e.tfinger.y);
-		arg3 = new Variant((double) e.tfinger.fingerId);
-		msg = new Message((e.type == SDL_FINGERDOWN) ?
-						  "fingerpressed" : "fingerreleased",
-						  arg1, arg2, arg3);
-		arg1->release();
-		arg2->release();
-		arg3->release();
-		break;
 	case SDL_FINGERMOTION:
-		arg1 = new Variant((double) e.tfinger.x);
-		arg2 = new Variant((double) e.tfinger.y);
-		arg3 = new Variant((double) e.tfinger.fingerId);
-		msg = new Message("fingermotion", arg1, arg2, arg3);
-		arg1->release();
-		arg2->release();
-		arg3->release();
+		vargs.push_back(new Variant((double) e.tfinger.fingerId));
+		vargs.push_back(new Variant((double) e.tfinger.x));
+		vargs.push_back(new Variant((double) e.tfinger.y));
+		vargs.push_back(new Variant((double) e.tfinger.pressure));
+		if (e.type == SDL_FINGERDOWN)
+			txt = "touchpressed";
+		else if (e.type == SDL_FINGERUP)
+			txt = "touchreleased";
+		else
+			txt = "touchmoved";
+		msg = new Message(txt, vargs);
 		break;
 	case SDL_JOYBUTTONDOWN:
 	case SDL_JOYBUTTONUP:
@@ -239,6 +249,12 @@ Message *Event::convert(const SDL_Event &e) const
 		break;
 	}
 
+	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	{
+		if ((*it) != nullptr)
+			(*it)->release();
+	}
+
 	return msg;
 }
 
@@ -246,14 +262,17 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 {
 	joystick::JoystickModule *joymodule = (joystick::JoystickModule *) Module::findInstance("love.joystick.");
 	if (!joymodule)
-		return 0;
+		return nullptr;
 
-	Message *msg = 0;
+	Message *msg = nullptr;
+
+	std::vector<Variant *> vargs;
+	vargs.reserve(4);
+
 	Proxy proxy;
 	love::joystick::Joystick::Hat hat;
 	love::joystick::Joystick::GamepadButton padbutton;
 	love::joystick::Joystick::GamepadAxis padaxis;
-	Variant *arg1, *arg2, *arg3;
 	const char *txt;
 
 	switch (e.type)
@@ -265,13 +284,11 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		if (!proxy.data)
 			break;
 
-		arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-		arg2 = new Variant((double)(e.jbutton.button+1));
+		vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+		vargs.push_back(new Variant((double)(e.jbutton.button+1)));
 		msg = new Message((e.type == SDL_JOYBUTTONDOWN) ?
 						  "joystickpressed" : "joystickreleased",
-						  arg1, arg2);
-		arg1->release();
-		arg2->release();
+						  vargs);
 		break;
 	case SDL_JOYAXISMOTION:
 		{
@@ -280,17 +297,14 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 			if (!proxy.data)
 				break;
 
-			arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-			arg2 = new Variant((double)(e.jaxis.axis+1));
+			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+			vargs.push_back(new Variant((double)(e.jaxis.axis+1)));
 			float value = e.jaxis.value / 32768.0f;
 			if (fabsf(value) < 0.001f) value = 0.0f;
 			if (value < -0.99f) value = -1.0f;
 			if (value > 0.99f) value = 1.0f;
-			arg3 = new Variant((double) value);
-			msg = new Message("joystickaxis", arg1, arg2, arg3);
-			arg1->release();
-			arg2->release();
-			arg3->release();
+			vargs.push_back(new Variant((double) value));
+			msg = new Message("joystickaxis", vargs);
 		}
 		break;
 	case SDL_JOYHATMOTION:
@@ -302,13 +316,10 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		if (!proxy.data)
 			break;
 
-		arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-		arg2 = new Variant((double)(e.jhat.hat+1));
-		arg3 = new Variant(txt, strlen(txt));
-		msg = new Message("joystickhat", arg1, arg2, arg3);
-		arg1->release();
-		arg2->release();
-		arg3->release();
+		vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+		vargs.push_back(new Variant((double)(e.jhat.hat+1)));
+		vargs.push_back(new Variant(txt, strlen(txt)));
+		msg = new Message("joystickhat", vargs);
 		break;
 	case SDL_CONTROLLERBUTTONDOWN:
 	case SDL_CONTROLLERBUTTONUP:
@@ -323,12 +334,10 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		if (!proxy.data)
 			break;
 
-		arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-		arg2 = new Variant(txt, strlen(txt));
+		vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+		vargs.push_back(new Variant(txt, strlen(txt)));
 		msg = new Message(e.type == SDL_CONTROLLERBUTTONDOWN ?
-						  "gamepadpressed" : "gamepadreleased", arg1, arg2);
-		arg1->release();
-		arg2->release();
+						  "gamepadpressed" : "gamepadreleased", vargs);
 		break;
 	case SDL_CONTROLLERAXISMOTION:
 		if (joystick::sdl::Joystick::getConstant((SDL_GameControllerAxis) e.caxis.axis, padaxis))
@@ -341,18 +350,15 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 			if (!proxy.data)
 				break;
 
-			arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
+			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
 
-			arg2 = new Variant(txt, strlen(txt));
+			vargs.push_back(new Variant(txt, strlen(txt)));
 			float value = e.jaxis.value / 32768.0f;
 			if (fabsf(value) < 0.001f) value = 0.0f;
 			if (value < -0.99f) value = -1.0f;
 			if (value > 0.99f) value = 1.0f;
-			arg3 = new Variant((double) value);
-			msg = new Message("gamepadaxis", arg1, arg2, arg3);
-			arg1->release();
-			arg2->release();
-			arg3->release();
+			vargs.push_back(new Variant((double) value));
+			msg = new Message("gamepadaxis", vargs);
 		}
 		break;
 	case SDL_JOYDEVICEADDED:
@@ -361,9 +367,8 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		proxy.flags = JOYSTICK_JOYSTICK_T;
 		if (proxy.data)
 		{
-			arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-			msg = new Message("joystickadded", arg1);
-			arg1->release();
+			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+			msg = new Message("joystickadded", vargs);
 		}
 		break;
 	case SDL_JOYDEVICEREMOVED:
@@ -373,13 +378,18 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		if (proxy.data)
 		{
 			joymodule->removeJoystick((joystick::Joystick *) proxy.data);
-			arg1 = new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy);
-			msg = new Message("joystickremoved", arg1);
-			arg1->release();
+			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
+			msg = new Message("joystickremoved", vargs);
 		}
 		break;
 	default:
 		break;
+	}
+
+	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	{
+		if ((*it) != nullptr)
+			(*it)->release();
 	}
 
 	return msg;
@@ -387,12 +397,15 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 
 Message *Event::convertWindowEvent(const SDL_Event &e) const
 {
-	Message *msg = 0;
-	Variant *arg1, *arg2;
-	window::Window *win = 0;
+	Message *msg = nullptr;
+
+	std::vector<Variant *> vargs;
+	vargs.reserve(4);
+
+	window::Window *win = nullptr;
 
 	if (e.type != SDL_WINDOWEVENT)
-		return 0;
+		return nullptr;
 
 	switch (e.window.event)
 	{
@@ -404,54 +417,67 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 			SDL_DisableScreenSaver();
 		else
 			SDL_EnableScreenSaver();
-		arg1 = new Variant(e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED);
-		msg = new Message("focus", arg1);
-		arg1->release();
+		vargs.push_back(new Variant(e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED));
+		msg = new Message("focus", vargs);
 		break;
 	case SDL_WINDOWEVENT_ENTER:
 	case SDL_WINDOWEVENT_LEAVE:
-		arg1 = new Variant(e.window.event == SDL_WINDOWEVENT_ENTER);
-		msg = new Message("mousefocus", arg1);
-		arg1->release();
+		vargs.push_back(new Variant(e.window.event == SDL_WINDOWEVENT_ENTER));
+		msg = new Message("mousefocus", vargs);
 		break;
 	case SDL_WINDOWEVENT_SHOWN:
 	case SDL_WINDOWEVENT_HIDDEN:
-		arg1 = new Variant(e.window.event == SDL_WINDOWEVENT_SHOWN);
-		msg = new Message("visible", arg1);
-		arg1->release();
+		vargs.push_back(new Variant(e.window.event == SDL_WINDOWEVENT_SHOWN));
+		msg = new Message("visible", vargs);
 		break;
 	case SDL_WINDOWEVENT_RESIZED:
 		win = (window::Window *) Module::findInstance("love.window.");
 		if (win)
 		{
+			int px_w = e.window.data1;
+			int px_h = e.window.data2;
+
+#if SDL_VERSION_ATLEAST(2,0,1)
+			SDL_Window *sdlwin = SDL_GetWindowFromID(e.window.windowID);
+			if (sdlwin)
+				SDL_GL_GetDrawableSize(sdlwin, &px_w, &px_h);
+#endif
+
 			win->onWindowResize(e.window.data1, e.window.data2);
 
 			graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
 			if (gfx)
-				gfx->setViewportSize(e.window.data1, e.window.data2);
+				gfx->setViewportSize(px_w, px_h);
+
+			vargs.push_back(new Variant((double) px_w));
+			vargs.push_back(new Variant((double) px_h));
+			vargs.push_back(new Variant((double) e.window.data1));
+			vargs.push_back(new Variant((double) e.window.data2));
+			msg = new Message("resize", vargs);
 		}
-		arg1 = new Variant((double) e.window.data1);
-		arg2 = new Variant((double) e.window.data2);
-		msg = new Message("resize", arg1, arg2);
-		arg1->release();
-		arg2->release();
 		break;
-#ifdef __ANDROID__
-	case SDL_WINDOWEVENT_MINIMIZED:
-	{
-		audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
-		if (audio)
-			audio->pause();
-	}
-	break;
-	case SDL_WINDOWEVENT_RESTORED:
-	{
-		audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
-		if (audio)
-			audio->resume();
-	}
-	break;
+#ifdef LOVE_ANDROID
+		case SDL_WINDOWEVENT_MINIMIZED:
+		{
+			audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+			if (audio)
+				audio->pause();
+		}
+		break;
+		case SDL_WINDOWEVENT_RESTORED:
+		{
+			audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+			if (audio)
+				audio->resume();
+		}
+		break;
 #endif
+	}
+
+	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	{
+		if ((*it) != nullptr)
+			(*it)->release();
 	}
 
 	return msg;
@@ -601,6 +627,7 @@ std::map<SDL_Keycode, love::keyboard::Keyboard::Key> Event::createKeyMap()
 	k[SDLK_EXECUTE] = Keyboard::KEY_EXECUTE;
 	k[SDLK_HELP] = Keyboard::KEY_HELP;
 	k[SDLK_MENU] = Keyboard::KEY_MENU;
+	k[SDLK_AC_SEARCH] = Keyboard::KEY_SEARCH;
 	k[SDLK_SELECT] = Keyboard::KEY_SELECT;
 	k[SDLK_STOP] = Keyboard::KEY_STOP;
 	k[SDLK_AGAIN] = Keyboard::KEY_AGAIN;
@@ -656,7 +683,7 @@ std::map<SDL_Keycode, love::keyboard::Keyboard::Key> Event::createKeyMap()
 	k[SDLK_EJECT] = Keyboard::KEY_EJECT;
 	k[SDLK_SLEEP] = Keyboard::KEY_SLEEP;
 
-#ifdef __ANDROID__
+#ifdef LOVE_ANDROID
 	k[SDLK_AC_BACK] = Keyboard::KEY_ESCAPE;
 #endif
 

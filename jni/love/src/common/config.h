@@ -26,7 +26,11 @@
 #	define LOVE_WINDOWS 1
 #endif
 #if defined(linux) || defined(__linux) || defined(__linux__)
-#	define LOVE_LINUX 1
+# if defined(__ANDROID__)
+#  define LOVE_ANDROID 1
+# else
+#  define LOVE_LINUX 1
+# endif
 #endif
 #if defined(__APPLE__)
 #	define LOVE_MACOSX 1
@@ -123,6 +127,8 @@
 #	define LOVE_ENABLE_THREAD_SDL
 #	define LOVE_ENABLE_TIMER
 #	define LOVE_ENABLE_TIMER_SDL
+#	define LOVE_ENABLE_TOUCH
+#	define LOVE_ENABLE_TOUCH_SDL
 #	define LOVE_ENABLE_UTF8
 #	define LOVE_ENABLE_WINDOW
 #	define LOVE_ENABLE_WINDOW_SDL

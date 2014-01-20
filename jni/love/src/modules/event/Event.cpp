@@ -28,56 +28,70 @@ namespace love
 namespace event
 {
 
-Message::Message(const std::string &name, Variant *a, Variant *b, Variant *c, Variant *d)
+Message::Message(const std::string &name, const std::vector<Variant *> &vargs)
 	: name(name)
-	, nargs(0)
+	, args(vargs)
 {
-	args[0] = a;
-	args[1] = b;
-	args[2] = c;
-	args[3] = d;
-	for (int i = 0; i < 4; i++)
+	for (auto it = args.begin(); it != args.end(); ++it)
 	{
-		if (!args[i])
-			break;
-		args[i]->retain();
-		nargs++;
+		if ((*it) != nullptr)
+			(*it)->retain();
 	}
 }
 
 Message::~Message()
 {
-	for (int i = 0; i < nargs; i++)
-		args[i]->release();
+	for (auto it = args.begin(); it != args.end(); ++it)
+	{
+		if ((*it) != nullptr)
+			(*it)->release();
+	}
 }
 
 int Message::toLua(lua_State *L)
 {
 	luax_pushstring(L, name);
-	for (int i = 0; i < nargs; i++)
-		args[i]->toLua(L);
-	return nargs+1;
+
+	for (auto it = args.begin(); it != args.end(); ++it)
+	{
+		if ((*it) != nullptr)
+			(*it)->toLua(L);
+		else
+			lua_pushnil(L);
+	}
+
+	return (int) args.size() + 1;
 }
 
 Message *Message::fromLua(lua_State *L, int n)
 {
 	std::string name = luax_checkstring(L, n);
+	std::vector<Variant *> vargs;
+
+	int count = lua_gettop(L) - n;
 	n++;
-	Message *m = new Message(name);
-	for (int i = 0; i < 4; i++)
+
+	for (int i = 0; i < count; i++)
 	{
 		if (lua_isnoneornil(L, n+i))
 			break;
-		m->args[i] = Variant::fromLua(L, n+i);
-		if (!m->args[i])
+
+		vargs.push_back(Variant::fromLua(L, n+i));
+
+		if (!vargs.back())
 		{
-			delete m;
+			for (auto it = vargs.begin(); it != vargs.end(); ++it)
+			{
+				if ((*it) != nullptr)
+					(*it)->release();
+			}
+
 			luaL_error(L, "Argument %d can't be stored safely\nExpected boolean, number, string or userdata.", n+i);
-			return NULL;
+			return nullptr;
 		}
-		m->nargs++;
 	}
-	return m;
+
+	return new Message(name, vargs);
 }
 
 Event::Event()

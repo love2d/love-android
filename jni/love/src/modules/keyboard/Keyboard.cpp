@@ -175,6 +175,7 @@ StringMap<Keyboard::Key, Keyboard::KEY_MAX_ENUM>::Entry Keyboard::keyEntries[] =
 	{"execute", Keyboard::KEY_EXECUTE},
 	{"help", Keyboard::KEY_HELP},
 	{"menu", Keyboard::KEY_MENU},
+	{"search", Keyboard::KEY_SEARCH},
 	{"select", Keyboard::KEY_SELECT},
 	{"stop", Keyboard::KEY_STOP},
 	{"again", Keyboard::KEY_AGAIN},

@@ -110,15 +110,20 @@ void LuaThread::onError()
 	if (!event)
 		return;
 
+	std::vector<Variant *> vargs;
+
 	Proxy p;
 	p.flags = THREAD_THREAD_T;
 	p.data = this;
 
-	Variant *arg1 = new Variant(THREAD_THREAD_ID, &p);
-	Variant *arg2 = new Variant(error.c_str(), error.length());
-	event::Message *msg = new event::Message("threaderror", arg1, arg2);
-	arg1->release();
-	arg2->release();
+	vargs.push_back(new Variant(THREAD_THREAD_ID, &p));
+	vargs.push_back(new Variant(error.c_str(), error.length()));
+
+	event::Message *msg = new event::Message("threaderror", vargs);
+
+	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+			(*it)->release();
+
 
 	event->push(msg);
 	msg->release();

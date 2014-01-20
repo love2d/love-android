@@ -18,65 +18,35 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_EVENT_EVENT_H
-#define LOVE_EVENT_EVENT_H
+#ifndef LOVE_TOUCH_SDL_TOUCH_H
+#define LOVE_TOUCH_SDL_TOUCH_H
 
 // LOVE
-#include "common/Module.h"
-#include "common/StringMap.h"
-#include "common/Variant.h"
-#include "keyboard/Keyboard.h"
-#include "mouse/Mouse.h"
-#include "joystick/Joystick.h"
-#include "thread/threads.h"
-
-// STL
-#include <queue>
-#include <vector>
+#include "touch/Touch.h"
 
 namespace love
 {
-namespace event
+namespace touch
+{
+namespace sdl
 {
 
-class Message : public Object
-{
-public:
-
-	Message(const std::string &name, const std::vector<Variant *> &vargs = std::vector<Variant *>());
-	~Message();
-
-	int toLua(lua_State *L);
-	static Message *fromLua(lua_State *L, int n);
-
-private:
-
-	std::string name;
-	std::vector<Variant *> args;
-
-}; // Message
-
-class Event : public Module
+class Touch : public love::touch::Touch
 {
 public:
 
-	Event();
-	virtual ~Event();
+	virtual ~Touch() {}
 
-	void push(Message *msg);
-	bool poll(Message *&msg);
-	virtual void clear();
+	virtual int getTouchCount() const;
+	virtual TouchInfo getTouch(int index) const;
 
-	virtual void pump() = 0;
+	// Implements Module.
+	virtual const char *getName() const;
 
-protected:
+}; // Touch
 
-	thread::Mutex *mutex;
-	std::queue<Message *> queue;
-
-}; // Event
-
-} // event
+} // sdl
+} // touch
 } // love
 
-#endif // LOVE_EVENT_EVENT_H
+#endif // LOVE_TOUCH_SDL_TOUCH_H

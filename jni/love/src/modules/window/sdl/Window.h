@@ -41,8 +41,8 @@ public:
 	Window();
 	~Window();
 
-	bool setWindow(int width = 800, int height = 600, WindowAttributes *attribs = 0);
-	void getWindow(int &width, int &height, WindowAttributes &attribs);
+	bool setWindow(int width = 800, int height = 600, WindowSettings *settings = nullptr);
+	void getWindow(int &width, int &height, WindowSettings &settings);
 
 	bool setFullscreen(bool fullscreen, FullscreenType fstype);
 	bool setFullscreen(bool fullscreen);
@@ -79,6 +79,8 @@ public:
 	void setMouseGrab(bool grab);
 	bool isMouseGrabbed() const;
 
+	double getPixelScale() const;
+
 	const void *getHandle() const;
 
 	static love::window::Window *createSingleton();
@@ -91,8 +93,8 @@ private:
 	bool setContext(int fsaa, bool vsync);
 	void setWindowGLAttributes(int fsaa) const;
 
-	// Update the saved window attribs based on the window's actual state.
-	void updateAttributes(const WindowAttributes &newattribs);
+	// Update the saved window settings based on the window's actual state.
+	void updateSettings(const WindowSettings &newsettings);
 
 	// Shows a warning/error message box.
 	void displayError(const std::string &title, const std::string &text) const;
@@ -105,7 +107,7 @@ private:
 
 		int width;
 		int height;
-		WindowAttributes attribs;
+		WindowSettings settings;
 		love::image::ImageData *icon;
 
 	} curMode;

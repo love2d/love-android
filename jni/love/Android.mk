@@ -71,6 +71,8 @@ LOCAL_SRC_FILES := \
  	$(wildcard ${LOCAL_PATH}/src/modules/system/sdl/*.cpp) \
  	$(wildcard ${LOCAL_PATH}/src/modules/thread/*.cpp) \
  	$(wildcard ${LOCAL_PATH}/src/modules/thread/sdl/*.cpp) \
+ 	$(wildcard ${LOCAL_PATH}/src/modules/touch/*.cpp) \
+ 	$(wildcard ${LOCAL_PATH}/src/modules/touch/sdl/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/timer/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/timer/sdl/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/window/*.cpp) \

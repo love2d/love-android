@@ -18,65 +18,51 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_EVENT_EVENT_H
-#define LOVE_EVENT_EVENT_H
+#ifndef LOVE_TOUCH_TOUCH_H
+#define LOVE_TOUCH_TOUCH_H
 
 // LOVE
+#include "common/int.h"
+#include "common/Object.h"
 #include "common/Module.h"
-#include "common/StringMap.h"
-#include "common/Variant.h"
-#include "keyboard/Keyboard.h"
-#include "mouse/Mouse.h"
-#include "joystick/Joystick.h"
-#include "thread/threads.h"
 
-// STL
-#include <queue>
+// C++
 #include <vector>
+#include <limits>
 
 namespace love
 {
-namespace event
+namespace touch
 {
 
-class Message : public Object
-{
-public:
-
-	Message(const std::string &name, const std::vector<Variant *> &vargs = std::vector<Variant *>());
-	~Message();
-
-	int toLua(lua_State *L);
-	static Message *fromLua(lua_State *L, int n);
-
-private:
-
-	std::string name;
-	std::vector<Variant *> args;
-
-}; // Message
-
-class Event : public Module
+class Touch : public Module
 {
 public:
 
-	Event();
-	virtual ~Event();
+	struct TouchInfo
+	{
+		int64 id; // Only unique for the duration of the touch-press.
+		float x; // Normalized to [0, 1].
+		float y; // Normalized to [0, 1].
+		float pressure; // Normalized to [0, 1].
+	};
 
-	void push(Message *msg);
-	bool poll(Message *&msg);
-	virtual void clear();
+	virtual ~Touch() {}
 
-	virtual void pump() = 0;
+	/**
+	 * Gets the number of current touch presses.
+	 **/
+	virtual int getTouchCount() const = 0;
 
-protected:
+	/**
+	 * Gets information about a touch press. The index is unstable and should
+	 * not be relied on being the same in between calls.
+	 **/
+	virtual TouchInfo getTouch(int index) const = 0;
 
-	thread::Mutex *mutex;
-	std::queue<Message *> queue;
+}; // Touch
 
-}; // Event
-
-} // event
+} // touch
 } // love
 
-#endif // LOVE_EVENT_EVENT_H
+#endif // LOVE_TOUCH_TOUCH_H

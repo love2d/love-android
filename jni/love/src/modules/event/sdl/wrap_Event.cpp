@@ -33,11 +33,11 @@ namespace event
 namespace sdl
 {
 
-static Event *instance = 0;
+static Event *instance = nullptr;
 
 static int poll_i(lua_State *L)
 {
-	Message *m;
+	Message *m = nullptr;
 
 	while (instance->poll(m))
 	{
@@ -58,13 +58,13 @@ int w_pump(lua_State *)
 
 int w_poll(lua_State *L)
 {
-	lua_pushcclosure(L, &poll_i, 0);
+	lua_pushcclosure(L, poll_i, 0);
 	return 1;
 }
 
 int w_wait(lua_State *L)
 {
-	Message *m;
+	Message *m = nullptr;
 
 	if ((m = instance->wait()))
 	{
@@ -78,7 +78,7 @@ int w_wait(lua_State *L)
 
 int w_push(lua_State *L)
 {
-	Message *m;
+	Message *m = nullptr;
 
 	bool success = (m = Message::fromLua(L, 1)) != NULL;
 	luax_pushboolean(L, success);
@@ -133,7 +133,7 @@ extern "C" int luaopen_love_event(lua_State *L)
 	w.name = "event";
 	w.flags = MODULE_T;
 	w.functions = functions;
-	w.types = 0;
+	w.types = nullptr;
 
 	return luax_register_module(L, w);
 }

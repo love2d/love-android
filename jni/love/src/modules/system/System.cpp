@@ -31,6 +31,8 @@ std::string System::getOS() const
 	return "OS X";
 #elif LOVE_WINDOWS
 	return "Windows";
+#elif LOVE_ANDROID
+	return "Android";
 #elif LOVE_LINUX
 	return "Linux";
 #else
