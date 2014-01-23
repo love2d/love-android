@@ -71,13 +71,15 @@ public:
 		VENDOR_UNKNOWN
 	};
 
-	// Vertex attributes. The values map to OpenGL generic vertex attribute
-	// indices, when applicable (GLES2.)
+	// Vertex attributes used in shaders by LOVE. The values map to OpenGL
+	// generic vertex attribute indices, when applicable.
+	// LOVE uses the old hard-coded attribute APIs on desktop GL (for now.)
 	enum VertexAttrib
 	{
 		ATTRIB_POS      = 0,
 		ATTRIB_TEXCOORD = 1,
 		ATTRIB_COLOR    = 2,
+		ATTRIB_PSEUDO_INSTANCE_ID = 3, // Shader pseudo-instance ID.
 		ATTRIB_MAX_ENUM
 	};
 
@@ -124,6 +126,16 @@ public:
 	 * directly before GL draws.
 	 **/
 	void prepareDraw();
+
+	/**
+	 * glDrawArraysInstanced with a pseudo-instancing fallback.
+	 **/
+	void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount);
+
+	/**
+	 * glDrawElementsInstanced with a pseudo-instancing fallback.
+	 **/
+	void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount);
 
 	/**
 	 * Sets the current constant color.
@@ -200,6 +212,11 @@ public:
 	 * non-zero FBO for rendering.
 	 **/
 	GLuint getDefaultFBO() const;
+
+	/**
+	 * Gets the ID for love's default texture (used for "untextured" draws.)
+	 **/
+	GLuint getDefaultTexture() const;
 
 	/**
 	 * Helper for setting the active texture unit.
@@ -295,7 +312,12 @@ private:
 
 		float pointSize;
 
+		GLuint defaultTexture;
+
 		GLuint defaultFBO;
+
+		// The last ID value used for pseudo-instancing.
+		int lastPseudoInstanceID;
 
 	} state;
 

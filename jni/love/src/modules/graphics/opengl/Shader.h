@@ -146,6 +146,7 @@ public:
 	/**
 	 * Internal use only.
 	 **/
+	bool hasVertexAttrib(OpenGL::VertexAttrib attrib) const;
 	bool hasBuiltinExtern(BuiltinExtern builtin) const;
 	bool sendBuiltinMatrix(BuiltinExtern builtin, int size, const GLfloat *m, int count);
 	bool sendBuiltinFloat(BuiltinExtern builtin, int size, const GLfloat *m, int count);
@@ -211,6 +212,9 @@ private:
 	// Location values for any built-in uniform variables.
 	GLint builtinUniforms[BUILTIN_MAX_ENUM];
 
+	// Location values for any generic vertex attribute variables.
+	GLint vertexAttributes[OpenGL::ATTRIB_MAX_ENUM];
+
 	// Uniform location buffer map
 	std::map<std::string, Uniform> uniforms;
 
@@ -234,11 +238,11 @@ private:
 	static StringMap<ShaderType, TYPE_MAX_ENUM>::Entry typeNameEntries[];
 	static StringMap<ShaderType, TYPE_MAX_ENUM> typeNames;
 
-	// Names for the generic vertex attributes used in OpenGL ES 2.
+	// Names for the generic vertex attributes used by love.
 	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM>::Entry attribNameEntries[];
 	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM> attribNames;
 
-	// Names for the LOVE-defined built-in uniform variables.
+	// Names for the built-in uniform variables.
 	static StringMap<BuiltinExtern, BUILTIN_MAX_ENUM>::Entry builtinNameEntries[];
 	static StringMap<BuiltinExtern, BUILTIN_MAX_ENUM> builtinNames;
 

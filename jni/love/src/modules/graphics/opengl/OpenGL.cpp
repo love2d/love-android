@@ -129,6 +129,8 @@ bool OpenGL::initContext()
 	initMaxValues();
 	createDefaultTexture();
 
+	state.lastPseudoInstanceID = -1;
+
 	contextInitialized = true;
 	return true;
 }
@@ -137,6 +139,9 @@ void OpenGL::deInitContext()
 {
 	if (!contextInitialized)
 		return;
+
+	glDeleteTextures(1, &state.defaultTexture);
+	state.defaultTexture = 0;
 
 	contextInitialized = false;
 }
@@ -213,13 +218,15 @@ void OpenGL::initMatrices()
 
 void OpenGL::createDefaultTexture()
 {
-	// Set the 'default' texture (id 0) as a repeating white pixel. Otherwise,
+	// Set the 'default' texture as a repeating white pixel. Otherwise,
 	// texture2D calls inside a shader would return black when drawing graphics
 	// primitives, which would create the need to use different "passthrough"
 	// shaders for untextured primitives vs images.
 
 	GLuint curtexture = state.textureUnits[state.curTextureUnit];
-	bindTexture(0);
+
+	glGenTextures(1, &state.defaultTexture);
+	bindTexture(state.defaultTexture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -240,16 +247,26 @@ void OpenGL::prepareDraw()
 
 	Shader *shader = Shader::current;
 
-	// Make sure the active shader has the correct values for the built-in
-	// screen params uniform.
+	// Make sure the active shader has the correct values for its love-provided
+	// uniforms.
 	if (shader)
+	{
 		shader->checkSetScreenParams();
+
+		// Make sure the Instance ID variable is up-to-date when
+		// pseudo-instancing is used.
+		if (state.lastPseudoInstanceID != 0 && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID))
+		{
+			glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, 0.0f);
+			state.lastPseudoInstanceID = 0;
+		}
+	}
 
 	if (GLAD_ES_VERSION_2_0 && shader)
 	{
 		// Send built-in uniforms to the current shader.
 		shader->sendBuiltinMatrix(Shader::BUILTIN_TRANSFORM_MATRIX, 4, transform.getElements(), 1);
-		shader->sendBuiltinMatrix(Shader::BUILTIN_TRANSFORM_MATRIX, 4, proj.getElements(), 1);
+		shader->sendBuiltinMatrix(Shader::BUILTIN_PROJECTION_MATRIX, 4, proj.getElements(), 1);
 
 		Matrix tp_matrix(proj * transform);
 		shader->sendBuiltinMatrix(Shader::BUILTIN_TRANSFORM_PROJECTION_MATRIX, 4, tp_matrix.getElements(), 1);
@@ -262,6 +279,58 @@ void OpenGL::prepareDraw()
 		glLoadMatrixf(proj.getElements());
 		glMatrixMode(GL_MODELVIEW);
 		glLoadMatrixf(transform.getElements());
+	}
+}
+
+void OpenGL::drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount)
+{
+	Shader *shader = Shader::current;
+
+	if (GLAD_ARB_draw_instanced)
+		glDrawArraysInstancedARB(mode, first, count, primcount);
+	else if (GLAD_EXT_draw_instanced && GLAD_ES_VERSION_2_0)
+		glDrawArraysInstancedEXT(mode, first, count, primcount);
+	else
+	{
+		bool shaderHasID = shader && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID);
+
+		// Pseudo-instancing fallback.
+		for (int i = 0; i < primcount; i++)
+		{
+			if (shaderHasID)
+				glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, (GLfloat) i);
+
+			glDrawArrays(mode, first, count);
+		}
+
+		if (shaderHasID)
+			state.lastPseudoInstanceID = primcount - 1;
+	}
+}
+
+void OpenGL::drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount)
+{
+	Shader *shader = Shader::current;
+
+	if (GLAD_ARB_draw_instanced)
+		glDrawElementsInstancedARB(mode, count, type, indices, primcount);
+	else if (GLAD_EXT_draw_instanced && GLAD_ES_VERSION_2_0)
+		glDrawElementsInstancedEXT(mode, count, type, indices, primcount);
+	else
+	{
+		bool shaderHasID = shader && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID);
+
+		// Pseudo-instancing fallback.
+		for (int i = 0; i < primcount; i++)
+		{
+			if (shaderHasID)
+				glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, (GLfloat) i);
+
+			glDrawElements(mode, count, type, indices);
+		}
+
+		if (shaderHasID)
+			state.lastPseudoInstanceID = primcount - 1;
 	}
 }
 
@@ -413,6 +482,11 @@ float OpenGL::getPointSize() const
 GLuint OpenGL::getDefaultFBO() const
 {
 	return state.defaultFBO;
+}
+
+GLuint OpenGL::getDefaultTexture() const
+{
+	return state.defaultTexture;
 }
 
 void OpenGL::setTextureUnit(int textureunit)

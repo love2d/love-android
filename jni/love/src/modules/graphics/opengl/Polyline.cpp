@@ -330,7 +330,7 @@ void Polyline::draw()
 	gl.prepareDraw();
 
 	// draw the core line
-	gl.bindTexture(0);
+	gl.bindTexture(gl.getDefaultTexture());
 	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) vertices);
 	glDrawArrays(draw_mode, 0, vertex_count);

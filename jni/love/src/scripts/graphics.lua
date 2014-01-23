@@ -1330,7 +1330,15 @@ uniform vec2 love_ScreenParams;]]
 #define VertexColor gl_Color
 
 #define VaryingTexCoord gl_TexCoord[0]
-#define VaryingColor gl_FrontColor]],
+#define VaryingColor gl_FrontColor
+
+#if defined(GL_ARB_draw_instanced)
+	#extension GL_ARB_draw_instanced : enable
+	#define love_InstanceID gl_InstanceIDARB
+#else
+	attribute float love_PseudoInstanceID;
+	int love_InstanceID = int(love_PseudoInstanceID);
+#endif]],
 
 		FOOTER = [[
 void main() {
@@ -1349,7 +1357,16 @@ attribute vec4 VertexTexCoord;
 attribute vec4 VertexColor;
 
 varying vec4 VaryingTexCoord;
-varying lowp vec4 VaryingColor;]],
+varying lowp vec4 VaryingColor;
+
+#if defined(GL_EXT_draw_instanced)
+	#extension GL_EXT_draw_instanced : enable
+	#define love_InstanceID gl_InstanceIDEXT
+#else
+	attribute float love_PseudoInstanceID;
+	int love_InstanceID = int(love_PseudoInstanceID);
+#endif
+]],
 
 		FOOTER = [[
 void main() {

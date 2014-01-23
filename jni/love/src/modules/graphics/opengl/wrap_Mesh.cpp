@@ -236,6 +236,20 @@ int w_Mesh_getVertexMap(lua_State *L)
 	return 1;
 }
 
+int w_Mesh_setInstanceCount(lua_State *L)
+{
+	Mesh *t = luax_checkmesh(L, 1);
+	t->setInstanceCount(luaL_checkint(L, 2));
+	return 0;
+}
+
+int w_Mesh_getInstanceCount(lua_State *L)
+{
+	Mesh *t = luax_checkmesh(L, 1);
+	lua_pushinteger(L, t->getInstanceCount());
+	return 1;
+}
+
 int w_Mesh_setTexture(lua_State *L)
 {
 	Mesh *t = luax_checkmesh(L, 1);
@@ -301,6 +315,38 @@ int w_Mesh_getDrawMode(lua_State *L)
 	return 1;
 }
 
+int w_Mesh_setDrawRange(lua_State *L)
+{
+	Mesh *t = luax_checkmesh(L, 1);
+
+	if (lua_isnoneornil(L, 2))
+		t->setDrawRange();
+	else
+	{
+		int rangemin = luaL_checkint(L, 2) - 1;
+		int rangemax = luaL_checkint(L, 3) - 1;
+		EXCEPT_GUARD(t->setDrawRange(rangemin, rangemax);)
+	}
+
+	return 0;
+}
+
+int w_Mesh_getDrawRange(lua_State *L)
+{
+	Mesh *t = luax_checkmesh(L, 1);
+
+	int rangemin = -1;
+	int rangemax = -1;
+	t->getDrawRange(rangemin, rangemax);
+
+	if (rangemin < 0 || rangemax < 0)
+		return 0;
+
+	lua_pushinteger(L, rangemin + 1);
+	lua_pushinteger(L, rangemax + 1);
+	return 2;
+}
+
 int w_Mesh_setVertexColors(lua_State *L)
 {
 	Mesh *t = luax_checkmesh(L, 1);
@@ -338,10 +384,14 @@ static const luaL_Reg functions[] =
 	{ "getVertexCount", w_Mesh_getVertexCount },
 	{ "setVertexMap", w_Mesh_setVertexMap },
 	{ "getVertexMap", w_Mesh_getVertexMap },
+	{ "setInstanceCount", w_Mesh_setInstanceCount },
+	{ "getInstanceCount", w_Mesh_getInstanceCount },
 	{ "setTexture", w_Mesh_setTexture },
 	{ "getTexture", w_Mesh_getTexture },
 	{ "setDrawMode", w_Mesh_setDrawMode },
 	{ "getDrawMode", w_Mesh_getDrawMode },
+	{ "setDrawRange", w_Mesh_setDrawRange },
+	{ "getDrawRange", w_Mesh_getDrawRange },
 	{ "setVertexColors", w_Mesh_setVertexColors },
 	{ "hasVertexColors", w_Mesh_hasVertexColors },
 	{ "setWireframe", w_Mesh_setWireframe },

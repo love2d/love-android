@@ -23,6 +23,9 @@
 #include "common/Matrix.h"
 #include "common/Exception.h"
 
+// C++
+#include <algorithm>
+
 namespace love
 {
 namespace graphics
@@ -35,11 +38,43 @@ Mesh::Mesh(const std::vector<Vertex> &verts, Mesh::DrawMode mode)
 	, vertex_count(0)
 	, ibo(nullptr)
 	, element_count(0)
+	, instance_count(1)
 	, draw_mode(mode)
+	, range_min(-1)
+	, range_max(-1)
 	, texture(nullptr)
 	, colors_enabled(false)
 	, wireframe(false)
 {
+	setVertices(verts);
+}
+
+Mesh::Mesh(int vertexcount, Mesh::DrawMode mode)
+	: vbo(nullptr)
+	, vertex_count(0)
+	, ibo(nullptr)
+	, element_count(0)
+	, draw_mode(mode)
+	, range_min(-1)
+	, range_max(-1)
+	, texture(nullptr)
+	, colors_enabled(false)
+	, wireframe(false)
+{
+	if (vertexcount < 1)
+		throw love::Exception("Invalid number of vertices.");
+
+	std::vector<Vertex> verts(vertexcount);
+
+	// Default-initialized vertices should have a white opaque color.
+	for (size_t i = 0; i < verts.size(); i++)
+	{
+		verts[i].r = 255;
+		verts[i].g = 255;
+		verts[i].b = 255;
+		verts[i].a = 255;
+	}
+
 	setVertices(verts);
 }
 
@@ -51,8 +86,8 @@ Mesh::~Mesh()
 
 void Mesh::setVertices(const std::vector<Vertex> &verts)
 {
-	if (verts.size() < 3)
-		throw love::Exception("At least 3 vertices are required.");
+	if (verts.size() == 0)
+		throw love::Exception("At least one vertex is required.");
 
 	size_t size = sizeof(Vertex) * verts.size();
 
@@ -162,12 +197,22 @@ const uint32 *Mesh::getVertexMap() const
 		return (uint32 *) ibo->map();
 	}
 
-	return 0;
+	return nullptr;
 }
 
 size_t Mesh::getVertexMapCount() const
 {
 	return element_count;
+}
+
+void Mesh::setInstanceCount(int count)
+{
+	instance_count = std::max(count, 1);
+}
+
+int Mesh::getInstanceCount() const
+{
+	return instance_count;
 }
 
 void Mesh::setTexture(Texture *tex)
@@ -203,6 +248,26 @@ Mesh::DrawMode Mesh::getDrawMode() const
 	return draw_mode;
 }
 
+void Mesh::setDrawRange(int min, int max)
+{
+	if (min < 0 || max < 0 || min > max)
+		throw love::Exception("Invalid draw range.");
+
+	range_min = min;
+	range_max = max;
+}
+
+void Mesh::setDrawRange()
+{
+	range_min = range_max = -1;
+}
+
+void Mesh::getDrawRange(int &min, int &max) const
+{
+	min = range_min;
+	max = range_max;
+}
+
 void Mesh::setVertexColors(bool enable)
 {
 	colors_enabled = enable;
@@ -235,7 +300,7 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 	if (texture)
 		texture->predraw();
 	else
-		gl.bindTexture(0);
+		gl.bindTexture(gl.getDefaultTexture());
 
 	Matrix m;
 	m.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
@@ -270,18 +335,43 @@ void Mesh::draw(float x, float y, float angle, float sx, float sy, float ox, flo
 
 	if (ibo && element_count > 0)
 	{
+		// Use the custom vertex map (index buffer) to draw the vertices.
 		VertexBuffer::Bind ibo_bind(*ibo);
 
 		// Make sure the index buffer isn't mapped (sends data to GPU if needed.)
 		ibo->unmap();
 
-		// Use the custom vertex map to draw the vertices.
-		glDrawElements(mode, element_count, GL_UNSIGNED_INT, ibo->getPointer(0));
+		int max = element_count - 1;
+		if (range_max >= 0)
+			max = std::min(std::max(range_max, 0), (int) element_count - 1);
+
+		int min = 0;
+		if (range_min >= 0)
+			min = std::min(std::max(range_min, 0), max);
+
+		const void *indices = ibo->getPointer(min * sizeof(uint32));
+		GLenum type = GL_UNSIGNED_INT;
+
+		if (instance_count > 1)
+			gl.drawElementsInstanced(mode, max - min + 1, type, indices, instance_count);
+		else
+			glDrawElements(mode, max - min + 1, type, indices);
 	}
 	else
 	{
+		int max = vertex_count - 1;
+		if (range_max >= 0)
+			max = std::min(std::max(range_max, 0), (int) vertex_count - 1);
+
+		int min = 0;
+		if (range_min >= 0)
+			min = std::min(std::max(range_min, 0), max);
+
 		// Normal non-indexed drawing (no custom vertex map.)
-		glDrawArrays(mode, 0, vertex_count);
+		if (instance_count > 1)
+			gl.drawArraysInstanced(mode, min, max - min + 1, instance_count);
+		else
+			glDrawArrays(mode, min, max - min + 1);
 	}
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);

@@ -73,6 +73,7 @@ Shader::Shader(const ShaderSources &sources)
 	: shaderSources(sources)
 	, program(0)
 	, builtinUniforms()
+	, vertexAttributes()
 	, lastCanvas((Canvas *) -1)
 {
 	if (shaderSources.empty())
@@ -184,17 +185,16 @@ void Shader::createProgram(const std::vector<GLuint> &shaderids)
 	for (it = shaderids.begin(); it != shaderids.end(); ++it)
 		glAttachShader(program, *it);
 
-	// We use generic vertex attributes in OpenGL ES 2, so we have to bind the
-	// attribute indices to names in the shader.
-	if (GLAD_ES_VERSION_2_0)
+	// Bind generic vertex attribute indices to names in the shader.
+	for (int i = 0; i < int(OpenGL::ATTRIB_MAX_ENUM); i++)
 	{
-		const char *name = nullptr;
-		for (int i = 0; i < int(OpenGL::ATTRIB_MAX_ENUM); i++)
-		{
-			if (attribNames.find(OpenGL::VertexAttrib(i), name))
-				glBindAttribLocation(program, i, (const GLchar *) name);
-		}
+		// Desktop OpenGL should ignore some of these.
+		if (!GLAD_ES_VERSION_2_0 && i <= int(OpenGL::ATTRIB_COLOR))
+			continue;
 
+		const char *name = nullptr;
+		if (attribNames.find((OpenGL::VertexAttrib) i, name))
+			glBindAttribLocation(program, i, (const GLchar *) name);
 	}
 
 	glLinkProgram(program);
@@ -272,10 +272,6 @@ bool Shader::loadVolatile()
 	for (int i = 0; i < int(BUILTIN_MAX_ENUM); i++)
 		builtinUniforms[i] = -1;
 
-	// Built-in uniform locations default to -1 (nonexistant.)
-	for (int i = 0; i < int(BUILTIN_MAX_ENUM); i++)
-		builtinUniforms[i] = -1;
-
 	std::vector<GLuint> shaderids;
 
 	ShaderSources::const_iterator source;
@@ -306,6 +302,15 @@ bool Shader::loadVolatile()
 
 	// Retrieve all active uniform variables in this shader from OpenGL.
 	mapActiveUniforms();
+
+	for (int i = 0; i < int(OpenGL::ATTRIB_MAX_ENUM); i++)
+	{
+		const char *name = nullptr;
+		if (attribNames.find(OpenGL::VertexAttrib(i), name))
+			vertexAttributes[i] = glGetAttribLocation(program, name);
+		else
+			vertexAttributes[i] = -1;
+	}
 
 	if (current == this)
 	{
@@ -679,6 +684,11 @@ int Shader::getTextureUnit(const std::string &name)
 	return texunit;
 }
 
+bool Shader::hasVertexAttrib(OpenGL::VertexAttrib attrib) const
+{
+	return vertexAttributes[int(attrib)] != -1;
+}
+
 bool Shader::hasBuiltinExtern(BuiltinExtern builtin) const
 {
 	return builtinUniforms[int(builtin)] != -1;
@@ -808,6 +818,7 @@ StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM>::Entry Shader::attribNa
 	{"VertexPosition", OpenGL::ATTRIB_POS},
 	{"VertexTexCoord", OpenGL::ATTRIB_TEXCOORD},
 	{"VertexColor", OpenGL::ATTRIB_COLOR},
+	{"love_PseudoInstanceID", OpenGL::ATTRIB_PSEUDO_INSTANCE_ID},
 };
 
 StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM> Shader::attribNames(Shader::attribNameEntries, sizeof(Shader::attribNameEntries));

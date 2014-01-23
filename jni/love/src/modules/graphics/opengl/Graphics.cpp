@@ -508,6 +508,11 @@ Mesh *Graphics::newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode mode
 	return new Mesh(vertices, mode);
 }
 
+Mesh *Graphics::newMesh(int vertexcount, Mesh::DrawMode mode)
+{
+	return new Mesh(vertexcount, mode);
+}
+
 void Graphics::setColor(const Color &c)
 {
 	gl.setColor(c);
@@ -856,7 +861,7 @@ void Graphics::point(float x, float y)
 {
 	gl.prepareDraw();
 
-	gl.bindTexture(0);
+	gl.bindTexture(gl.getDefaultTexture());
 
 	GLfloat coord[] = {x, y};
 
@@ -957,7 +962,7 @@ void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, 
 	{
 		gl.prepareDraw();
 
-		gl.bindTexture(0);
+		gl.bindTexture(gl.getDefaultTexture());
 
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
@@ -985,7 +990,7 @@ void Graphics::polygon(DrawMode mode, const float *coords, size_t count)
 	{
 		gl.prepareDraw();
 
-		gl.bindTexture(0);
+		gl.bindTexture(gl.getDefaultTexture());
 
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
