@@ -27,16 +27,16 @@ namespace android
 
 DisplayMetrics* Android::getDisplayMetrics()
 {
-		if (metrics == NULL)
-		{
-				metrics = new DisplayMetrics();
-		}
-		return metrics;
+	if (metrics == NULL)
+	{
+		metrics = new DisplayMetrics();
+	}
+	return metrics;
 }
 
 const char *Android::getName() const
 {
-		return "love.android";
+	return "love.android";
 }
 
 } // android
