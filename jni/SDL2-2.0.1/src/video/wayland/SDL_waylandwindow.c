@@ -19,7 +19,9 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "SDL_config.h"
+#include "../../SDL_internal.h"
+
+#if SDL_VIDEO_DRIVER_WAYLAND && SDL_VIDEO_OPENGL_EGL
 
 #include "../SDL_sysvideo.h"
 #include "../../events/SDL_windowevents_c.h"
@@ -104,7 +106,7 @@ void Wayland_ShowWindow(_THIS, SDL_Window *window)
     else
         wl_shell_surface_set_toplevel(wind->shell_surface);
 
-    wayland_schedule_write(_this->driverdata);
+    WAYLAND_wl_display_flush( ((SDL_VideoData*)_this->driverdata)->display );
 }
 
 void
@@ -120,7 +122,7 @@ Wayland_SetWindowFullscreen(_THIS, SDL_Window * window,
     else
         wl_shell_surface_set_toplevel(wind->shell_surface);
 
-    wayland_schedule_write(_this->driverdata);
+    WAYLAND_wl_display_flush( ((SDL_VideoData*)_this->driverdata)->display );
 }
 
 int Wayland_CreateWindow(_THIS, SDL_Window *window)
@@ -162,7 +164,7 @@ int Wayland_CreateWindow(_THIS, SDL_Window *window)
                 c->surface_extension, data->surface);
     }
 #endif /* SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH */
-    data->egl_window = wl_egl_window_create(data->surface,
+    data->egl_window = WAYLAND_wl_egl_window_create(data->surface,
                                             window->w, window->h);
 
     /* Create the GLES window surface */
@@ -192,7 +194,7 @@ int Wayland_CreateWindow(_THIS, SDL_Window *window)
     wl_surface_set_opaque_region(data->surface, region);
     wl_region_destroy(region);
 
-    wayland_schedule_write(c);
+    WAYLAND_wl_display_flush(c->display);
 
     return 0;
 }
@@ -203,9 +205,9 @@ void Wayland_SetWindowSize(_THIS, SDL_Window * window)
     SDL_WindowData *wind = window->driverdata;
     struct wl_region *region;
 
-    wl_egl_window_resize(wind->egl_window, window->w, window->h, 0, 0);
+    WAYLAND_wl_egl_window_resize(wind->egl_window, window->w, window->h, 0, 0);
 
-    region = wl_compositor_create_region(data->compositor);
+    region =wl_compositor_create_region(data->compositor);
     wl_region_add(region, 0, 0, window->w, window->h);
     wl_surface_set_opaque_region(wind->surface, region);
     wl_region_destroy(region);
@@ -220,7 +222,7 @@ void Wayland_DestroyWindow(_THIS, SDL_Window *window)
 
     if (data) {
         SDL_EGL_DestroySurface(_this, wind->egl_surface);
-        wl_egl_window_destroy(wind->egl_window);
+        WAYLAND_wl_egl_window_destroy(wind->egl_window);
 
         if (wind->shell_surface)
             wl_shell_surface_destroy(wind->shell_surface);
@@ -232,8 +234,10 @@ void Wayland_DestroyWindow(_THIS, SDL_Window *window)
         wl_surface_destroy(wind->surface);
 
         SDL_free(wind);
-        wayland_schedule_write(data);
+        WAYLAND_wl_display_flush(data->display);
     }
 }
+
+#endif /* SDL_VIDEO_DRIVER_WAYLAND && SDL_VIDEO_OPENGL_EGL */
 
 /* vi: set ts=4 sw=4 expandtab: */
