@@ -15,7 +15,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
 	${LOCAL_PATH}/../libpng-1.5.6/ \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
-	${LOCAL_PATH}/../jpeg-8c/ \
+	${LOCAL_PATH}/../jpeg-9a/ \
 	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff 
 		

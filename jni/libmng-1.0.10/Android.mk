@@ -11,7 +11,7 @@ LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
 LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/ \
-	${LOCAL_PATH}/../jpeg-8c \
+	${LOCAL_PATH}/../jpeg-9a \
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \

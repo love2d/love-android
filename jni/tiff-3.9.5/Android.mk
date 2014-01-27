@@ -9,7 +9,7 @@ LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
 LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/libtiff \
-	${LOCAL_PATH}/../jpeg-8c
+	${LOCAL_PATH}/../jpeg-9a
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
