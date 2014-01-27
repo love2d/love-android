@@ -1,1 +1,0 @@
-genre.o: genre.c
