@@ -20,10 +20,10 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../devil-1.7.8/include \
 	${LOCAL_PATH}/../devil-1.7.8/src-IL/include \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
-	${LOCAL_PATH}/../libpng-1.5.6/ \
+	${LOCAL_PATH}/../libpng-1.6.8/ \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
-	${LOCAL_PATH}/../jpeg-8c/ \
-	${LOCAL_PATH}/../lcms2-2.2/include \
+	${LOCAL_PATH}/../jpeg-9a/ \
+	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff \
 	${LOCAL_PATH}/../openal-soft-android/include \
 	${LOCAL_PATH}/../openal-soft-android/OpenAL32/Include \
@@ -32,9 +32,9 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../physfs-2.0.3 \
 	${LOCAL_PATH}/../mpg123-1.13.4/src/libmpg123 \
 	${LOCAL_PATH}/../libmodplug-0.8.8.4/src \
-	${LOCAL_PATH}/../libvorbis-1.3.2/include \
+	${LOCAL_PATH}/../libvorbis-1.3.4/include \
 	${LOCAL_PATH}/../LuaJIT-2.0.1/src \
-	${LOCAL_PATH}/../libogg-1.3.0/include 
+	${LOCAL_PATH}/../libogg-1.3.1/include 
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
