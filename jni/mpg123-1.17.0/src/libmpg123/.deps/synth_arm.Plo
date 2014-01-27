@@ -1,0 +1,7 @@
+synth_arm.lo: synth_arm.S mangle.h ../../src/config.h intsym.h
+
+mangle.h:
+
+../../src/config.h:
+
+intsym.h:

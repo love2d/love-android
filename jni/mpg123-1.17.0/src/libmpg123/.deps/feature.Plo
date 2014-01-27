@@ -1,0 +1,195 @@
+feature.lo: feature.c mpg123lib_intern.h ../../src/config.h intsym.h \
+ abi_align.h compat.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/stdlib.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/cdefs.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/cdefs_elf.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/android/api-level.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stddef.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/string.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/malloc.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/alloca.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/strings.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stdint.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/stdint.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/_types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/_types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/posix_types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/stddef.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/compiler.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/posix_types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/kernel.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/sysmacros.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/memory.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/stdio.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stdarg.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/math.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/limits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/syslimits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/limits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/limits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/limits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/internal_types.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/limits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/syslimits.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/page.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/signal.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/signal.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/signal.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/sigcontext.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/siginfo.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/siginfo.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/unistd.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/select.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/time.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/time.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/sysconf.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/capability.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/pathconf.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/inttypes.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/fcntl.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/fcntl.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/fcntl.h \
+ /opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/fcntl.h \
+ true.h mpg123.h optimize.h decode.h parse.h frame.h id3.h icy.h reader.h \
+ index.h synths.h
+
+mpg123lib_intern.h:
+
+../../src/config.h:
+
+intsym.h:
+
+abi_align.h:
+
+compat.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/stdlib.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/cdefs.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/cdefs_elf.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/android/api-level.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stddef.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/string.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/malloc.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/alloca.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/strings.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stdint.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/stdint.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/_types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/_types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/posix_types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/stddef.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/compiler.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/posix_types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/kernel.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/sysmacros.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/memory.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/stdio.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include/stdarg.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/math.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/limits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../lib/gcc/arm-linux-androideabi/4.6/include-fixed/syslimits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/limits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/limits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/limits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/internal_types.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/machine/limits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/syslimits.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/page.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/signal.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/signal.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/signal.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/sigcontext.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/siginfo.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/siginfo.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/unistd.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/select.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/time.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/time.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/sys/sysconf.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/capability.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/pathconf.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/inttypes.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/fcntl.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/linux/fcntl.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm/fcntl.h:
+
+/opt/android-ndk-r8e/ndk-standalone/bin/../sysroot/usr/include/asm-generic/fcntl.h:
+
+true.h:
+
+mpg123.h:
+
+optimize.h:
+
+decode.h:
+
+parse.h:
+
+frame.h:
+
+id3.h:
+
+icy.h:
+
+reader.h:
+
+index.h:
+
+synths.h:
