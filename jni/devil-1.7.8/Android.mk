@@ -16,7 +16,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../libpng-1.5.6/ \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
 	${LOCAL_PATH}/../jpeg-8c/ \
-	${LOCAL_PATH}/../lcms2-2.2/include \
+	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff 
 		
 LOCAL_SRC_FILES := \
