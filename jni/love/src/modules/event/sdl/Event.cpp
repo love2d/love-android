@@ -224,6 +224,14 @@ Message *Event::convert(const SDL_Event &e) const
 			txt = "touchmoved";
 		msg = new Message(txt, vargs);
 		break;
+	case SDL_MULTIGESTURE:
+		vargs.push_back(new Variant((double) e.mgesture.x));
+		vargs.push_back(new Variant((double) e.mgesture.y));
+		vargs.push_back(new Variant((double) e.mgesture.dTheta));
+		vargs.push_back(new Variant((double) e.mgesture.dDist));
+		vargs.push_back(new Variant((double) e.mgesture.numFingers));
+		msg = new Message("touchgestured", vargs);
+		break;
 	case SDL_JOYBUTTONDOWN:
 	case SDL_JOYBUTTONUP:
 	case SDL_JOYAXISMOTION:

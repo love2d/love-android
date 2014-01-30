@@ -67,7 +67,7 @@ public:
 		BUILTIN_PROJECTION_MATRIX,
 		BUILTIN_TRANSFORM_PROJECTION_MATRIX,
 		BUILTIN_POINT_SIZE,
-		BUILTIN_SCREEN_PARAMS,
+		BUILTIN_SCREEN_SIZE,
 		BUILTIN_MAX_ENUM
 	};
 
@@ -152,6 +152,8 @@ public:
 	bool sendBuiltinFloat(BuiltinExtern builtin, int size, const GLfloat *m, int count);
 	void checkSetScreenParams();
 
+	const std::map<std::string, Object *> &getBoundRetainables() const;
+
 	static std::string getGLSLVersion();
 	static bool isSupported();
 
@@ -227,6 +229,7 @@ private:
 
 	// Pointer to the active Canvas when the screen params were last checked.
 	Canvas *lastCanvas;
+	OpenGL::Viewport lastViewport;
 
 	// Max GPU texture units available for sent images
 	static GLint maxTexUnits;

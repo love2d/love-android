@@ -75,6 +75,7 @@ Shader::Shader(const ShaderSources &sources)
 	, builtinUniforms()
 	, vertexAttributes()
 	, lastCanvas((Canvas *) -1)
+	, lastViewport()
 {
 	if (shaderSources.empty())
 		throw love::Exception("Cannot create shader: no source code!");
@@ -753,30 +754,42 @@ bool Shader::sendBuiltinMatrix(BuiltinExtern builtin, int size, const GLfloat *m
 
 void Shader::checkSetScreenParams()
 {
-	if (lastCanvas == Canvas::current)
+	OpenGL::Viewport view = gl.getViewport();
+
+	if (view == lastViewport && lastCanvas == Canvas::current)
 		return;
 
-	// In the shader, we do pixcoord.y = gl_FragCoord.y * params[0] + params[1].
+	// In the shader, we do pixcoord.y = gl_FragCoord.y * params.z + params.w.
 	// This lets us flip pixcoord.y when needed, to be consistent (Canvases
 	// have flipped y-values for pixel coordinates.)
-	GLfloat params[] = {0.0f, 0.0f};
+	GLfloat params[] = {
+		(GLfloat) view.w, (GLfloat) view.h,
+		0.0f, 0.0f,
+	};
 
 	if (Canvas::current != nullptr)
 	{
 		// gl_FragCoord.y is flipped in Canvases, so we un-flip:
 		// pixcoord.y = gl_FragCoord.y * -1.0 + height.
-		params[0] = -1.0f;
-		params[1] = (float) Canvas::current->getHeight();
+		params[2] = -1.0f;
+		params[3] = (GLfloat) view.h;
 	}
 	else
 	{
 		// No flipping: pixcoord.y = gl_FragCoord.y * 1.0 + 0.0.
-		params[0] = 1.0f;
-		params[1] = 0.0f;
+		params[2] = 1.0f;
+		params[3] = 0.0f;
 	}
 
-	sendBuiltinFloat(BUILTIN_SCREEN_PARAMS, 2, params, 1);
+	sendBuiltinFloat(BUILTIN_SCREEN_SIZE, 4, params, 1);
+
 	lastCanvas = Canvas::current;
+	lastViewport = view;
+}
+
+const std::map<std::string, Object *> &Shader::getBoundRetainables() const
+{
+	return boundRetainables;
 }
 
 std::string Shader::getGLSLVersion()
@@ -829,7 +842,7 @@ StringMap<Shader::BuiltinExtern, Shader::BUILTIN_MAX_ENUM>::Entry Shader::builti
 	{"ProjectionMatrix", Shader::BUILTIN_PROJECTION_MATRIX},
 	{"TransformProjectionMatrix", Shader::BUILTIN_TRANSFORM_PROJECTION_MATRIX},
 	{"love_PointSize", Shader::BUILTIN_POINT_SIZE},
-	{"love_ScreenParams", Shader::BUILTIN_SCREEN_PARAMS},
+	{"love_ScreenSize", Shader::BUILTIN_SCREEN_SIZE},
 };
 
 StringMap<Shader::BuiltinExtern, Shader::BUILTIN_MAX_ENUM> Shader::builtinNames(Shader::builtinNameEntries, sizeof(Shader::builtinNameEntries));

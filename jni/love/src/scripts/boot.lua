@@ -179,6 +179,9 @@ function love.createhandlers()
 		touchmoved = function (id,x,y,p)
 			if love.touchmoved then return love.touchmoved(id,x,y,p) end
 		end,
+		touchgestured = function (x,y,theta,dist,num)
+			if love.touchgestured then return love.touchgestured(x,y,theta,dist,num) end
+		end,
 		joystickpressed = function (j,b)
 			if love.joystickpressed then return love.joystickpressed(j,b) end
 		end,
@@ -354,6 +357,11 @@ function love.init()
 		c.console = true
 	end
 
+	-- Console hack
+	if c.console and love._openConsole then
+		love._openConsole()
+	end
+
 	-- Gets desired modules.
 	for k,v in ipairs{
 		"android",
@@ -381,11 +389,6 @@ function love.init()
 
 	if love.event then
 		love.createhandlers()
-	end
-
-	-- Console hack
-	if c.console and love._openConsole then
-		love._openConsole()
 	end
 
 	-- Setup window here.
@@ -488,7 +491,7 @@ function love.run()
 		-- Process events.
 		if love.event then
 			love.event.pump()
-			for n,a,b,c,d in love.event.poll() do
+			for n,a,b,c,d,e in love.event.poll() do
 				if n == "quit" then
 					if not love.quit or not love.quit() then
 						if love.audio then
@@ -497,7 +500,7 @@ function love.run()
 						return
 					end
 				end
-				love.handlers[n](a,b,c,d)
+				love.handlers[n](a,b,c,d,e)
 			end
 		end
 

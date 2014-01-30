@@ -182,6 +182,15 @@ const char *love_codename()
 	return love::VERSION_CODENAME;
 }
 
+static int w_love_getVersion(lua_State *L)
+{
+	lua_pushinteger(L, love::VERSION_MAJOR);
+	lua_pushinteger(L, love::VERSION_MINOR);
+	lua_pushinteger(L, love::VERSION_REV);
+	lua_pushstring(L, love::VERSION_CODENAME);
+	return 4;
+}
+
 int luaopen_love(lua_State * L)
 {
 	love::luax_insistglobal(L, "love");
@@ -214,6 +223,9 @@ int luaopen_love(lua_State * L)
 	}
 
 	lua_setfield(L, -2, "_version_compat");
+
+	lua_pushcfunction(L, w_love_getVersion);
+	lua_setfield(L, -2, "getVersion");
 
 #ifdef LOVE_WINDOWS
 	lua_pushstring(L, "Windows");

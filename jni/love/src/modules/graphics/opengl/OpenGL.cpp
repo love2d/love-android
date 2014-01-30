@@ -43,6 +43,7 @@ OpenGL::OpenGL()
 	: contextInitialized(false)
 	, maxAnisotropy(1.0f)
 	, maxTextureSize(0)
+	, maxRenderTargets(0)
 	, vendor(VENDOR_UNKNOWN)
 	, state()
 {
@@ -202,6 +203,19 @@ void OpenGL::initMaxValues()
 		maxAnisotropy = 1.0f;
 
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+
+	if (Canvas::isSupported() && (GLAD_VERSION_2_0 || GLAD_ARB_draw_buffers))
+	{
+		int maxattachments = 0;
+		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxattachments);
+
+		int maxdrawbuffers = 0;
+		glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxdrawbuffers);
+
+		maxRenderTargets = std::min(maxattachments, maxdrawbuffers);
+	}
+	else
+		maxRenderTargets = 0;
 }
 
 void OpenGL::initMatrices()
@@ -259,6 +273,18 @@ void OpenGL::prepareDraw()
 		{
 			glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, 0.0f);
 			state.lastPseudoInstanceID = 0;
+		}
+
+		// We need to make sure antialiased Canvases are properly resolved
+		// before sampling from their textures in a shader.
+		// This is kind of a big hack. :(
+		const std::map<std::string, Object *> &r = shader->getBoundRetainables();
+		for (auto it = r.begin(); it != r.end(); ++it)
+		{
+			// Even bigger hack! D:
+			Canvas *canvas = dynamic_cast<Canvas *>(it->second);
+			if (canvas != nullptr)
+				canvas->resolveMSAA();
 		}
 	}
 
@@ -716,10 +742,76 @@ int OpenGL::getMaxTextureSize() const
 	return maxTextureSize;
 }
 
+int OpenGL::getMaxRenderTargets() const
+{
+	return maxRenderTargets;
+}
+
 OpenGL::Vendor OpenGL::getVendor() const
 {
 	return vendor;
 }
+
+const char *OpenGL::debugSeverityString(GLenum severity)
+{
+	switch (severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:
+		return "high";
+	case GL_DEBUG_SEVERITY_MEDIUM:
+		return "medium";
+	case GL_DEBUG_SEVERITY_LOW:
+		return "low";
+	default:
+		break;
+	}
+	return "unknown";
+}
+
+const char *OpenGL::debugSourceString(GLenum source)
+{
+	switch (source)
+	{
+	case GL_DEBUG_SOURCE_API:
+		return "API";
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+		return "window";
+	case GL_DEBUG_SOURCE_SHADER_COMPILER:
+		return "shader";
+	case GL_DEBUG_SOURCE_THIRD_PARTY:
+		return "external";
+	case GL_DEBUG_SOURCE_APPLICATION:
+		return "LOVE";
+	case GL_DEBUG_SOURCE_OTHER:
+		return "other";
+	default:
+		break;
+	}
+	return "unknown";
+}
+
+const char *OpenGL::debugTypeString(GLenum type)
+{
+	switch (type)
+	{
+	case GL_DEBUG_TYPE_ERROR:
+		return "error";
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+		return "deprecated behavior";
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+		return "undefined behavior";
+	case GL_DEBUG_TYPE_PERFORMANCE:
+		return "performance";
+	case GL_DEBUG_TYPE_PORTABILITY:
+		return "portability";
+	case GL_DEBUG_TYPE_OTHER:
+		return "other";
+	default:
+		break;
+	}
+	return "unknown";
+}
+
 
 // OpenGL class instance singleton.
 OpenGL gl;

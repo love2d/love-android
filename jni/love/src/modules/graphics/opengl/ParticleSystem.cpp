@@ -442,14 +442,14 @@ ParticleSystem::InsertMode ParticleSystem::getInsertMode() const
 	return insertMode;
 }
 
-void ParticleSystem::setEmissionRate(int rate)
+void ParticleSystem::setEmissionRate(float rate)
 {
-	if (rate < 0)
+	if (rate < 0.0f)
 		throw love::Exception("Invalid emission rate");
 	emissionRate = rate;
 }
 
-int ParticleSystem::getEmissionRate() const
+float ParticleSystem::getEmissionRate() const
 {
 	return emissionRate;
 }
@@ -484,11 +484,17 @@ void ParticleSystem::getParticleLifetime(float *min, float *max) const
 void ParticleSystem::setPosition(float x, float y)
 {
 	position = love::Vector(x, y);
+	prevPosition = position;
 }
 
 const love::Vector &ParticleSystem::getPosition() const
 {
 	return position;
+}
+
+void ParticleSystem::moveTo(float x, float y)
+{
+	position = love::Vector(x, y);
 }
 
 void ParticleSystem::setAreaSpread(AreaSpreadDistribution distribution, float x, float y)
@@ -790,7 +796,7 @@ bool ParticleSystem::isFull() const
 	return activeParticles == maxParticles;
 }
 
-void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const
+void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
 	uint32 pCount = getCount();
 	if (pCount == 0 || texture == nullptr || pMem == nullptr || particleVerts == nullptr)

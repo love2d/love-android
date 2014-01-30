@@ -132,12 +132,12 @@ public:
 	 * Sets the emission rate.
 	 * @param rate The amount of particles per second.
 	 **/
-	void setEmissionRate(int rate);
+	void setEmissionRate(float rate);
 
 	/**
 	 * Returns the number of particles created per second.
 	 **/
-	int getEmissionRate() const;
+	float getEmissionRate() const;
 
 	/**
 	 * Sets the lifetime of the particle emitter (-1 means eternal)
@@ -176,6 +176,15 @@ public:
 	 * Returns the position of the emitter.
 	 **/
 	const love::Vector &getPosition() const;
+
+	/**
+	 * Moves the position of the center of the emitter.
+	 * When update is called, newly spawned particles will appear in a line
+	 * between the old emitter position and where the emitter was moved to,
+	 * resulting in a smoother-feeling particle system if moveTo is called
+	 * repeatedly.
+	 **/
+	void moveTo(float x, float y);
 
 	/**
 	 * Sets the emission area spread parameters and distribution type. The interpretation of
@@ -471,7 +480,7 @@ public:
 	 * @param x The x-coordinate.
 	 * @param y The y-coordinate.
 	 **/
-	virtual void draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) const;
+	virtual void draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
 
 	/**
 	 * Updates the particle system.
@@ -551,7 +560,7 @@ protected:
 	uint32 activeParticles;
 
 	// The emission rate (particles/sec).
-	int emissionRate;
+	float emissionRate;
 
 	// Used to determine when a particle should be emitted.
 	float emitCounter;

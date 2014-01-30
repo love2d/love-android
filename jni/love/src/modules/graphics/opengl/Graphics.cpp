@@ -228,6 +228,18 @@ bool Graphics::setMode(int width, int height)
 			Shader::defaultShader->attach();
 	}
 
+	bool enabledebug = false;
+
+	if (GLAD_VERSION_3_0)
+	{
+		// Enable OpenGL's debug output if a debug context has been created.
+		GLint flags = 0;
+		glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+		enabledebug = (flags & GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
+	}
+
+	setDebug(enabledebug);
+
 	return true;
 }
 
@@ -244,6 +256,63 @@ void Graphics::unSetMode()
 
 		gl.deInitContext();
 	}
+}
+
+static void APIENTRY debugCB(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*len*/, const GLchar *msg, const GLvoid* /*usr*/)
+{
+	// Human-readable strings for the debug info.
+	const char *sourceStr = OpenGL::debugSourceString(source);
+	const char *typeStr = OpenGL::debugTypeString(type);
+	const char *severityStr = OpenGL::debugSeverityString(severity);
+
+	const char *fmt = "OpenGL: %s [source=%s, type=%s, severity=%s, id=%d]\n";
+	printf(fmt, msg, sourceStr, typeStr, severityStr, id);
+}
+
+void Graphics::setDebug(bool enable)
+{
+	// Make sure debug output is supported. The AMD ext. is a bit different
+	// so we don't make use of it, since AMD drivers now support KHR_debug.
+	if (!(GLAD_VERSION_4_3 || GLAD_KHR_debug || GLAD_ARB_debug_output))
+		return;
+
+	// Ugly hack to reduce code duplication.
+	if (GLAD_ARB_debug_output && !(GLAD_VERSION_4_3 || GLAD_KHR_debug))
+	{
+		fp_glDebugMessageCallback = (pfn_glDebugMessageCallback) fp_glDebugMessageCallbackARB;
+		fp_glDebugMessageControl = (pfn_glDebugMessageControl) fp_glDebugMessageControlARB;
+	}
+	else if (GLAD_ES_VERSION_2_0 && GLAD_KHR_debug)
+	{
+		fp_glDebugMessageCallback = (pfn_glDebugMessageCallback) fp_glDebugMessageCallbackKHR;
+		fp_glDebugMessageControl = (pfn_glDebugMessageControl) fp_glDebugMessageControlKHR;
+	}
+
+	if (!enable)
+	{
+		// Disable the debug callback function.
+		glDebugMessageCallback(nullptr, nullptr);
+
+		// We can disable debug output entirely with KHR_debug.
+		if (GLAD_VERSION_4_3 || GLAD_KHR_debug)
+			glDisable(GL_DEBUG_OUTPUT);
+
+		return;
+	}
+
+	// We don't want asynchronous debug output.
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+	glDebugMessageCallback(debugCB, nullptr);
+
+	// Initially, enable everything.
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+
+	// Disable messages about deprecated OpenGL functionality.
+	glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, GL_DONT_CARE, 0, 0, GL_FALSE);
+	glDebugMessageControl(GL_DEBUG_SOURCE_SHADER_COMPILER, GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, GL_DONT_CARE, 0, 0, GL_FALSE);
+
+	::printf("OpenGL debug output enabled (LOVE_GRAPHICS_DEBUG=1)\n");
 }
 
 void Graphics::reset()
@@ -361,11 +430,6 @@ void Graphics::discardStencil()
 	glDisable(GL_STENCIL_TEST);
 }
 
-int Graphics::getMaxTextureSize() const
-{
-	return gl.getMaxTextureSize();
-}
-
 Image *Graphics::newImage(love::image::ImageData *data)
 {
 	// Create the image.
@@ -440,7 +504,7 @@ ParticleSystem *Graphics::newParticleSystem(Texture *texture, int size)
 	return new ParticleSystem(texture, size);
 }
 
-Canvas *Graphics::newCanvas(int width, int height, Canvas::TextureType texture_type)
+Canvas *Graphics::newCanvas(int width, int height, Canvas::TextureType texture_type, int fsaa)
 {
 	if (texture_type == Canvas::TYPE_HDR && !Canvas::isHDRSupported())
 		throw Exception("HDR Canvases are not supported by your OpenGL implementation");
@@ -453,7 +517,7 @@ Canvas *Graphics::newCanvas(int width, int height, Canvas::TextureType texture_t
 	while (GL_NO_ERROR != glGetError())
 		/* clear opengl error flag */;
 
-	Canvas *canvas = new Canvas(width, height, texture_type);
+	Canvas *canvas = new Canvas(width, height, texture_type, fsaa);
 	GLenum err = canvas->getStatus();
 
 	// everything ok, return canvas (early out)
@@ -769,13 +833,6 @@ Graphics::PointStyle Graphics::getPointStyle() const
 		return POINT_SMOOTH;
 	else
 		return POINT_ROUGH;
-}
-
-int Graphics::getMaxPointSize() const
-{
-	GLint max;
-	glGetIntegerv(GL_POINT_SIZE_MAX, &max);
-	return (int)max;
 }
 
 void Graphics::print(const std::string &str, float x, float y , float angle, float sx, float sy, float ox, float oy, float kx, float ky)
@@ -1101,6 +1158,41 @@ std::string Graphics::getRendererInfo(Graphics::RendererInfo infotype) const
 		throw love::Exception("Cannot retrieve renderer information.");
 
 	return std::string(infostr);
+}
+
+double Graphics::getSystemLimit(SystemLimit limittype) const
+{
+	double limit = 0.0;
+
+	switch (limittype)
+	{
+	case Graphics::LIMIT_POINT_SIZE:
+		{
+			GLfloat limits[2];
+			glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
+			limit = limits[1];
+		}
+		break;
+	case Graphics::LIMIT_TEXTURE_SIZE:
+		limit = (double) gl.getMaxTextureSize();
+		break;
+	case Graphics::LIMIT_MULTI_CANVAS:
+		limit = (double) gl.getMaxRenderTargets();
+		break;
+	case Graphics::LIMIT_CANVAS_FSAA:
+		if (GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object
+			|| GLAD_EXT_framebuffer_multisample)
+		{
+			GLint intlimit = 0;
+			glGetIntegerv(GL_MAX_SAMPLES, &intlimit);
+			limit = (double) intlimit;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return limit;
 }
 
 void Graphics::push()

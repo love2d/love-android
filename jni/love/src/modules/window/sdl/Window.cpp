@@ -259,6 +259,18 @@ bool Window::setContext(int fsaa, bool vsync)
 
 	if (!context)
 	{
+		int flags = 0;
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &flags);
+		if (flags & SDL_GL_CONTEXT_DEBUG_FLAG)
+		{
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 0);
+			context = SDL_GL_CreateContext(window);
+		}
+	}
+
+	if (!context)
+	{
 		displayError("Could not create OpenGL context", SDL_GetError());
 		return false;
 	}
@@ -299,6 +311,8 @@ void Window::setWindowGLAttributes(int fsaa) const
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, (fsaa > 0) ? 1 : 0);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, (fsaa > 0) ? fsaa : 0);
 
+	int contextprofile = 0;
+
 	bool tryES2 = false;
 
 	const char *driver = SDL_GetCurrentVideoDriver();
@@ -314,17 +328,30 @@ void Window::setWindowGLAttributes(int fsaa) const
 	if (tryES2)
 	{
 		// Use OpenGL ES 2+.
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		contextprofile = SDL_GL_CONTEXT_PROFILE_ES;
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	}
 	else
 	{
 		// Use desktop OpenGL.
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 0);
+		contextprofile = 0;
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2); // default
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 	}
+
+	// Do we want a debug context?
+	const char *debugenv = SDL_GetHint("LOVE_GRAPHICS_DEBUG");
+	if (debugenv && *debugenv == '1')
+	{
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+		if (!tryES2)
+			contextprofile |= SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+	}
+	else
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, contextprofile);
 }
 
 void Window::updateSettings(const WindowSettings &newsettings)

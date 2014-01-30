@@ -115,6 +115,8 @@ public:
 	virtual bool setMode(int width, int height);
 	virtual void unSetMode();
 
+	void setDebug(bool enable);
+
 	/**
 	 * Resets the current color, background color,
 	 * line style, and so forth. (This will be called
@@ -187,11 +189,6 @@ public:
 	void discardStencil();
 
 	/**
-	 * Gets the maximum supported width or height of Textures on this system.
-	 **/
-	int getMaxTextureSize() const;
-
-	/**
 	 * Creates an Image object with padding and/or optimization.
 	 **/
 	Image *newImage(love::image::ImageData *data);
@@ -208,7 +205,7 @@ public:
 
 	ParticleSystem *newParticleSystem(Texture *texture, int size);
 
-	Canvas *newCanvas(int width, int height, Canvas::TextureType texture_type = Canvas::TYPE_NORMAL);
+	Canvas *newCanvas(int width, int height, Canvas::TextureType texture_type = Canvas::TYPE_NORMAL, int fsaa = 0);
 
 	Shader *newShader(const Shader::ShaderSources &sources);
 
@@ -338,12 +335,6 @@ public:
 	PointStyle getPointStyle() const;
 
 	/**
-	 * Gets the maximum point size supported.
-	 * This may vary from computer to computer.
-	 **/
-	int getMaxPointSize() const;
-
-	/**
 	 * Draws text at the specified coordinates, with rotation and
 	 * scaling along both axes.
 	 * @param x The x-coordinate.
@@ -443,6 +434,11 @@ public:
 	 * @param infotype The type of information to return.
 	 **/
 	std::string getRendererInfo(Graphics::RendererInfo infotype) const;
+
+	/**
+	 * Gets the system-dependent numeric limit for the specified parameter.
+	 **/
+	double getSystemLimit(SystemLimit limittype) const;
 
 	void push();
 	void pop();

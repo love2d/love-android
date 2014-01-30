@@ -1310,7 +1310,7 @@ do
 #define TransformProjectionMatrix gl_ModelViewProjectionMatrix
 #define NormalMatrix gl_NormalMatrix
 uniform sampler2D _tex0_;
-uniform vec2 love_ScreenParams;]]
+uniform vec4 love_ScreenSize;]]
 
 	GLSLES.UNIFORMS = [[
 uniform mat4 TransformMatrix;
@@ -1319,7 +1319,7 @@ uniform mat4 TransformProjectionMatrix;
 // uniform mat4 NormalMatrix;
 uniform float love_PointSize;
 uniform sampler2D _tex0_;
-uniform vec2 love_ScreenParams;]]
+uniform vec4 love_ScreenSize;]]
 
 	GLSL.VERTEX = {
 		HEADER = [[
@@ -1390,7 +1390,7 @@ void main() {
 	float dummy = texture2D(_tex0_, vec2(.5)).r;
 
 	// See Shader::checkSetScreenParams in Shader.cpp.
-	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenParams[0]) + love_ScreenParams[1]);
+	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenSize.z) + love_ScreenSize.w);
 
 	gl_FragColor = effect(VaryingColor, _tex0_, VaryingTexCoord.st, pixelcoord);
 }]],
@@ -1401,7 +1401,7 @@ void main() {
 	float dummy = texture2D(_tex0_, vec2(.5)).r;
 
 	// See Shader::checkSetScreenParams in Shader.cpp.
-	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenParams[0]) + love_ScreenParams[1]);
+	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenSize.z) + love_ScreenSize.w);
 
 	effects(VaryingColor, _tex0_, VaryingTexCoord.st, pixelcoord);
 }]],

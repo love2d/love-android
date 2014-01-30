@@ -96,6 +96,11 @@ public:
 		Viewport(int _x, int _y, int _w, int _h)
 			: x(_x), y(_y), w(_w), h(_h)
 		{}
+
+		bool operator == (const Viewport &rhs) const
+		{
+			return x == rhs.x && y == rhs.y && w == rhs.w && h == rhs.h;
+		}
 	};
 
 	// Transformation matrix stacks.
@@ -272,9 +277,19 @@ public:
 	int getMaxTextureSize() const;
 
 	/**
+	 * Returns the maximum supported number of simultaneous render targets.
+	 **/
+	int getMaxRenderTargets() const;
+
+	/**
 	 * Get the GPU vendor of this OpenGL context.
 	 **/
 	Vendor getVendor() const;
+
+	// Get human-readable strings for debug info.
+	static const char *debugSeverityString(GLenum severity);
+	static const char *debugSourceString(GLenum source);
+	static const char *debugTypeString(GLenum type);
 
 private:
 
@@ -290,6 +305,7 @@ private:
 
 	float maxAnisotropy;
 	int maxTextureSize;
+	int maxRenderTargets;
 
 	Vendor vendor;
 
