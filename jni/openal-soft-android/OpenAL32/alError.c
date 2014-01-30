@@ -22,26 +22,16 @@
 
 #include <signal.h>
 
+#ifdef HAVE_WINDOWS_H
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include "alMain.h"
 #include "AL/alc.h"
 #include "alError.h"
 
 ALboolean TrapALError = AL_FALSE;
-
-AL_API ALenum AL_APIENTRY alGetError(void)
-{
-    ALCcontext *Context;
-    ALenum errorCode;
-
-    Context = GetContextRef();
-    if(!Context) return AL_INVALID_OPERATION;
-
-    errorCode = ExchangeInt(&Context->LastError, AL_NO_ERROR);
-
-    ALCcontext_DecRef(Context);
-
-    return errorCode;
-}
 
 ALvoid alSetError(ALCcontext *Context, ALenum errorCode)
 {
@@ -56,4 +46,31 @@ ALvoid alSetError(ALCcontext *Context, ALenum errorCode)
 #endif
     }
     CompExchangeInt(&Context->LastError, AL_NO_ERROR, errorCode);
+}
+
+AL_API ALenum AL_APIENTRY alGetError(void)
+{
+    ALCcontext *Context;
+    ALenum errorCode;
+
+    Context = GetContextRef();
+    if(!Context)
+    {
+        if(TrapALError)
+        {
+#ifdef _WIN32
+            if(IsDebuggerPresent())
+                DebugBreak();
+#elif defined(SIGTRAP)
+            raise(SIGTRAP);
+#endif
+        }
+        return AL_INVALID_OPERATION;
+    }
+
+    errorCode = ExchangeInt(&Context->LastError, AL_NO_ERROR);
+
+    ALCcontext_DecRef(Context);
+
+    return errorCode;
 }

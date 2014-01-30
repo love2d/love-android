@@ -5,6 +5,33 @@
 /* Define to the library version */
 #define ALSOFT_VERSION "${LIB_VERSION}"
 
+#ifdef IN_IDE_PARSER
+/* KDevelop's parser doesn't recognize the C99-standard restrict keyword, but
+ * recent versions (at least 4.5.1) do recognize GCC's __restrict. */
+#define restrict __restrict
+#endif 
+
+/* Define any available alignment declaration */
+#define ALIGN(x) ${ALIGN_DECL}
+
+/* Define if we have the C11 aligned_alloc function */
+#cmakedefine HAVE_ALIGNED_ALLOC
+
+/* Define if we have the posix_memalign function */
+#cmakedefine HAVE_POSIX_MEMALIGN
+
+/* Define if we have the _aligned_malloc function */
+#cmakedefine HAVE__ALIGNED_MALLOC
+
+/* Define if we have SSE CPU extensions */
+#cmakedefine HAVE_SSE
+
+/* Define if we have ARM Neon CPU extensions */
+#cmakedefine HAVE_NEON
+
+/* Define if we have FluidSynth support */
+#cmakedefine HAVE_FLUIDSYNTH
+
 /* Define if we have the ALSA backend */
 #cmakedefine HAVE_ALSA
 
@@ -16,6 +43,9 @@
 
 /* Define if we have the SndIO backend */
 #cmakedefine HAVE_SNDIO
+
+/* Define if we have the QSA backend */
+#cmakedefine HAVE_QSA
 
 /* Define if we have the MMDevApi backend */
 #cmakedefine HAVE_MMDEVAPI
@@ -38,62 +68,17 @@
 /* Define if we have the OpenSL backend */
 #cmakedefine HAVE_OPENSL
 
-/* Define if we have the OpenSL 1.1 backend */
-#cmakedefine HAVE_OPENSL_1_1
-
-/* Define if we have the Android backend */
-#cmakedefine HAVE_ANDROID
-
-/* Define if we want to use the low latency Android backend */
-#cmakedefine HAVE_ANDROID_LOW_LATENCY
-
 /* Define if we have the Wave Writer backend */
 #cmakedefine HAVE_WAVE
-
-/* Define if we have dlfcn.h */
-#cmakedefine HAVE_DLFCN_H
 
 /* Define if we have the stat function */
 #cmakedefine HAVE_STAT
 
-/* Define if we have the powf function */
-#cmakedefine HAVE_POWF
-
-/* Define if we have the sqrtf function */
-#cmakedefine HAVE_SQRTF
-
-/* Define if we have the cosf function */
-#cmakedefine HAVE_COSF
-
-/* Define if we have the sinf function */
-#cmakedefine HAVE_SINF
-
-/* Define if we have the acosf function */
-#cmakedefine HAVE_ACOSF
-
-/* Define if we have the asinf function */
-#cmakedefine HAVE_ASINF
-
-/* Define if we have the atanf function */
-#cmakedefine HAVE_ATANF
-
-/* Define if we have the atan2f function */
-#cmakedefine HAVE_ATAN2F
-
-/* Define if we have the fabsf function */
-#cmakedefine HAVE_FABSF
-
-/* Define if we have the log10f function */
-#cmakedefine HAVE_LOG10F
-
-/* Define if we have the floorf function */
-#cmakedefine HAVE_FLOORF
+/* Define if we have the lrintf function */
+#cmakedefine HAVE_LRINTF
 
 /* Define if we have the strtof function */
 #cmakedefine HAVE_STRTOF
-
-/* Define if we have stdint.h */
-#cmakedefine HAVE_STDINT_H
 
 /* Define if we have the __int64 type */
 #cmakedefine HAVE___INT64
@@ -110,16 +95,40 @@
 /* Define if we have GCC's format attribute */
 #cmakedefine HAVE_GCC_FORMAT
 
+/* Define if we have stdint.h */
+#cmakedefine HAVE_STDINT_H
+
+/* Define if we have windows.h */
+#cmakedefine HAVE_WINDOWS_H
+
+/* Define if we have dlfcn.h */
+#cmakedefine HAVE_DLFCN_H
+
 /* Define if we have pthread_np.h */
 #cmakedefine HAVE_PTHREAD_NP_H
+
+/* Define if we have xmmintrin.h */
+#cmakedefine HAVE_XMMINTRIN_H
 
 /* Define if we have arm_neon.h */
 #cmakedefine HAVE_ARM_NEON_H
 
+/* Define if we have malloc.h */
+#cmakedefine HAVE_MALLOC_H
+
+/* Define if we have strings.h */
+#cmakedefine HAVE_STRINGS_H
+
+/* Define if we have cpuid.h */
+#cmakedefine HAVE_CPUID_H
+
+/* Define if we have sys/sysconf.h */
+#cmakedefine HAVE_SYS_SYSCONF_H
+
 /* Define if we have guiddef.h */
 #cmakedefine HAVE_GUIDDEF_H
 
-/* Define if we have guiddef.h */
+/* Define if we have initguid.h */
 #cmakedefine HAVE_INITGUID_H
 
 /* Define if we have ieeefp.h */
@@ -128,23 +137,20 @@
 /* Define if we have float.h */
 #cmakedefine HAVE_FLOAT_H
 
-/* Define if we have fpu_control.h */
-#cmakedefine HAVE_FPU_CONTROL_H
-
 /* Define if we have fenv.h */
 #cmakedefine HAVE_FENV_H
-
-/* Define if we have fesetround() */
-#cmakedefine HAVE_FESETROUND
 
 /* Define if we have _controlfp() */
 #cmakedefine HAVE__CONTROLFP
 
+/* Define if we have __control87_2() */
+#cmakedefine HAVE___CONTROL87_2
+
 /* Define if we have pthread_setschedparam() */
 #cmakedefine HAVE_PTHREAD_SETSCHEDPARAM
 
-/* Define if we have the restrict keyword */
-#cmakedefine HAVE_RESTRICT
+/* Define if we have pthread_setname_np() */
+#cmakedefine HAVE_PTHREAD_SETNAME_NP
 
-/* Define if we have the __restrict keyword */
-#cmakedefine HAVE___RESTRICT
+/* Define if we have pthread_set_name_np() */
+#cmakedefine HAVE_PTHREAD_SET_NAME_NP

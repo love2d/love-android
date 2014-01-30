@@ -1,24 +1,3 @@
-Android
-=======
-https://github.com/AerialX/openal-soft-android
-
-Build with cmake using a toolchain file made for the Android NDK.
-For example, this one works:
-https://github.com/AerialX/libbricks/blob/master/cmake/toolchain.android.cmake
-Use its NDK_CPU_X86, NDK_CPU_ARM, and NDK_CPU_ARM_V7A/NDK_CPU_ARM_VFPV3
-options as needed to build for the various configurations.
-
-The OpenSL backend will be built if configured for API Level 9 (2.3) or later,
-otherwise the JNI backend will be used. It's recommended that you compile
-OpenAL Soft as a shared library (the default) when using the JNI backend.
-
-You may also try setting ANDROID_LOW_LATENCY to build the untested JNI
-backend performance patch.
-
-Precompiled binaries are offered in the downloads tab of this repo. Not
-necessarily up to date or configured to your liking.
-https://github.com/AerialX/openal-soft-android/downloads
-
 Source Install
 ==============
 

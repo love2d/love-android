@@ -1,16 +1,24 @@
 #ifndef _AL_EFFECT_H_
 #define _AL_EFFECT_H_
 
-#include "AL/al.h"
+#include "alMain.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct ALeffect;
+
 enum {
     EAXREVERB = 0,
     REVERB,
+    AUTOWAH,
+    CHORUS,
+    COMPRESSOR,
+    DISTORTION,
     ECHO,
+    EQUALIZER,
+    FLANGER,
     MODULATOR,
     DEDICATED,
 
@@ -21,11 +29,41 @@ extern ALboolean DisabledEffects[MAX_EFFECTS];
 extern ALfloat ReverbBoost;
 extern ALboolean EmulateEAXReverb;
 
-typedef struct ALeffect
-{
-    // Effect type (AL_EFFECT_NULL, ...)
-    ALenum type;
+struct ALeffectVtable {
+    void (*const setParami)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALint val);
+    void (*const setParamiv)(struct ALeffect *effect, ALCcontext *context, ALenum param, const ALint *vals);
+    void (*const setParamf)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat val);
+    void (*const setParamfv)(struct ALeffect *effect, ALCcontext *context, ALenum param, const ALfloat *vals);
 
+    void (*const getParami)(const struct ALeffect *effect, ALCcontext *context, ALenum param, ALint *val);
+    void (*const getParamiv)(const struct ALeffect *effect, ALCcontext *context, ALenum param, ALint *vals);
+    void (*const getParamf)(const struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat *val);
+    void (*const getParamfv)(const struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat *vals);
+};
+
+#define DEFINE_ALEFFECT_VTABLE(T)           \
+const struct ALeffectVtable T##_vtable = {  \
+    T##_setParami, T##_setParamiv,          \
+    T##_setParamf, T##_setParamfv,          \
+    T##_getParami, T##_getParamiv,          \
+    T##_getParamf, T##_getParamfv,          \
+}
+
+extern const struct ALeffectVtable ALeaxreverb_vtable;
+extern const struct ALeffectVtable ALreverb_vtable;
+extern const struct ALeffectVtable ALautowah_vtable;
+extern const struct ALeffectVtable ALchorus_vtable;
+extern const struct ALeffectVtable ALcompressor_vtable;
+extern const struct ALeffectVtable ALdistortion_vtable;
+extern const struct ALeffectVtable ALecho_vtable;
+extern const struct ALeffectVtable ALequalizer_vtable;
+extern const struct ALeffectVtable ALflanger_vtable;
+extern const struct ALeffectVtable ALmodulator_vtable;
+extern const struct ALeffectVtable ALnull_vtable;
+extern const struct ALeffectVtable ALdedicated_vtable;
+
+
+typedef union ALeffectProps {
     struct {
         // Shared Reverb Properties
         ALfloat Density;
@@ -56,6 +94,34 @@ typedef struct ALeffect
     } Reverb;
 
     struct {
+        ALfloat AttackTime;
+        ALfloat ReleaseTime;
+        ALfloat PeakGain;
+        ALfloat Resonance;
+    } Autowah;
+
+    struct {
+        ALint Waveform;
+        ALint Phase;
+        ALfloat Rate;
+        ALfloat Depth;
+        ALfloat Feedback;
+        ALfloat Delay;
+    } Chorus;
+
+    struct {
+        ALboolean OnOff;
+    } Compressor;
+
+    struct {
+        ALfloat Edge;
+        ALfloat Gain;
+        ALfloat LowpassCutoff;
+        ALfloat EQCenter;
+        ALfloat EQBandwidth;
+    } Distortion;
+
+    struct {
         ALfloat Delay;
         ALfloat LRDelay;
 
@@ -66,6 +132,29 @@ typedef struct ALeffect
     } Echo;
 
     struct {
+        ALfloat Delay;
+        ALfloat LowCutoff;
+        ALfloat LowGain;
+        ALfloat Mid1Center;
+        ALfloat Mid1Gain;
+        ALfloat Mid1Width;
+        ALfloat Mid2Center;
+        ALfloat Mid2Gain;
+        ALfloat Mid2Width;
+        ALfloat HighCutoff;
+        ALfloat HighGain;
+    } Equalizer;
+
+    struct {
+        ALint Waveform;
+        ALint Phase;
+        ALfloat Rate;
+        ALfloat Depth;
+        ALfloat Feedback;
+        ALfloat Delay;
+    } Flanger;
+
+    struct {
         ALfloat Frequency;
         ALfloat HighPassCutoff;
         ALint Waveform;
@@ -74,35 +163,32 @@ typedef struct ALeffect
     struct {
         ALfloat Gain;
     } Dedicated;
+} ALeffectProps;
 
-    void (*SetParami)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALint val);
-    void (*SetParamiv)(struct ALeffect *effect, ALCcontext *context, ALenum param, const ALint *vals);
-    void (*SetParamf)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat val);
-    void (*SetParamfv)(struct ALeffect *effect, ALCcontext *context, ALenum param, const ALfloat *vals);
+typedef struct ALeffect {
+    // Effect type (AL_EFFECT_NULL, ...)
+    ALenum type;
 
-    void (*GetParami)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALint *val);
-    void (*GetParamiv)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALint *vals);
-    void (*GetParamf)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat *val);
-    void (*GetParamfv)(struct ALeffect *effect, ALCcontext *context, ALenum param, ALfloat *vals);
+    ALeffectProps Props;
 
-    // Index to itself
-    ALuint effect;
+    const struct ALeffectVtable *vtbl;
+
+    /* Self ID */
+    ALuint id;
 } ALeffect;
 
-#define ALeffect_SetParami(x, c, p, v)  ((x)->SetParami((x),(c),(p),(v)))
-#define ALeffect_SetParamiv(x, c, p, v) ((x)->SetParamiv((x),(c),(p),(v)))
-#define ALeffect_SetParamf(x, c, p, v)  ((x)->SetParamf((x),(c),(p),(v)))
-#define ALeffect_SetParamfv(x, c, p, v) ((x)->SetParamfv((x),(c),(p),(v)))
+inline struct ALeffect *LookupEffect(ALCdevice *device, ALuint id)
+{ return (struct ALeffect*)LookupUIntMapKey(&device->EffectMap, id); }
+inline struct ALeffect *RemoveEffect(ALCdevice *device, ALuint id)
+{ return (struct ALeffect*)RemoveUIntMapKey(&device->EffectMap, id); }
 
-#define ALeffect_GetParami(x, c, p, v)  ((x)->GetParami((x),(c),(p),(v)))
-#define ALeffect_GetParamiv(x, c, p, v) ((x)->GetParamiv((x),(c),(p),(v)))
-#define ALeffect_GetParamf(x, c, p, v)  ((x)->GetParamf((x),(c),(p),(v)))
-#define ALeffect_GetParamfv(x, c, p, v) ((x)->GetParamfv((x),(c),(p),(v)))
-
-static __inline ALboolean IsReverbEffect(ALenum type)
+inline ALboolean IsReverbEffect(ALenum type)
 { return type == AL_EFFECT_REVERB || type == AL_EFFECT_EAXREVERB; }
 
+ALenum InitEffect(ALeffect *effect);
 ALvoid ReleaseALEffects(ALCdevice *device);
+
+ALvoid LoadReverbPreset(const char *name, ALeffect *effect);
 
 #ifdef __cplusplus
 }

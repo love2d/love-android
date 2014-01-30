@@ -1,73 +1,64 @@
 #ifndef _AL_FILTER_H_
 #define _AL_FILTER_H_
 
-#include "AL/al.h"
-#include "alu.h"
+#include "alMain.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-    ALfloat coeff;
-#ifndef _MSC_VER
-    ALfloat history[0];
-#else
-    ALfloat history[1];
-#endif
-} FILTER;
+#define LOWPASSFREQREF  (5000)
 
-static __inline ALfloat lpFilter2P(FILTER *iir, ALuint offset, ALfloat input)
+
+/* Filters implementation is based on the "Cookbook formulae for audio   *
+ * EQ biquad filter coefficients" by Robert Bristow-Johnson              *
+ * http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt                   */
+
+typedef enum ALfilterType {
+    ALfilterType_HighShelf,
+    ALfilterType_LowShelf,
+    ALfilterType_Peaking,
+
+    ALfilterType_LowPass,
+    ALfilterType_HighPass,
+    ALfilterType_BandPass,
+} ALfilterType;
+
+typedef struct ALfilterState {
+    ALfloat x[2]; /* History of two last input samples  */
+    ALfloat y[2]; /* History of two last output samples */
+    ALfloat a[3]; /* Transfer function coefficients "a" */
+    ALfloat b[3]; /* Transfer function coefficients "b" */
+} ALfilterState;
+
+void ALfilterState_clear(ALfilterState *filter);
+void ALfilterState_setParams(ALfilterState *filter, ALfilterType type, ALfloat gain, ALfloat freq_scale, ALfloat bandwidth);
+
+inline ALfloat ALfilterState_processSingle(ALfilterState *filter, ALfloat sample)
 {
-    ALfloat *history = &iir->history[offset*2];
-    ALfloat a = iir->coeff;
-    ALfloat output = input;
+    ALfloat outsmp;
 
-    output = output + (history[0]-output)*a;
-    history[0] = output;
-    output = output + (history[1]-output)*a;
-    history[1] = output;
+    outsmp = filter->b[0] * sample +
+             filter->b[1] * filter->x[0] +
+             filter->b[2] * filter->x[1] -
+             filter->a[1] * filter->y[0] -
+             filter->a[2] * filter->y[1];
+    filter->x[1] = filter->x[0];
+    filter->x[0] = sample;
+    filter->y[1] = filter->y[0];
+    filter->y[0] = outsmp;
 
-    return output;
-}
-static __inline ALfloat lpFilter1P(FILTER *iir, ALuint offset, ALfloat input)
-{
-    ALfloat *history = &iir->history[offset];
-    ALfloat a = iir->coeff;
-    ALfloat output = input;
-
-    output = output + (history[0]-output)*a;
-    history[0] = output;
-
-    return output;
-}
-
-static __inline ALfloat lpFilter2PC(const FILTER *iir, ALuint offset, ALfloat input)
-{
-    const ALfloat *history = &iir->history[offset*2];
-    ALfloat a = iir->coeff;
-    ALfloat output = input;
-
-    output = output + (history[0]-output)*a;
-    output = output + (history[1]-output)*a;
-
-    return output;
-}
-static __inline ALfloat lpFilter1PC(FILTER *iir, ALuint offset, ALfloat input)
-{
-    const ALfloat *history = &iir->history[offset];
-    ALfloat a = iir->coeff;
-    ALfloat output = input;
-
-    output = output + (history[0]-output)*a;
-
-    return output;
+    return outsmp;
 }
 
-/* Calculates the low-pass filter coefficient given the pre-scaled gain and
- * cos(w) value. Note that g should be pre-scaled (sqr(gain) for one-pole,
- * sqrt(gain) for four-pole, etc) */
-ALfloat lpCoeffCalc(ALfloat g, ALfloat cw);
+inline ALfloat ALfilterState_processSingleC(const ALfilterState *filter, ALfloat sample)
+{
+    return filter->b[0] * sample +
+           filter->b[1] * filter->x[0] +
+           filter->b[2] * filter->x[1] -
+           filter->a[1] * filter->y[0] -
+           filter->a[2] * filter->y[1];
+}
 
 
 typedef struct ALfilter {
@@ -87,8 +78,8 @@ typedef struct ALfilter {
     void (*GetParamf)(struct ALfilter *filter, ALCcontext *context, ALenum param, ALfloat *val);
     void (*GetParamfv)(struct ALfilter *filter, ALCcontext *context, ALenum param, ALfloat *vals);
 
-    // Index to itself
-    ALuint filter;
+    /* Self ID */
+    ALuint id;
 } ALfilter;
 
 #define ALfilter_SetParami(x, c, p, v)  ((x)->SetParami((x),(c),(p),(v)))
@@ -100,6 +91,11 @@ typedef struct ALfilter {
 #define ALfilter_GetParamiv(x, c, p, v) ((x)->GetParamiv((x),(c),(p),(v)))
 #define ALfilter_GetParamf(x, c, p, v)  ((x)->GetParamf((x),(c),(p),(v)))
 #define ALfilter_GetParamfv(x, c, p, v) ((x)->GetParamfv((x),(c),(p),(v)))
+
+inline struct ALfilter *LookupFilter(ALCdevice *device, ALuint id)
+{ return (struct ALfilter*)LookupUIntMapKey(&device->FilterMap, id); }
+inline struct ALfilter *RemoveFilter(ALCdevice *device, ALuint id)
+{ return (struct ALfilter*)RemoveUIntMapKey(&device->FilterMap, id); }
 
 ALvoid ReleaseALFilters(ALCdevice *device);
 

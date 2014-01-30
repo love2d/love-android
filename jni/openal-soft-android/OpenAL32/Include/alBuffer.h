@@ -1,7 +1,7 @@
 #ifndef _AL_BUFFER_H_
 #define _AL_BUFFER_H_
 
-#include "AL/al.h"
+#include "alMain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,34 +9,33 @@ extern "C" {
 
 /* User formats */
 enum UserFmtType {
-    UserFmtByte   = AL_BYTE,
-    UserFmtUByte  = AL_UNSIGNED_BYTE,
-    UserFmtShort  = AL_SHORT,
-    UserFmtUShort = AL_UNSIGNED_SHORT,
-    UserFmtInt    = AL_INT,
-    UserFmtUInt   = AL_UNSIGNED_INT,
-    UserFmtFloat  = AL_FLOAT,
-    UserFmtDouble = AL_DOUBLE,
-    UserFmtMulaw  = AL_MULAW,
-    UserFmtAlaw   = AL_ALAW,
-    UserFmtIMA4   = AL_IMA4,
-    UserFmtByte3  = AL_BYTE3,
-    UserFmtUByte3 = AL_UNSIGNED_BYTE3,
+    UserFmtByte   = AL_BYTE_SOFT,
+    UserFmtUByte  = AL_UNSIGNED_BYTE_SOFT,
+    UserFmtShort  = AL_SHORT_SOFT,
+    UserFmtUShort = AL_UNSIGNED_SHORT_SOFT,
+    UserFmtInt    = AL_INT_SOFT,
+    UserFmtUInt   = AL_UNSIGNED_INT_SOFT,
+    UserFmtFloat  = AL_FLOAT_SOFT,
+    UserFmtDouble = AL_DOUBLE_SOFT,
+    UserFmtByte3  = AL_BYTE3_SOFT,
+    UserFmtUByte3 = AL_UNSIGNED_BYTE3_SOFT,
+    UserFmtMulaw,
+    UserFmtAlaw,
+    UserFmtIMA4,
 };
 enum UserFmtChannels {
-    UserFmtMono   = AL_MONO,
-    UserFmtStereo = AL_STEREO,
-    UserFmtRear   = AL_REAR,
-    UserFmtQuad   = AL_QUAD,
-    UserFmtX51    = AL_5POINT1, /* (WFX order) */
-    UserFmtX61    = AL_6POINT1, /* (WFX order) */
-    UserFmtX71    = AL_7POINT1  /* (WFX order) */
+    UserFmtMono   = AL_MONO_SOFT,
+    UserFmtStereo = AL_STEREO_SOFT,
+    UserFmtRear   = AL_REAR_SOFT,
+    UserFmtQuad   = AL_QUAD_SOFT,
+    UserFmtX51    = AL_5POINT1_SOFT, /* (WFX order) */
+    UserFmtX61    = AL_6POINT1_SOFT, /* (WFX order) */
+    UserFmtX71    = AL_7POINT1_SOFT, /* (WFX order) */
 };
 
 ALuint BytesFromUserFmt(enum UserFmtType type);
 ALuint ChannelsFromUserFmt(enum UserFmtChannels chans);
-static __inline ALuint FrameSizeFromUserFmt(enum UserFmtChannels chans,
-                                            enum UserFmtType type)
+inline ALuint FrameSizeFromUserFmt(enum UserFmtChannels chans, enum UserFmtType type)
 {
     return ChannelsFromUserFmt(chans) * BytesFromUserFmt(type);
 }
@@ -57,17 +56,17 @@ enum FmtChannels {
     FmtX61    = UserFmtX61,
     FmtX71    = UserFmtX71,
 };
+#define MAX_INPUT_CHANNELS  (8)
 
 ALuint BytesFromFmt(enum FmtType type);
 ALuint ChannelsFromFmt(enum FmtChannels chans);
-static __inline ALuint FrameSizeFromFmt(enum FmtChannels chans, enum FmtType type)
+inline ALuint FrameSizeFromFmt(enum FmtChannels chans, enum FmtType type)
 {
     return ChannelsFromFmt(chans) * BytesFromFmt(type);
 }
 
 
-typedef struct ALbuffer
-{
+typedef struct ALbuffer {
     ALvoid  *data;
 
     ALsizei  Frequency;
@@ -84,13 +83,19 @@ typedef struct ALbuffer
     ALsizei  LoopStart;
     ALsizei  LoopEnd;
 
-    RefCount ref; // Number of sources using this buffer (deletion can only occur when this is 0)
+    /* Number of times buffer was attached to a source (deletion can only occur when 0) */
+    RefCount ref;
 
     RWLock lock;
 
-    // Index to itself
-    ALuint buffer;
+    /* Self ID */
+    ALuint id;
 } ALbuffer;
+
+inline struct ALbuffer *LookupBuffer(ALCdevice *device, ALuint id)
+{ return (struct ALbuffer*)LookupUIntMapKey(&device->BufferMap, id); }
+inline struct ALbuffer *RemoveBuffer(ALCdevice *device, ALuint id)
+{ return (struct ALbuffer*)RemoveUIntMapKey(&device->BufferMap, id); }
 
 ALvoid ReleaseALBuffers(ALCdevice *device);
 

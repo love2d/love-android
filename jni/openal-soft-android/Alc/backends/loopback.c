@@ -21,57 +21,120 @@
 #include "config.h"
 
 #include <stdlib.h>
+
 #include "alMain.h"
-#include "AL/al.h"
-#include "AL/alc.h"
+#include "alu.h"
+
+#include "backends/base.h"
 
 
-static ALCenum loopback_open_playback(ALCdevice *device, const ALCchar *deviceName)
+typedef struct ALCloopback {
+    DERIVE_FROM_TYPE(ALCbackend);
+} ALCloopback;
+
+static void ALCloopback_Construct(ALCloopback *self, ALCdevice *device);
+static DECLARE_FORWARD(ALCloopback, ALCbackend, void, Destruct)
+static ALCenum ALCloopback_open(ALCloopback *self, const ALCchar *name);
+static void ALCloopback_close(ALCloopback *self);
+static ALCboolean ALCloopback_reset(ALCloopback *self);
+static ALCboolean ALCloopback_start(ALCloopback *self);
+static void ALCloopback_stop(ALCloopback *self);
+static DECLARE_FORWARD2(ALCloopback, ALCbackend, ALCenum, captureSamples, void*, ALCuint)
+static DECLARE_FORWARD(ALCloopback, ALCbackend, ALCuint, availableSamples)
+static DECLARE_FORWARD(ALCloopback, ALCbackend, ALint64, getLatency)
+static DECLARE_FORWARD(ALCloopback, ALCbackend, void, lock)
+static DECLARE_FORWARD(ALCloopback, ALCbackend, void, unlock)
+static void ALCloopback_Delete(ALCloopback *self);
+DEFINE_ALCBACKEND_VTABLE(ALCloopback);
+
+
+static void ALCloopback_Construct(ALCloopback *self, ALCdevice *device)
 {
-    device->szDeviceName = strdup(deviceName);
+    ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
+    SET_VTABLE2(ALCloopback, ALCbackend, self);
+}
+
+
+static ALCenum ALCloopback_open(ALCloopback *self, const ALCchar *name)
+{
+    ALCdevice *device = STATIC_CAST(ALCbackend, self)->mDevice;
+
+    device->DeviceName = strdup(name);
     return ALC_NO_ERROR;
 }
 
-static void loopback_close_playback(ALCdevice *device)
+static void ALCloopback_close(ALCloopback* UNUSED(self))
 {
-    (void)device;
 }
 
-static ALCboolean loopback_reset_playback(ALCdevice *device)
+static ALCboolean ALCloopback_reset(ALCloopback *self)
 {
-    SetDefaultWFXChannelOrder(device);
+    SetDefaultWFXChannelOrder(STATIC_CAST(ALCbackend, self)->mDevice);
     return ALC_TRUE;
 }
 
-static void loopback_stop_playback(ALCdevice *device)
+static ALCboolean ALCloopback_start(ALCloopback* UNUSED(self))
 {
-    (void)device;
-}
-
-static const BackendFuncs loopback_funcs = {
-    loopback_open_playback,
-    loopback_close_playback,
-    loopback_reset_playback,
-    loopback_stop_playback,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-ALCboolean alc_loopback_init(BackendFuncs *func_list)
-{
-    *func_list = loopback_funcs;
     return ALC_TRUE;
 }
 
-void alc_loopback_deinit(void)
+static void ALCloopback_stop(ALCloopback* UNUSED(self))
 {
 }
 
-void alc_loopback_probe(enum DevProbe type)
+
+static void ALCloopback_Delete(ALCloopback *self)
 {
-    (void)type;
+    free(self);
+}
+
+
+typedef struct ALCloopbackFactory {
+    DERIVE_FROM_TYPE(ALCbackendFactory);
+} ALCloopbackFactory;
+#define ALCNULLBACKENDFACTORY_INITIALIZER { { GET_VTABLE2(ALCloopbackFactory, ALCbackendFactory) } }
+
+ALCbackendFactory *ALCloopbackFactory_getFactory(void);
+static ALCboolean ALCloopbackFactory_init(ALCloopbackFactory *self);
+static DECLARE_FORWARD(ALCloopbackFactory, ALCbackendFactory, void, deinit)
+static ALCboolean ALCloopbackFactory_querySupport(ALCloopbackFactory *self, ALCbackend_Type type);
+static void ALCloopbackFactory_probe(ALCloopbackFactory *self, enum DevProbe type);
+static ALCbackend* ALCloopbackFactory_createBackend(ALCloopbackFactory *self, ALCdevice *device, ALCbackend_Type type);
+DEFINE_ALCBACKENDFACTORY_VTABLE(ALCloopbackFactory);
+
+
+ALCbackendFactory *ALCloopbackFactory_getFactory(void)
+{
+    static ALCloopbackFactory factory = ALCNULLBACKENDFACTORY_INITIALIZER;
+    return STATIC_CAST(ALCbackendFactory, &factory);
+}
+
+static ALCboolean ALCloopbackFactory_init(ALCloopbackFactory* UNUSED(self))
+{
+    return ALC_TRUE;
+}
+
+static ALCboolean ALCloopbackFactory_querySupport(ALCloopbackFactory* UNUSED(self), ALCbackend_Type type)
+{
+    if(type == ALCbackend_Loopback)
+        return ALC_TRUE;
+    return ALC_FALSE;
+}
+
+static void ALCloopbackFactory_probe(ALCloopbackFactory* UNUSED(self), enum DevProbe UNUSED(type))
+{
+}
+
+static ALCbackend* ALCloopbackFactory_createBackend(ALCloopbackFactory* UNUSED(self), ALCdevice *device, ALCbackend_Type type)
+{
+    ALCloopback *backend;
+
+    assert(type == ALCbackend_Loopback);
+
+    backend = calloc(1, sizeof(*backend));
+    if(!backend) return NULL;
+
+    ALCloopback_Construct(backend, device);
+
+    return STATIC_CAST(ALCbackend, backend);
 }

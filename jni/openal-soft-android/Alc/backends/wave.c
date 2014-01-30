@@ -23,9 +23,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
+#include <errno.h>
+#ifdef HAVE_WINDOWS_H
+#include <windows.h>
+#endif
+
 #include "alMain.h"
-#include "AL/al.h"
-#include "AL/alc.h"
+#include "alu.h"
+#include "threads.h"
+#include "compat.h"
 
 
 typedef struct {
@@ -36,7 +42,7 @@ typedef struct {
     ALuint size;
 
     volatile int killNow;
-    ALvoid *thread;
+    althread_t thread;
 } wave_data;
 
 
@@ -81,50 +87,47 @@ static void fwrite32le(ALuint val, FILE *f)
 
 static ALuint WaveProc(ALvoid *ptr)
 {
-    ALCdevice *pDevice = (ALCdevice*)ptr;
-    wave_data *data = (wave_data*)pDevice->ExtraData;
+    ALCdevice *Device = (ALCdevice*)ptr;
+    wave_data *data = (wave_data*)Device->ExtraData;
     ALuint frameSize;
     ALuint now, start;
     ALuint64 avail, done;
     size_t fs;
-    union {
-        short s;
-        char b[sizeof(short)];
-    } uSB;
-    const ALuint restTime = (ALuint64)pDevice->UpdateSize * 1000 /
-                            pDevice->Frequency / 2;
+    const ALuint restTime = (ALuint64)Device->UpdateSize * 1000 /
+                            Device->Frequency / 2;
 
-    uSB.s = 1;
-    frameSize = FrameSizeFromDevFmt(pDevice->FmtChans, pDevice->FmtType);
+    SetThreadName(MIXER_THREAD_NAME);
+
+    frameSize = FrameSizeFromDevFmt(Device->FmtChans, Device->FmtType);
 
     done = 0;
     start = timeGetTime();
-    while(!data->killNow && pDevice->Connected)
+    while(!data->killNow && Device->Connected)
     {
         now = timeGetTime();
 
-        avail = (ALuint64)(now-start) * pDevice->Frequency / 1000;
+        avail = (ALuint64)(now-start) * Device->Frequency / 1000;
         if(avail < done)
         {
-            /* Timer wrapped. Add the remainder of the cycle to the available
-             * count and reset the number of samples done */
-            avail += (ALuint64)0xFFFFFFFFu*pDevice->Frequency/1000 - done;
+            /* Timer wrapped (50 days???). Add the remainder of the cycle to
+             * the available count and reset the number of samples done */
+            avail += ((ALuint64)1<<32)*Device->Frequency/1000 - done;
             done = 0;
         }
-        if(avail-done < pDevice->UpdateSize)
+        if(avail-done < Device->UpdateSize)
         {
             Sleep(restTime);
             continue;
         }
 
-        while(avail-done >= pDevice->UpdateSize)
+        while(avail-done >= Device->UpdateSize)
         {
-            aluMixData(pDevice, data->buffer, pDevice->UpdateSize);
-            done += pDevice->UpdateSize;
+            aluMixData(Device, data->buffer, Device->UpdateSize);
+            done += Device->UpdateSize;
 
-            if(uSB.b[0] != 1)
+            if(!IS_LITTLE_ENDIAN)
             {
-                ALuint bytesize = BytesFromDevFmt(pDevice->FmtType);
+                ALuint bytesize = BytesFromDevFmt(Device->FmtType);
                 ALubyte *bytes = data->buffer;
                 ALuint i;
 
@@ -145,12 +148,17 @@ static ALuint WaveProc(ALvoid *ptr)
                 }
             }
             else
-                fs = fwrite(data->buffer, frameSize, pDevice->UpdateSize,
+            {
+                fs = fwrite(data->buffer, frameSize, Device->UpdateSize,
                             data->f);
+                (void)fs;
+            }
             if(ferror(data->f))
             {
                 ERR("Error writing to file\n");
-                aluHandleDisconnect(pDevice);
+                ALCdevice_Lock(Device);
+                aluHandleDisconnect(Device);
+                ALCdevice_Unlock(Device);
                 break;
             }
         }
@@ -183,7 +191,7 @@ static ALCenum wave_open_playback(ALCdevice *device, const ALCchar *deviceName)
         return ALC_INVALID_VALUE;
     }
 
-    device->szDeviceName = strdup(deviceName);
+    device->DeviceName = strdup(deviceName);
     device->ExtraData = data;
     return ALC_NO_ERROR;
 }
@@ -214,8 +222,12 @@ static ALCboolean wave_reset_playback(ALCdevice *device)
         case DevFmtUShort:
             device->FmtType = DevFmtShort;
             break;
+        case DevFmtUInt:
+            device->FmtType = DevFmtInt;
+            break;
         case DevFmtUByte:
         case DevFmtShort:
+        case DevFmtInt:
         case DevFmtFloat:
             break;
     }
@@ -250,6 +262,7 @@ static ALCboolean wave_reset_playback(ALCdevice *device)
     fwrite32le(channel_masks[channels], data->f);
     // 16 byte GUID, sub-type format
     val = fwrite(((bits==32) ? SUBTYPE_FLOAT : SUBTYPE_PCM), 1, 16, data->f);
+    (void)val;
 
     fprintf(data->f, "data");
     fwrite32le(0xFFFFFFFF, data->f); // 'data' header len; filled in at close
@@ -259,10 +272,18 @@ static ALCboolean wave_reset_playback(ALCdevice *device)
         ERR("Error writing header: %s\n", strerror(errno));
         return ALC_FALSE;
     }
-
     data->DataStart = ftell(data->f);
 
-    data->size = device->UpdateSize * channels * bits / 8;
+    SetDefaultWFXChannelOrder(device);
+
+    return ALC_TRUE;
+}
+
+static ALCboolean wave_start_playback(ALCdevice *device)
+{
+    wave_data *data = (wave_data*)device->ExtraData;
+
+    data->size = device->UpdateSize * FrameSizeFromDevFmt(device->FmtChans, device->FmtType);
     data->buffer = malloc(data->size);
     if(!data->buffer)
     {
@@ -270,10 +291,7 @@ static ALCboolean wave_reset_playback(ALCdevice *device)
         return ALC_FALSE;
     }
 
-    SetDefaultWFXChannelOrder(device);
-
-    data->thread = StartThread(WaveProc, device);
-    if(data->thread == NULL)
+    if(!StartThread(&data->thread, WaveProc, device))
     {
         free(data->buffer);
         data->buffer = NULL;
@@ -317,13 +335,15 @@ static const BackendFuncs wave_funcs = {
     wave_open_playback,
     wave_close_playback,
     wave_reset_playback,
+    wave_start_playback,
     wave_stop_playback,
     NULL,
     NULL,
     NULL,
     NULL,
     NULL,
-    NULL
+    NULL,
+    ALCdevice_GetLatencyDefault
 };
 
 ALCboolean alc_wave_init(BackendFuncs *func_list)
@@ -343,11 +363,8 @@ void alc_wave_probe(enum DevProbe type)
 
     switch(type)
     {
-        case DEVICE_PROBE:
-            AppendDeviceList(waveDevice);
-            break;
         case ALL_DEVICE_PROBE:
-            AppendAllDeviceList(waveDevice);
+            AppendAllDevicesList(waveDevice);
             break;
         case CAPTURE_DEVICE_PROBE:
             break;

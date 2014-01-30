@@ -3,7 +3,34 @@
 #define ALC_API __attribute__((visibility("protected")))
 
 /* Define to the library version */
-#define ALSOFT_VERSION "1.13"
+#define ALSOFT_VERSION "1.15.1"
+
+#ifdef IN_IDE_PARSER
+/* KDevelop's parser doesn't recognize the C99-standard restrict keyword, but
+ * recent versions (at least 4.5.1) do recognize GCC's __restrict. */
+#define restrict __restrict
+#endif 
+
+/* Define any available alignment declaration */
+#define ALIGN(x) __attribute__((aligned(x)))
+
+/* Define if we have the C11 aligned_alloc function */
+/* #undef HAVE_ALIGNED_ALLOC */
+
+/* Define if we have the posix_memalign function */
+/* #undef HAVE_POSIX_MEMALIGN */
+
+/* Define if we have the _aligned_malloc function */
+/* #undef HAVE__ALIGNED_MALLOC */
+
+/* Define if we have SSE CPU extensions */
+/* #undef HAVE_SSE */
+
+/* Define if we have ARM Neon CPU extensions */
+#undef HAVE_NEON
+
+/* Define if we have FluidSynth support */
+/* #undef HAVE_FLUIDSYNTH */
 
 /* Define if we have the ALSA backend */
 /* #undef HAVE_ALSA */
@@ -16,6 +43,9 @@
 
 /* Define if we have the SndIO backend */
 /* #undef HAVE_SNDIO */
+
+/* Define if we have the QSA backend */
+/* #undef HAVE_QSA */
 
 /* Define if we have the MMDevApi backend */
 /* #undef HAVE_MMDEVAPI */
@@ -36,64 +66,19 @@
 /* #undef HAVE_COREAUDIO */
 
 /* Define if we have the OpenSL backend */
-/* #undef HAVE_OPENSL */
-
-/* Define if we have the OpenSL 1.1 backend */
-/* #undef HAVE_OPENSL_1_1 */
-
-/* Define if we have the Android backend */
-#define HAVE_ANDROID
-
-/* Define if we want to use the low latency Android backend */
-/* #undef HAVE_ANDROID_LOW_LATENCY */
+#define HAVE_OPENSL
 
 /* Define if we have the Wave Writer backend */
 #define HAVE_WAVE
 
-/* Define if we have dlfcn.h */
-#define HAVE_DLFCN_H
-
 /* Define if we have the stat function */
 #define HAVE_STAT
 
-/* Define if we have the powf function */
-#define HAVE_POWF
-
-/* Define if we have the sqrtf function */
-#define HAVE_SQRTF
-
-/* Define if we have the cosf function */
-#define HAVE_COSF
-
-/* Define if we have the sinf function */
-#define HAVE_SINF
-
-/* Define if we have the acosf function */
-#define HAVE_ACOSF
-
-/* Define if we have the asinf function */
-#define HAVE_ASINF
-
-/* Define if we have the atanf function */
-#define HAVE_ATANF
-
-/* Define if we have the atan2f function */
-#define HAVE_ATAN2F
-
-/* Define if we have the fabsf function */
-#define HAVE_FABSF
-
-/* Define if we have the log10f function */
-#define HAVE_LOG10F
-
-/* Define if we have the floorf function */
-#define HAVE_FLOORF
+/* Define if we have the lrintf function */
+#define HAVE_LRINTF
 
 /* Define if we have the strtof function */
 /* #undef HAVE_STRTOF */
-
-/* Define if we have stdint.h */
-#define HAVE_STDINT_H
 
 /* Define if we have the __int64 type */
 /* #undef HAVE___INT64 */
@@ -110,16 +95,40 @@
 /* Define if we have GCC's format attribute */
 #define HAVE_GCC_FORMAT
 
+/* Define if we have stdint.h */
+#define HAVE_STDINT_H
+
+/* Define if we have windows.h */
+/* #undef HAVE_WINDOWS_H */
+
+/* Define if we have dlfcn.h */
+#define HAVE_DLFCN_H
+
 /* Define if we have pthread_np.h */
 /* #undef HAVE_PTHREAD_NP_H */
+
+/* Define if we have xmmintrin.h */
+/* #undef HAVE_XMMINTRIN_H */
 
 /* Define if we have arm_neon.h */
 /* #undef HAVE_ARM_NEON_H */
 
+/* Define if we have malloc.h */
+#define HAVE_MALLOC_H
+
+/* Define if we have strings.h */
+#define HAVE_STRINGS_H
+
+/* Define if we have cpuid.h */
+/* #undef HAVE_CPUID_H */
+
+/* Define if we have sys/sysconf.h */
+#define HAVE_SYS_SYSCONF_H
+
 /* Define if we have guiddef.h */
 /* #undef HAVE_GUIDDEF_H */
 
-/* Define if we have guiddef.h */
+/* Define if we have initguid.h */
 /* #undef HAVE_INITGUID_H */
 
 /* Define if we have ieeefp.h */
@@ -128,23 +137,20 @@
 /* Define if we have float.h */
 #define HAVE_FLOAT_H
 
-/* Define if we have fpu_control.h */
-/* #undef HAVE_FPU_CONTROL_H */
-
 /* Define if we have fenv.h */
-/* #undef HAVE_FENV_H */
-
-/* Define if we have fesetround() */
-/* #undef HAVE_FESETROUND */
+#define HAVE_FENV_H
 
 /* Define if we have _controlfp() */
 /* #undef HAVE__CONTROLFP */
 
+/* Define if we have __control87_2() */
+/* #undef HAVE___CONTROL87_2 */
+
 /* Define if we have pthread_setschedparam() */
-/* #undef HAVE_PTHREAD_SETSCHEDPARAM */
+#define HAVE_PTHREAD_SETSCHEDPARAM
 
-/* Define if we have the restrict keyword */
-/* #undef HAVE_RESTRICT */
+/* Define if we have pthread_setname_np() */
+/* #undef HAVE_PTHREAD_SETNAME_NP */
 
-/* Define if we have the __restrict keyword */
-#define HAVE___RESTRICT
+/* Define if we have pthread_set_name_np() */
+/* #undef HAVE_PTHREAD_SET_NAME_NP */
