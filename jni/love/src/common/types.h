@@ -35,9 +35,6 @@ enum Type
 	DATA_ID,
 	MODULE_ID,
 
-	// Android
-	ANDROID_DISPLAY_METRICS_ID,
-
 	// Filesystem.
 	FILESYSTEM_FILE_ID,
 	FILESYSTEM_FILE_DATA_ID,
@@ -123,9 +120,6 @@ const bits INVALID_T = bits(1) << INVALID_ID;
 const bits OBJECT_T = bits(1) << OBJECT_ID;
 const bits DATA_T = (bits(1) << DATA_ID) | OBJECT_T;
 const bits MODULE_T = (bits(1) << MODULE_ID) | OBJECT_T;
-
-// Android
-const bits ANDROID_DISPLAY_METRICS_T = (bits(1) << ANDROID_DISPLAY_METRICS_ID) | OBJECT_T;
 
 // Filesystem.
 const bits FILESYSTEM_FILE_T = (bits(1) << FILESYSTEM_FILE_ID) | OBJECT_T;
