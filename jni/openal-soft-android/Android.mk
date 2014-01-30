@@ -32,6 +32,4 @@ LOCAL_SRC_FILES := \
 # $(info libopenal: include dirs $(LOCAL_C_INCLUDES))
 # $(info libopenal: src files $(LOCAL_SRC_FILES))
 
-LOCAL_LDLIBS := -llog -lOpenSLES
-
 include $(BUILD_STATIC_LIBRARY)
