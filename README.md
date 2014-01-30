@@ -22,6 +22,7 @@ Changelog:
 ----------
 
 alpha8:
+
 * Exposing DisplayMetrics in love.android.getDisplayMetrics())
 * Accelerometer is now available as a joystick
 * enabled armv6 compilation (larger files, better compatibility with Tegra2 devices)
@@ -34,11 +35,12 @@ alpha8:
 * updated mpg123 from 1.13.4 to 1.17.0
 
 alpha7:
-*  love.system.getOS() now returns "Android"
-*  hardware search key is reported as "search"
-*  switched to mobile-common branch
-*  using new love.touch module (love.touchpressed(id,x,y,p), love.touchmoved(id,x,y,p), love.touchmoved(id,x,y,p))
-*  added LOVE_ANDROID define
+
+* love.system.getOS() now returns "Android"
+* hardware search key is reported as "search"
+* switched to mobile-common branch
+* using new love.touch module (love.touchpressed(id,x,y,p), love.touchmoved(id,x,y,p), love.touchmoved(id,x,y,p))
+* added LOVE_ANDROID define
 
 License:
 --------
