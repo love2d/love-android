@@ -23,6 +23,10 @@
 #include "graphics/Graphics.h"
 #include "Window.h"
 
+#ifdef LOVE_ANDROID
+#include "common/android.h"
+#endif
+
 // C++
 #include <iostream>
 #include <vector>
@@ -671,7 +675,9 @@ double Window::getPixelScale() const
 {
 	double scale = 1.0;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+#ifdef LOVE_ANDROID
+	scale = love::android::getScreenScale();
+#elif SDL_VERSION_ATLEAST(2,0,1)
 	if (window)
 	{
 		int wheight;

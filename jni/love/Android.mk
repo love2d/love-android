@@ -43,8 +43,7 @@ LOCAL_SRC_FILES := \
 	,$(subst $(LOCAL_PATH)/,,\
 	$(wildcard ${LOCAL_PATH}/src/love.cpp) \
  	$(wildcard ${LOCAL_PATH}/src/common/*.cpp) \
-  $(wildcard ${LOCAL_PATH}/src/modules/android/*.cpp) \
-  $(wildcard ${LOCAL_PATH}/src/modules/audio/*.cpp) \
+	$(wildcard ${LOCAL_PATH}/src/modules/audio/*.cpp) \
  	$(wildcard ${LOCAL_PATH}/src/modules/audio/null/*.cpp) \
  	$(wildcard ${LOCAL_PATH}/src/modules/audio/openal/*.cpp) \
 	$(wildcard ${LOCAL_PATH}/src/modules/event/*.cpp) \

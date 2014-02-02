@@ -315,7 +315,6 @@ function love.init()
 			highdpi = false,
 		},
 		modules = {
-			android = true,
 			event = true,
 			keyboard = true,
 			mouse = true,
@@ -364,7 +363,6 @@ function love.init()
 
 	-- Gets desired modules.
 	for k,v in ipairs{
-		"android",
 		"thread",
 		"timer",
 		"event",

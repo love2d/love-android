@@ -52,9 +52,6 @@
 // of addressing implementations directly.
 extern "C"
 {
-#if defined(LOVE_ENABLE_ANDROID)
-	extern int luaopen_love_android(lua_State*);
-#endif
 #if defined(LOVE_ENABLE_AUDIO)
 	extern int luaopen_love_audio(lua_State*);
 #endif
@@ -110,9 +107,6 @@ extern "C"
 }
 
 static const luaL_Reg modules[] = {
-#if defined(LOVE_ENABLE_ANDROID)
-	{ "love.android", luaopen_love_android },
-#endif
 #if defined(LOVE_ENABLE_AUDIO)
 	{ "love.audio", luaopen_love_audio },
 #endif

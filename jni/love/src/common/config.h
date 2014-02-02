@@ -90,7 +90,6 @@
 #		define LOVE_LITTLE_ENDIAN 1
 #	endif
 #else
-#	define LOVE_ENABLE_ANDROID
 #	define LOVE_ENABLE_AUDIO
 #	define LOVE_ENABLE_AUDIO_NULL
 #	define LOVE_ENABLE_AUDIO_OPENAL

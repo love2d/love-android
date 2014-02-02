@@ -18,46 +18,31 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_ANDROID_ANDROID_H
-#define LOVE_ANDROID_ANDROID_H
+#include "android.h"
 
-// LOVE
-#include "common/Module.h"
-#include "DisplayMetrics.h"
+#ifdef LOVE_ANDROID
+
+// SDL
+#include "core/android/SDL_android.h"
 
 namespace love
 {
 namespace android
 {
 
-/**
- * The Android module provide access to some device features, like display metrics and camera.
- **/
-class Android : public Module
+double getScreenScale()
 {
-public:
+  JNIEnv *env = Android_JNI_GetEnv();
 
-	/**
-	 * Destructor.
-	 **/
-	virtual ~Android() {}
+  jclass activity = env->FindClass("org/love2d/android/GameActivity");
+  jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
+  jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
+  jclass metricsClass = env->GetObjectClass(metrics);
 
-	/**
-	 * Gets display metrics that describe the size and density of this display.
-	 * @return A DisplayMetrics object containing the metrics.
-	 **/
-	DisplayMetrics* getDisplayMetrics();
-
-	// Implements Module.
-	virtual const char *getName() const;
-
-private:
-
-	DisplayMetrics *metrics;
-
-}; // Android
+  return env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+}
 
 } // android
 } // love
 
-#endif // LOVE_ANDROID_ANDROID_H
+#endif // LOVE_ANDROID

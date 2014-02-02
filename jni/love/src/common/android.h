@@ -18,28 +18,26 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_ANDROID_WRAP_DISPLAY_METRICS_H
-#define LOVE_ANDROID_WRAP_DISPLAY_METRICS_H
+#ifndef LOVE_ANDROID_H
+#define LOVE_ANDROID_H
 
-#include "common/runtime.h"
-#include "DisplayMetrics.h"
+#include "config.h"
+
+#ifdef LOVE_ANDROID
 
 namespace love
 {
 namespace android
 {
 
-DisplayMetrics *luax_checkdisplaymetrics(lua_State *L, int idx);
-int w_getDensity(lua_State *L);
-int w_getScaledDensity(lua_State *L);
-int w_getDensityDpi(lua_State *L);
-int w_getWidthPixels(lua_State *L);
-int w_getHeightPixels(lua_State *L);
-int w_getXdpi(lua_State *L);
-int w_getYdpi(lua_State *L);
-extern "C" int luaopen_displaymetrics(lua_State *L);
+/**
+ * Gets the scale factor of the window's screen, e.g. on Retina displays this
+ * will return 2.0.
+ **/
+double getScreenScale();
 
 } // android
 } // love
 
-#endif // LOVE_ANDROID_WRAP_DISPLAY_METRICS_H
+#endif // LOVE_ANDROID
+#endif // LOVE_ANDROID_H
