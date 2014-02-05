@@ -24,6 +24,7 @@
 
 // SDL
 #include "core/android/SDL_android.h"
+#include "SDL.h"
 
 namespace love
 {
@@ -39,7 +40,13 @@ double getScreenScale()
   jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
   jclass metricsClass = env->GetObjectClass(metrics);
 
-  return env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+  double result = env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+
+  env->DeleteLocalRef (metricsClass);
+  env->DeleteLocalRef (metrics);
+  env->DeleteLocalRef (activity);
+
+  return result;
 }
 
 } // android
