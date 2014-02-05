@@ -238,7 +238,8 @@ bool Graphics::setMode(int width, int height)
 		enabledebug = (flags & GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
 	}
 
-	setDebug(enabledebug);
+	if (!GLAD_ES_VERSION_2_0)
+		setDebug(enabledebug);
 
 	return true;
 }
