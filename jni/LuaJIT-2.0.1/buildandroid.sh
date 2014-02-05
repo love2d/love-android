@@ -53,6 +53,6 @@ cd src
 buildLuaJIT armeabi
 
 # Android/ARM, armeabi-v7a (ARMv7 VFP), Android 4.0+ (ICS)
-buildLuaJIT armeabi-v7a "-march=armv7-a -mfloat-abi=softfp -Wl,--fix-cortex-a8"
+buildLuaJIT armeabi-v7a "-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16 -Wl,--fix-cortex-a8"
 
 make clean
