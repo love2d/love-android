@@ -42,6 +42,7 @@ namespace sdl
 // we want them in pixel coordinates (may be different with high-DPI enabled.)
 static void windowToPixelCoords(int *x, int *y)
 {
+#ifndef LOVE_ANDROID
 	double scale = 1.0;
 
 	window::Window *window = (window::Window *) Module::findInstance("love.window.");
@@ -53,6 +54,7 @@ static void windowToPixelCoords(int *x, int *y)
 
 	if (y != nullptr)
 		*y = int(double(*y) * scale);
+#endif
 }
 
 
