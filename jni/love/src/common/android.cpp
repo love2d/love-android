@@ -22,9 +22,8 @@
 
 #ifdef LOVE_ANDROID
 
-// SDL
-#include "core/android/SDL_android.h"
 #include "SDL.h"
+#include "jni.h"
 
 namespace love
 {
@@ -33,7 +32,7 @@ namespace android
 
 double getScreenScale()
 {
-  JNIEnv *env = Android_JNI_GetEnv();
+  JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
 
   jclass activity = env->FindClass("org/love2d/android/GameActivity");
   jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
