@@ -16,7 +16,6 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libraries/ \
 	${LOCAL_PATH}/src/libraries/enet/libenet/include \
 	${LOCAL_PATH}/../SDL2-2.0.1/include \
-	${LOCAL_PATH}/../SDL2-2.0.1/src \
 	${LOCAL_PATH}/../devil-1.7.8/include \
 	${LOCAL_PATH}/../devil-1.7.8/src-IL/include \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
