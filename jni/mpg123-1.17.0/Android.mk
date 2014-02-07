@@ -25,4 +25,4 @@ LOCAL_SRC_FILES := \
 # $(info libmpg123: include dirs $(LOCAL_C_INCLUDES))
 # $(info libmpg123: src files $(LOCAL_SRC_FILES))
 
-include $(BUILD_STATIC_LIBRARY)
+include $(BUILD_SHARED_LIBRARY)

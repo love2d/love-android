@@ -25,7 +25,9 @@ LOCAL_SRC_FILES := \
 	$(wildcard ${LOCAL_PATH}/src-IL/src/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src-IL/src/*.c) ))
 
+LOCAL_SHARED_LIBRARIES := libtiff libpng libjasper libjpeg libmng liblcms
+
 # $(info libdevil: include dirs $(LOCAL_C_INCLUDES))
 # $(info libdevil: src files $(LOCAL_SRC_FILES))
 
-include $(BUILD_STATIC_LIBRARY)
+include $(BUILD_SHARED_LIBRARY)

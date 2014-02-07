@@ -16,6 +16,7 @@ LOCAL_C_INCLUDES  :=  \
 LOCAL_SRC_FILES := \
 	$(filter-out \
 	 Alc/mixer_neon.c \
+	 Alc/mixer_inc.c \
 	 Alc/mixer_sse.c \
 	, $(subst $(LOCAL_PATH)/,,\
 		${LOCAL_PATH}/Alc/backends/base.c \
@@ -29,7 +30,6 @@ LOCAL_SRC_FILES := \
 		$(wildcard ${LOCAL_PATH}/OpenAL32/*.c) \
 	))
 
-# $(info libopenal: include dirs $(LOCAL_C_INCLUDES))
-# $(info libopenal: src files $(LOCAL_SRC_FILES))
+LOCAL_LDLIBS := -lOpenSLES
 
-include $(BUILD_STATIC_LIBRARY)
+include $(BUILD_SHARED_LIBRARY)
