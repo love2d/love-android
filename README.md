@@ -18,6 +18,8 @@ compile/run it using Eclipse.
 This should give you a .apk file in the bin/ subdirectory that you can then
 install on your phone.
 
+For detailed instructions please refer to the [wiki](wiki).
+
 Changelog:
 ----------
 
