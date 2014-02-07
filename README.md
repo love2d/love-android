@@ -4,6 +4,11 @@ Copyright (c) 2013 Martin Felis <martin@fysx.org>
 Instructions:
 -------------
 
+For detailed instructions please refer to the [wiki](wiki).
+
+Quick Start:
+------------
+
 Install the Android NDK and the Android SDK with SDK API 12 and run
 
     ndk-build
@@ -18,7 +23,11 @@ compile/run it using Eclipse.
 This should give you a .apk file in the bin/ subdirectory that you can then
 install on your phone.
 
-For detailed instructions please refer to the [wiki](wiki).
+Bugs:
+-----
+
+Bugs and feature requests should be reported to the [issue
+tracker](issues).
 
 Changelog:
 ----------
@@ -47,7 +56,7 @@ alpha7:
 License:
 --------
 
-This project contains code from various projects using various licenses.
+This project contains code from multiple projects using various licenses.
 Please look into the folders of jni/<projectname>/ for the respective
 licenses.
 
