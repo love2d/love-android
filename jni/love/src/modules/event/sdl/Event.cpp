@@ -131,7 +131,6 @@ Message *Event::convert(const SDL_Event &e) const
 	switch (e.type)
 	{
 	case SDL_KEYDOWN:
-		SDL_Log ("got keydown for key %d search %d equal = %d", e.key.keysym.sym, SDLK_AC_SEARCH, e.key.keysym.sym == SDLK_AC_SEARCH);
 		if (e.key.repeat)
 		{
 			kb = (love::keyboard::Keyboard *) Module::findInstance("love.keyboard.");
