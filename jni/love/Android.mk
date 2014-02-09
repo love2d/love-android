@@ -97,9 +97,9 @@ LOCAL_SRC_FILES := \
 
 LOCAL_CXXFLAGS := -std=c++0x
 
-LOCAL_SHARED_LIBRARIES := SDL2 libphysfs libvorbis libogg libopenal libmpg123 libmodplug libdevil libtiff libmng libfreetype liblcms libjasper libpng libjpeg
+LOCAL_SHARED_LIBRARIES := libphysfs libvorbis libogg libopenal libmpg123 libmodplug libdevil libtiff libmng libfreetype liblcms libjasper libpng libjpeg
 
-LOCAL_STATIC_LIBRARIES := libluajit
+LOCAL_STATIC_LIBRARIES := libluajit SDL2_static
 
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
