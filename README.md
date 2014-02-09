@@ -27,7 +27,7 @@ Bugs:
 -----
 
 Bugs and feature requests should be reported to the [issue
-tracker](issues?status=new&status=open).
+tracker](issues).
 
 Changelog:
 ----------
