@@ -1,5 +1,5 @@
 Android Port of LÖVE, the awesome 2D game engine LÖVE (http://love2d.org)
-Copyright (c) 2013 Martin Felis <martin@fysx.org>
+Copyright (c) 2013-2014 Martin Felis <martin@fysx.org>
 
 Instructions:
 -------------
@@ -27,10 +27,19 @@ Bugs:
 -----
 
 Bugs and feature requests should be reported to the [issue
-tracker](issues).
+tracker](issues?status=new&status=open).
 
 Changelog:
 ----------
+
+alpha9:
+
+* Packaged games do not get duplicated for loading, instead are loaded from memory (!!!)
+* Using inofficial physfs 2.1
+* Removed love.android.getDisplayMetrics(), instead use love.window.getPixelScale() 
+* Properly link LGPL libraries dynamically. Everything else is linked statically
+* Added an icon (design by @josefnpat)
+* Fixed crash on startup on OUYA (and possibly other devices)
 
 alpha8:
 

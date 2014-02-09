@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="org.love2d.android"
-      android:versionCode="8"
-      android:versionName="0.9.0-alpha8"
+      android:versionCode="9"
+      android:versionName="0.9.0-alpha9"
       android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -11,12 +11,12 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
-        android:label="Löve for Android"
+        android:label="LÖVE for Android"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
         <activity
             android:name="GameActivity"
             android:configChanges="orientation|screenSize"
-            android:label="Löve for Android"
+            android:label="LÖVE for Android"
             android:screenOrientation="landscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
