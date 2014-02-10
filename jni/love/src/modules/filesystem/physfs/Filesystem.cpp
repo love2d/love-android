@@ -229,19 +229,17 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 		save_path_full += save_path_relative;
 
 #ifdef LOVE_ANDROID
-    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
+	std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
 
-    std::string save_directory = internal_storage_path + "/save";
+	std::string save_directory = internal_storage_path + "/save";
 
 	save_path_full = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/save/") + save_identity;
 
-
-    if (androidDirectoryExists (save_path_full.c_str())) {
-       	SDL_Log ("dir exists");
-       } else {
-       	SDL_Log ("does not exist");
-       }
-
+	if (androidDirectoryExists (save_path_full.c_str())) {
+		SDL_Log ("dir exists");
+	} else {
+		SDL_Log ("does not exist");
+	}
 
 	if (!androidDirectoryExists (save_path_full.c_str())) {
 		if (!androidMkdir (save_path_full.c_str())) {
