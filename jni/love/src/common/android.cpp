@@ -36,7 +36,7 @@ double getScreenScale()
 
   if (result == -1.) {
     JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
-    jclass activity = env->FindClass("org/libsdl/app/SDLActivity");
+    jclass activity = env->FindClass("org/love2d/android/GameActivity");
 
     jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
     jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);

@@ -12,7 +12,6 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsoluteLayout;
 import android.os.*;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.graphics.*;
 import android.media.*;
@@ -54,11 +53,6 @@ public class SDLActivity extends Activity {
         System.loadLibrary("love");
     }
 
-    private static DisplayMetrics metrics = new DisplayMetrics();
-    public static DisplayMetrics getMetrics() {
-        return metrics;
-    }
-    
     // Setup
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,8 +79,6 @@ public class SDLActivity extends Activity {
         mLayout.addView(mSurface);
 
         setContentView(mLayout);
-        
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
     }
 
     // Events
