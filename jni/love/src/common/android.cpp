@@ -32,18 +32,22 @@ namespace android
 
 double getScreenScale()
 {
-  JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+  static double result = -1.;
 
-  jclass activity = (jclass) SDL_AndroidGetActivity();
-  jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
-  jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
-  jclass metricsClass = env->GetObjectClass(metrics);
+  if (result == -1.) {
+    JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+    jclass activity = env->FindClass("org/libsdl/app/SDLActivity");
 
-  double result = env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+    jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
+    jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
+    jclass metricsClass = env->GetObjectClass(metrics);
 
-  env->DeleteLocalRef (metricsClass);
-  env->DeleteLocalRef (metrics);
-  env->DeleteLocalRef (activity);
+    result = env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+
+    env->DeleteLocalRef (metricsClass);
+    env->DeleteLocalRef (metrics);
+    env->DeleteLocalRef (activity);
+  }
 
   return result;
 }
