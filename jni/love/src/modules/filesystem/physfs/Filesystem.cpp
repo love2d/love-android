@@ -187,7 +187,7 @@ void Filesystem::init(const char *arg0)
 		throw Exception(PHYSFS_getLastError());
 
 #ifdef LOVE_ANDROID
-//	PHYSFS_permitSymbolicLinks (1);
+	PHYSFS_permitSymbolicLinks (1);
 #endif
 
 	initialized = true;
