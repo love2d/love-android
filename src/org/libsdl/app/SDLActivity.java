@@ -50,6 +50,9 @@ public class SDLActivity extends Activity {
         //System.loadLibrary("SDL2_net");
         //System.loadLibrary("SDL2_ttf");
         System.loadLibrary("gnustl_shared");
+        System.loadLibrary("devil");
+        System.loadLibrary("mpg123");
+    	System.loadLibrary("openal");
         System.loadLibrary("love");
     }
 
