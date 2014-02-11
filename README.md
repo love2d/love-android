@@ -32,6 +32,11 @@ tracker](issues).
 Changelog:
 ----------
 
+beta1:
+
+* fixed nasty crash on startup bug
+* fixed love.filesystem.getDirectoryItems()
+
 alpha9:
 
 * Packaged games do not get duplicated for loading, instead are loaded from memory (!!!)
