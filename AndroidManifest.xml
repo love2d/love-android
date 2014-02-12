@@ -24,6 +24,19 @@
                 <category android:name="tv.ouya.intent.category.GAME"/>
             </intent-filter>
         </activity>
+        <activity
+            android:name="GameLauncher"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="landscape" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.love" />
+                <data android:host="*" />
+            </intent-filter>
+        </activity>
     </application>
 
     <!-- Android 2.3.3 -->
