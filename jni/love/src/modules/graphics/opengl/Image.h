@@ -56,14 +56,14 @@ public:
 	 *
 	 * @param data The data from which to load the image.
 	 **/
-	Image(love::image::ImageData *data);
+	Image(love::image::ImageData *data, Texture::Format format = Texture::FORMAT_NORMAL);
 
 	/**
 	 * Creates a new Image with compressed image data.
 	 *
 	 * @param cdata The compressed data from which to load the image.
 	 **/
-	Image(love::image::CompressedData *cdata);
+	Image(love::image::CompressedData *cdata, Texture::Format format = Texture::FORMAT_NORMAL);
 
 	/**
 	 * Destructor. Deletes the hardware texture and other resources.
@@ -120,6 +120,8 @@ public:
 	 **/
 	bool refresh();
 
+	Texture::Format getFormat() const;
+
 	static void setDefaultMipmapSharpness(float sharpness);
 	static float getDefaultMipmapSharpness();
 	static void setDefaultMipmapFilter(FilterMode f);
@@ -131,6 +133,8 @@ public:
 	static bool hasMipmapSharpnessSupport();
 
 	static bool hasCompressedTextureSupport(image::CompressedData::Format format);
+
+	static bool hasSRGBSupport();
 
 private:
 
@@ -161,6 +165,9 @@ private:
 	// Whether this Image is using a compressed texture.
 	bool compressed;
 
+	// The format to interpret the texture's data as.
+	Texture::Format format;
+
 	// True if the image wasn't able to be properly created and it had to fall
 	// back to a default texture.
 	bool usingDefaultTexture;
@@ -179,7 +186,7 @@ private:
 	static FilterMode defaultMipmapFilter;
 	static float defaultMipmapSharpness;
 
-	GLenum getCompressedFormat(image::CompressedData::Format format) const;
+	GLenum getCompressedFormat(image::CompressedData::Format cformat) const;
 
 }; // Image
 

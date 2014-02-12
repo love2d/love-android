@@ -389,7 +389,7 @@ struct FramebufferStrategyEXT : public FramebufferStrategyPackedEXT
 	}
 };
 
-FramebufferStrategy *strategy = NULL;
+FramebufferStrategy *strategy = nullptr;
 
 FramebufferStrategy strategyNone;
 
@@ -401,8 +401,9 @@ FramebufferStrategyPackedEXT strategyPackedEXT;
 
 FramebufferStrategyEXT strategyEXT;
 
-Canvas *Canvas::current = NULL;
+Canvas *Canvas::current = nullptr;
 OpenGL::Viewport Canvas::systemViewport = OpenGL::Viewport();
+bool Canvas::screenHasSRGB = false;
 
 static void getStrategy()
 {
@@ -421,16 +422,13 @@ static void getStrategy()
 	}
 }
 
-static int maxFBOColorAttachments = 0;
-static int maxDrawBuffers = 0;
-
-Canvas::Canvas(int width, int height, TextureType texture_type, int fsaa)
+Canvas::Canvas(int width, int height, Texture::Format format, int fsaa)
 	: fbo(0)
     , resolve_fbo(0)
 	, texture(0)
     , fsaa_buffer(0)
 	, depth_stencil(0)
-	, texture_type(texture_type)
+	, format(format)
     , fsaa_samples(fsaa)
 	, fsaa_dirty(false)
 {
@@ -534,15 +532,19 @@ bool Canvas::loadVolatile()
 
 	GLint internalformat;
 	GLenum textype;
-	switch (texture_type)
+	switch (format)
 	{
-	case TYPE_HDR:
+	case Texture::FORMAT_HDR:
 		internalformat = GL_RGBA16F;
 		textype = GL_FLOAT;
 		break;
-	case TYPE_NORMAL:
+	case Texture::FORMAT_SRGB:
+		internalformat = GL_SRGB_ALPHA;
+		textype = GL_UNSIGNED_BYTE;
+		break;
+	case Texture::FORMAT_NORMAL:
 	default:
-		internalformat = GL_RGBA8;
+		internalformat = GL_RGBA;
 		textype = GL_UNSIGNED_BYTE;
 	}
 
@@ -682,20 +684,30 @@ void Canvas::setupGrab()
 	if (current == this)
 		return;
 
-	// cleanup after previous fbo
-	if (current != NULL)
-		current->stopGrab();
+	// cleanup after previous Canvas
+	if (current != nullptr)
+	{
+		systemViewport = current->systemViewport;
+		current->stopGrab(true);
+	}
+	else
+		systemViewport = gl.getViewport();
+
+	// indicate we are using this Canvas.
+	current = this;
 
 	// bind the framebuffer object.
-	systemViewport = gl.getViewport();
 	strategy->bindFBO(fbo);
 	gl.setViewport(OpenGL::Viewport(0, 0, width, height));
 
 	// Set up orthographic view (no depth)
 	gl.matrices.projection.push(Matrix::ortho(0.0, width, 0.0, height));
 
-	// indicate we are using this fbo
-	current = this;
+	// Make sure the correct sRGB setting is used when drawing to the canvas.
+	if (format == FORMAT_SRGB)
+		glEnable(GL_FRAMEBUFFER_SRGB);
+	else if (screenHasSRGB)
+		glDisable(GL_FRAMEBUFFER_SRGB);
 
 	if (fsaa_buffer != 0)
 		fsaa_dirty = true;
@@ -712,7 +724,7 @@ void Canvas::startGrab(const std::vector<Canvas *> &canvases)
 		if (!isMultiCanvasSupported())
 			throw love::Exception("Multi-canvas rendering is not supported on this system.");
 
-		if (canvases.size()+1 > size_t(maxDrawBuffers) || canvases.size()+1 > size_t(maxFBOColorAttachments))
+		if ((int) canvases.size() + 1 > gl.getMaxRenderTargets())
 			throw love::Exception("This system can't simultaniously render to %d canvases.", canvases.size()+1);
 
 		if (fsaa_samples != 0)
@@ -724,8 +736,8 @@ void Canvas::startGrab(const std::vector<Canvas *> &canvases)
 		if (canvases[i]->getWidth() != width || canvases[i]->getHeight() != height)
 			throw love::Exception("All canvas arguments must have the same dimensions.");
 
-		if (canvases[i]->getTextureType() != texture_type)
-			throw love::Exception("All canvas arguments must have the same texture type.");
+		if (canvases[i]->getTextureFormat() != format)
+			throw love::Exception("All canvas arguments must have the same texture format.");
 
 		if (canvases[i]->getFSAA() != 0)
 			throw love::Exception("Multi-canvas rendering is not supported with FSAA.");
@@ -769,7 +781,7 @@ void Canvas::startGrab()
 	attachedCanvases.clear();
 }
 
-void Canvas::stopGrab()
+void Canvas::stopGrab(bool switchingToOtherCanvas)
 {
 	// i am not grabbing. leave me alone
 	if (current != this)
@@ -782,13 +794,25 @@ void Canvas::stopGrab()
 		glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, attachments);
 	}
 
-	// bind default
-	strategy->bindFBO(gl.getDefaultFBO());
+	if (switchingToOtherCanvas)
+	{
+		if (format == FORMAT_SRGB)
+			glDisable(GL_FRAMEBUFFER_SRGB);
+	}
+	else
+	{
+		// bind the default framebuffer.
+		strategy->bindFBO(gl.getDefaultFBO());
+		current = nullptr;
+		gl.setViewport(systemViewport);
+
+		if (format == FORMAT_SRGB && !screenHasSRGB)
+			glDisable(GL_FRAMEBUFFER_SRGB);
+		else if (format != FORMAT_SRGB && screenHasSRGB)
+			glEnable(GL_FRAMEBUFFER_SRGB);
+	}
+
 	gl.matrices.projection.pop();
-
-	current = nullptr;
-
-	gl.setViewport(systemViewport);
 }
 
 void Canvas::clear(Color c)
@@ -959,6 +983,18 @@ bool Canvas::isHDRSupported()
 	return GLAD_VERSION_3_0 || (isSupported() && GLAD_ARB_texture_float);
 }
 
+bool Canvas::isSRGBSupported()
+{
+	if (GLAD_VERSION_3_0)
+		return true;
+
+	if (!isSupported())
+		return false;
+
+	return (GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB)
+		&& GLAD_EXT_texture_sRGB;
+}
+
 bool Canvas::isMultiCanvasSupported()
 {
 	// system must support at least 4 simultanious active canvases.
@@ -970,23 +1006,6 @@ void Canvas::bindDefaultCanvas()
 	if (current != nullptr)
 		current->stopGrab();
 }
-
-bool Canvas::getConstant(const char *in, Canvas::TextureType &out)
-{
-	return textureTypes.find(in, out);
-}
-
-bool Canvas::getConstant(Canvas::TextureType in, const char *&out)
-{
-	return textureTypes.find(in, out);
-}
-
-StringMap<Canvas::TextureType, Canvas::TYPE_MAX_ENUM>::Entry Canvas::textureTypeEntries[] =
-{
-	{"normal", Canvas::TYPE_NORMAL},
-	{"hdr",    Canvas::TYPE_HDR},
-};
-StringMap<Canvas::TextureType, Canvas::TYPE_MAX_ENUM> Canvas::textureTypes(Canvas::textureTypeEntries, sizeof(Canvas::textureTypeEntries));
 
 } // opengl
 } // graphics

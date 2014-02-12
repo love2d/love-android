@@ -127,6 +127,9 @@ bool OpenGL::initContext()
 	if (Canvas::isSupported())
 		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, (GLint *) &state.defaultFBO);
 
+	BlendState blend = {GL_ONE, GL_ONE, GL_ZERO, GL_ZERO, GL_FUNC_ADD};
+	setBlendState(blend);
+
 	initMaxValues();
 	createDefaultTexture();
 
@@ -491,6 +494,40 @@ OpenGL::Viewport OpenGL::getScissor() const
 {
 	return state.scissor;
 }
+
+void OpenGL::setBlendState(const BlendState &blend)
+{
+	if (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4)
+		glBlendEquation(blend.func);
+	else if (GLAD_EXT_blend_minmax && GLAD_EXT_blend_subtract)
+		glBlendEquationEXT(blend.func);
+	else
+	{
+		if (blend.func == GL_FUNC_REVERSE_SUBTRACT)
+			throw love::Exception("This graphics card does not support the subtractive blend mode!");
+		// GL_FUNC_ADD is the default even without access to glBlendEquation, so that'll still work.
+	}
+
+	if (blend.srcRGB == blend.srcA && blend.dstRGB == blend.dstA)
+		glBlendFunc(blend.srcRGB, blend.dstRGB);
+	else
+	{
+		if (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4)
+			glBlendFuncSeparate(blend.srcRGB, blend.dstRGB, blend.srcA, blend.dstA);
+		else if (GLAD_EXT_blend_func_separate)
+			glBlendFuncSeparateEXT(blend.srcRGB, blend.dstRGB, blend.srcA, blend.dstA);
+		else
+			throw love::Exception("This graphics card does not support separated rgb and alpha blend functions!");
+	}
+
+	state.blend = blend;
+}
+
+OpenGL::BlendState OpenGL::getBlendState() const
+{
+	return state.blend;
+}
+
 
 void OpenGL::setPointSize(float size)
 {

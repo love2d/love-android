@@ -103,6 +103,13 @@ public:
 		}
 	};
 
+	struct BlendState
+	{
+		GLenum srcRGB, srcA;
+		GLenum dstRGB, dstA;
+		GLenum func;
+	};
+
 	// Transformation matrix stacks.
 	struct
 	{
@@ -201,6 +208,17 @@ public:
 	 * Gets the current scissor box (regardless of whether scissoring is enabled.)
 	 **/
 	Viewport getScissor() const;
+
+	/**
+	 * Sets blending functionality.
+	 * Note: This does not globally enable or disable blending.
+	 **/
+	void setBlendState(const BlendState &blend);
+
+	/**
+	 * Gets the currently set blending functionality.
+	 **/
+	BlendState getBlendState() const;
 
 	/**
 	 * Sets the global point size.
@@ -331,6 +349,8 @@ private:
 		GLuint defaultTexture;
 
 		GLuint defaultFBO;
+
+		BlendState blend;
 
 		// The last ID value used for pseudo-instancing.
 		int lastPseudoInstanceID;

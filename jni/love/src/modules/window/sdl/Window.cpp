@@ -89,7 +89,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 	f.minwidth = std::max(f.minwidth, 1);
 	f.minheight = std::max(f.minheight, 1);
 
-	f.display = std::min(std::max(f.display, 0), getDisplayCount());
+	f.display = std::min(std::max(f.display, 0), getDisplayCount() - 1);
 
 	// Use the desktop resolution if a width or height of 0 is specified.
 	if (width == 0 || height == 0)
@@ -161,7 +161,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 	if (!window)
 	{
 		// In Windows and Linux, some GL attributes are set on window creation.
-		setWindowGLAttributes(f.fsaa);
+		setWindowGLAttributes(f.fsaa, f.sRGB);
 
 		const char *title = windowTitle.c_str();
 		int pos = f.centered ? centeredpos : uncenteredpos;
@@ -197,7 +197,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	SDL_RaiseWindow(window);
 
-	if (!setContext(f.fsaa, f.vsync))
+	if (!setContext(f.fsaa, f.vsync, f.sRGB))
 	{
 		created = false;
 		return false;
@@ -216,7 +216,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		SDL_GL_GetDrawableSize(window, &width, &height);
 #endif
 
-		if (!gfx->setMode(width, height))
+		if (!gfx->setMode(width, height, curMode.settings.sRGB))
 			displayError("Could not set graphics mode", "Unsupported OpenGL version?");
 	}
 
@@ -237,7 +237,7 @@ bool Window::onWindowResize(int width, int height)
 	return true;
 }
 
-bool Window::setContext(int fsaa, bool vsync)
+bool Window::setContext(int fsaa, bool vsync, bool sRGB)
 {
 	// We would normally only need to recreate the context if FSAA changes or
 	// SDL_GL_MakeCurrent is unsuccessful, but in Windows MakeCurrent can
@@ -249,7 +249,7 @@ bool Window::setContext(int fsaa, bool vsync)
 	}
 
 	// Make sure the proper attributes are set.
-	setWindowGLAttributes(fsaa);
+	setWindowGLAttributes(fsaa, sRGB);
 
 	context = SDL_GL_CreateContext(window);
 
@@ -301,7 +301,7 @@ bool Window::setContext(int fsaa, bool vsync)
 	return true;
 }
 
-void Window::setWindowGLAttributes(int fsaa) const
+void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
 {
 	// Set GL window attributes.
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -314,6 +314,15 @@ void Window::setWindowGLAttributes(int fsaa) const
 	// FSAA.
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, (fsaa > 0) ? 1 : 0);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, (fsaa > 0) ? fsaa : 0);
+
+	/* FIXME: Enable this code but make sure to try to re-create the window and
+	 * context with this disabled, if creation fails with it enabled.
+	 * We can leave this out for now because in practice the framebuffer will
+	 * already be sRGB-capable (on desktops at least.)
+	 #if SDL_VERSION_ATLEAST(2,0,1)
+	 SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, sRGB ? 1 : 0);
+	 #endif
+	 */
 
 	int contextprofile = 0;
 
@@ -410,6 +419,8 @@ void Window::updateSettings(const WindowSettings &newsettings)
 	else
 #endif
 		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+
+	curMode.settings.sRGB = newsettings.sRGB;
 }
 
 void Window::displayError(const std::string &title, const std::string &text) const

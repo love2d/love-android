@@ -95,6 +95,7 @@ ParticleSystem::ParticleSystem(Texture *texture, uint32 size)
 	, spinVariation(0)
 	, offsetX(float(texture->getWidth())*0.5f)
 	, offsetY(float(texture->getHeight())*0.5f)
+	, relativeRotation(false)
 {
 	if (size == 0 || size > MAX_PARTICLES)
 		throw love::Exception("Invalid ParticleSystem size.");
@@ -146,6 +147,7 @@ ParticleSystem::ParticleSystem(const ParticleSystem &p)
 	, offsetX(p.offsetX)
 	, offsetY(p.offsetY)
 	, colors(p.colors)
+	, relativeRotation(p.relativeRotation)
 {
 	setBufferSize(maxParticles);
 
@@ -170,7 +172,7 @@ void ParticleSystem::createBuffers(size_t size)
 {
 	try
 	{
-		pFree = pMem = new particle[size];
+		pFree = pMem = new Particle[size];
 		particleVerts = new love::Vertex[size * 4];
 		ibo = new VertexIndex(size);
 		maxParticles = (uint32) size;
@@ -222,7 +224,7 @@ void ParticleSystem::addParticle(float t)
 		return;
 
 	// Gets a free particle and updates the allocation pointer.
-	particle *p = pFree++;
+	Particle *p = pFree++;
 	initParticle(p, t);
 
 	switch (insertMode)
@@ -242,7 +244,7 @@ void ParticleSystem::addParticle(float t)
 	activeParticles++;
 }
 
-void ParticleSystem::initParticle(particle *p, float t)
+void ParticleSystem::initParticle(Particle *p, float t)
 {
 	float min,max;
 
@@ -308,10 +310,14 @@ void ParticleSystem::initParticle(particle *p, float t)
 	p->spinEnd = calculate_variation(spinEnd, spinStart, spinVariation);
 	p->rotation = (float) rng.random(min, max);
 
+	p->angle = p->rotation;
+	if (relativeRotation)
+		p->angle += atan2f(p->speed.y, p->speed.x);
+
 	p->color = colors[0];
 }
 
-void ParticleSystem::insertTop(particle *p)
+void ParticleSystem::insertTop(Particle *p)
 {
 	if (pHead == nullptr)
 	{
@@ -327,7 +333,7 @@ void ParticleSystem::insertTop(particle *p)
 	pTail = p;
 }
 
-void ParticleSystem::insertBottom(particle *p)
+void ParticleSystem::insertBottom(Particle *p)
 {
 	if (pTail == nullptr)
 	{
@@ -343,7 +349,7 @@ void ParticleSystem::insertBottom(particle *p)
 	pHead = p;
 }
 
-void ParticleSystem::insertRandom(particle *p)
+void ParticleSystem::insertRandom(Particle *p)
 {
 	// Nonuniform, but 64-bit is so large nobody will notice. Hopefully.
 	uint64 pos = rng.rand() % ((int64) activeParticles + 1);
@@ -351,7 +357,7 @@ void ParticleSystem::insertRandom(particle *p)
 	// Special case where the particle gets inserted before the head.
 	if (pos == activeParticles)
 	{
-		particle *pA = pHead;
+		Particle *pA = pHead;
 		if (pA)
 			pA->prev = p;
 		p->prev = nullptr;
@@ -361,8 +367,8 @@ void ParticleSystem::insertRandom(particle *p)
 	}
 
 	// Inserts the particle after the randomly selected particle.
-	particle *pA = pMem + pos;
-	particle *pB = pA->next;
+	Particle *pA = pMem + pos;
+	Particle *pB = pA->next;
 	pA->next = p;
 	if (pB)
 		pB->prev = p;
@@ -372,12 +378,12 @@ void ParticleSystem::insertRandom(particle *p)
 	p->next = pB;
 }
 
-ParticleSystem::particle *ParticleSystem::removeParticle(particle *p)
+ParticleSystem::Particle *ParticleSystem::removeParticle(Particle *p)
 {
 	// The linked list is updated in this function and old pointers may be
 	// invalidated. The returned pointer will inform the caller of the new
 	// pointer to the next particle.
-	particle *pNext = nullptr;
+	Particle *pNext = nullptr;
 
 	// Removes the particle from the linked list.
 	if (p->prev)
@@ -725,6 +731,16 @@ std::vector<Color> ParticleSystem::getColor() const
 	return ncolors;
 }
 
+void ParticleSystem::setRelativeRotation(bool enable)
+{
+	relativeRotation = enable;
+}
+
+bool ParticleSystem::hasRelativeRotation() const
+{
+	return relativeRotation;
+}
+
 uint32 ParticleSystem::getCount() const
 {
 	return activeParticles;
@@ -812,13 +828,13 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 
 	const Vertex *textureVerts = texture->getVertices();
 	Vertex *pVerts = particleVerts;
-	particle *p = pHead;
+	Particle *p = pHead;
 
 	// set the vertex data for each particle (transformation, texcoords, color)
 	while (p)
 	{
 		// particle vertices are image vertices transformed by particle information
-		t.setTransformation(p->position[0], p->position[1], p->rotation, p->size, p->size, offsetX, offsetY, 0.0f, 0.0f);
+		t.setTransformation(p->position[0], p->position[1], p->angle, p->size, p->size, offsetX, offsetY, 0.0f, 0.0f);
 		t.transform(pVerts, textureVerts, 4);
 
 		// set the texture coordinate and color data for particle vertices
@@ -871,7 +887,7 @@ void ParticleSystem::update(float dt)
 		return;
 
 	// Traverse all particles and update.
-	particle *p = pHead;
+	Particle *p = pHead;
 
 	while (p)
 	{
@@ -916,7 +932,12 @@ void ParticleSystem::update(float dt)
 			const float t = 1.0f - p->life / p->lifetime;
 
 			// Rotate.
-			p->rotation += (p->spinStart * (1.0f - t) + p->spinEnd * t)*dt;
+			p->rotation += (p->spinStart * (1.0f - t) + p->spinEnd * t) * dt;
+
+			p->angle = p->rotation;
+
+			if (relativeRotation)
+				p->angle += atan2f(p->speed.y, p->speed.x);
 
 			// Change size according to given intervals:
 			// i = 0       1       2      3          n-1
