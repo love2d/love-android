@@ -17,8 +17,12 @@ public class GameLauncher extends GameActivity {
     protected void onCreate(Bundle bundle) {
         Uri game = this.getIntent().getData();
         if (game != null) {
-        	copyGameToCache (game);
-            Log.d("GameLauncher", "Selected the file: " + getGamePath());
+					if (game.getScheme().equals ("file")) {
+						gamePath = game.getPath();
+					} else {
+	          copyGameToCache (game);
+					}
+          Log.d("GameLauncher", "Selected the file: " + getGamePath());
         }
         super.onCreate(bundle);
     }
