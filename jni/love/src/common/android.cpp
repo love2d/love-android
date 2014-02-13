@@ -54,7 +54,7 @@ double getScreenScale()
 
 const char* getSelectedGameFile()
 {
-  static const char *path;
+  static const char *path = NULL;
 
   if (!path) {
     JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
