@@ -96,14 +96,16 @@ namespace
 			return false;
 		}
 
+		SDL_Log ("Copied %d of %d bytes into in-memory game archive", bytes_copied, file_size);
+
 		bool result = false;
 		if (PHYSFS_mountMemory (game_love_data, file_size, androidDeleteAssetGameMemory, "archive.zip", "/", 0)) {
 			result = true;
+			SDL_Log ("Mounting of in-memory game archive successful!");
 		} else {
 			SDL_Log ("Mounting of in-memory game archive failed!");
 		}
 
-		SDL_Log ("Mounting of in-memory game archive successful!");
 		return result;
 	}
 
