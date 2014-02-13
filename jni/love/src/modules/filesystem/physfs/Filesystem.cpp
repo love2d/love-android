@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include "common/android.h"
 #endif
 
 namespace
@@ -65,18 +66,18 @@ namespace
 		delete[] game_love_data;
 	}
 
-	bool androidMountAssetGame () {
-		SDL_Log ("Trying to mount assets/game.love");
-    SDL_RWops *asset_game_file = SDL_RWFromFile("game.love", "rb");
+	bool androidMountGame (const char *filename) {
+		SDL_Log ("Trying to mount %s", filename);
+    SDL_RWops *asset_game_file = SDL_RWFromFile(filename, "rb");
 		if (!asset_game_file) {
-			SDL_Log ("Could not find assets/game.love");
+			SDL_Log ("Could not find %s", filename);
 			return false;
 		}
 
 		Sint64 file_size = asset_game_file->size(asset_game_file);
 
 		if (file_size == 0) {
-			SDL_Log ("Could not find valid game.love in assets. File has zero size.", (int) file_size);
+			SDL_Log ("Could not find valid %s. File has zero size.", filename);
 			return false;
 		}
 
@@ -104,6 +105,14 @@ namespace
 
 		SDL_Log ("Mounting of in-memory game archive successful!");
 		return result;
+	}
+
+	bool androidMountAssetGame () {
+		return androidMountGame ("game.love");
+	}
+
+	bool androidMountSelectedGame () {
+		return androidMountGame (love::android::getSelectedGameFile());
 	}
 
 	bool androidDirectoryExists(const char* path) {
@@ -289,7 +298,7 @@ bool Filesystem::setSource(const char *source)
 		SDL_Log ("Error creating storage directories!");
 	}
 
-	if (!androidMountAssetGame()) {
+	if (!androidMountSelectedGame() && !androidMountAssetGame()) {
 		SDL_RWops *sdcard_main = SDL_RWFromFile("/sdcard/lovegame/main.lua", "rb");
 
 		if (sdcard_main) {
@@ -306,7 +315,7 @@ bool Filesystem::setSource(const char *source)
 			// sucessfully, therefore simply fail.
 			return false;
 		}
-	} 
+	}
 #else
 	// Add the directory.
 	if (!PHYSFS_addToSearchPath(new_search_path.c_str(), 1)) {

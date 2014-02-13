@@ -36,6 +36,11 @@ namespace android
  **/
 double getScreenScale();
 
+/**
+ * Gets the selected love file in the device filesystem.
+ **/
+const char* getSelectedGameFile();
+
 } // android
 } // love
 
