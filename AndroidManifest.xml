@@ -25,7 +25,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="GameLauncher"
+            android:name="GameActivity"
             android:configChanges="orientation|screenSize"
             android:screenOrientation="landscape" >
             <intent-filter>
