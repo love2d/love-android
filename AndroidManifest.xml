@@ -8,6 +8,8 @@
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+		<service android:name="DownloadService" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -34,6 +36,14 @@
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="application/x-love-game" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.love" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -7,15 +7,23 @@ import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import android.app.DownloadManager;
+import android.app.ProgressDialog;
+import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
 import android.util.DisplayMetrics;
 
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
-
     private static String gamePath = "";
+	// declare the dialog as a member field of your activity
+	private static ProgressDialog mProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +72,23 @@ public class GameActivity extends SDLActivity {
         } catch (IOException e) {
           Log.d ("GameActivity", "Could not open game file:" + e.getMessage());
         }
+      } else if (sourceuri.getScheme().equals("http")) {
+    	  String url = sourceuri.getScheme() + "://" + sourceuri.getHost() + sourceuri.getPath();
+    	  Log.d("GameActivity", "url = " + url);
+    	  
+    	  // instantiate it within the onCreate method
+    	  mProgressDialog = new ProgressDialog(GameActivity.this);
+    	  mProgressDialog.setMessage("Downloading Game");
+    	  mProgressDialog.setIndeterminate(true);
+    	  mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+    	  mProgressDialog.setCancelable(true);
+    	  
+    	// this is how you fire the downloader
+    	  mProgressDialog.show();
+    	  Intent intent = new Intent(this, DownloadService.class);
+    	  intent.putExtra("url", url);
+    	  intent.putExtra("receiver", new DownloadReceiver(new Handler()));
+    	  startService(intent);
       } else {
         Log.d ("GameActivity", "Unsupported scheme: " + sourceuri.getScheme());
       }
@@ -94,4 +119,21 @@ public class GameActivity extends SDLActivity {
       Log.d("GameActivity", "Copied " + bytes_written + " bytes");
     }
 
+    private class DownloadReceiver extends ResultReceiver{
+        public DownloadReceiver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+            super.onReceiveResult(resultCode, resultData);
+            if (resultCode == DownloadService.UPDATE_PROGRESS) {
+                int progress = resultData.getInt("progress");
+                mProgressDialog.setProgress(progress);
+                if (progress == 100) {
+                    mProgressDialog.dismiss();
+                }
+            }
+        }
+    }
 }
