@@ -82,8 +82,10 @@ public class GameActivity extends SDLActivity {
     	  mProgressDialog.setIndeterminate(true);
     	  mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
     	  mProgressDialog.setCancelable(true);
+    	  mProgressDialog.setProgress (0);
+    	  mProgressDialog.setMax (100);
     	  
-    	// this is how you fire the downloader
+    	  // this is how you fire the downloader
     	  mProgressDialog.show();
     	  Intent intent = new Intent(this, DownloadService.class);
     	  intent.putExtra("url", url);
@@ -126,8 +128,10 @@ public class GameActivity extends SDLActivity {
 
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
-            super.onReceiveResult(resultCode, resultData);
+        	super.onReceiveResult(resultCode, resultData);
+
             if (resultCode == DownloadService.UPDATE_PROGRESS) {
+          	    mProgressDialog.setIndeterminate(false);
                 int progress = resultData.getInt("progress");
                 mProgressDialog.setProgress(progress);
                 if (progress == 100) {

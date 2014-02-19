@@ -45,8 +45,6 @@ public class DownloadService extends IntentService {
                 resultData.putInt("progress" ,(int) (total * 100 / fileLength));
                 receiver.send(UPDATE_PROGRESS, resultData);
                 output.write(data, 0, count);
-                
-                Log.d ("GameActivity", "Downloading...");
             }
 
             output.flush();
