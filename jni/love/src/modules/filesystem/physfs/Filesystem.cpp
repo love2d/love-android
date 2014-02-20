@@ -240,6 +240,9 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 		save_path_full += save_path_relative;
 
 #ifdef LOVE_ANDROID
+	if (save_identity == "")
+		save_identity = "unnamed";
+	
 	std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
 
 	std::string save_directory = internal_storage_path + "/save";
