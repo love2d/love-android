@@ -1,61 +1,89 @@
 package org.love2d.android;
 
-import java.io.BufferedInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import java.util.List;
 
+import android.app.DownloadManager;
 import android.app.IntentService;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
-import android.os.ResultReceiver;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
 import android.util.Log;
 
 public class DownloadService extends IntentService {
-    public static final int UPDATE_PROGRESS = 8344;
     public DownloadService() {
         super("DownloadService");
     }
+
+    @Override
+    public void onDestroy() {
+    	Log.d("DownloadService", "ending");
+    	unregisterReceiver(downloadReceiver);
+    }
+    
     @Override
     protected void onHandleIntent(Intent intent) {
-        Log.d ("GameActivity", "service started");
-        String urlToDownload = intent.getStringExtra("url");
-        ResultReceiver receiver = (ResultReceiver) intent.getParcelableExtra("receiver");
-        try {
-            URL url = new URL(urlToDownload);
-            URLConnection connection = url.openConnection();
-            connection.connect();
-            // this will be useful so that you can show a typical 0-100% progress bar
-            int fileLength = connection.getContentLength();
+        Log.d ("DownloadService", "service started");
+        
+        String url = intent.getStringExtra("url");
+        Uri uri = Uri.parse(url);
 
-            // download the file
-            InputStream input = new BufferedInputStream(url.openStream());
-            OutputStream output = new FileOutputStream("/sdcard/lovegame/download.love");
+        Log.d("DownloadActivity", "Downloading from url: " + url + "file = " + uri.getLastPathSegment());
 
-            byte data[] = new byte[1024];
-            long total = 0;
-            int count;
-            while ((count = input.read(data)) != -1) {
-                total += count;
-                // publishing the progress....
-                Bundle resultData = new Bundle();
-                resultData.putInt("progress" ,(int) (total * 100 / fileLength));
-                receiver.send(UPDATE_PROGRESS, resultData);
-                output.write(data, 0, count);
-            }
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        request.setDescription("LÖVE Game Download");
+        request.setTitle(uri.getLastPathSegment());
+        request.setMimeType ("application/x-love-game");
+        
+       	// in order for this if to run, you must use the android 3.2 to compile your app
+        	if (Build.VERSION.SDK_INT >= 11) {
+        	    request.allowScanningByMediaScanner();
+        	    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        	}
+        	request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, uri.getLastPathSegment());
+        // get download service and enqueue file
 
-            output.flush();
-            output.close();
-            input.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Log.d("DownloadActivity", "creating manager");
+        DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        Log.d("DownloadActivity", "enqueuing download");
+       	manager.enqueue(request);
 
-        Bundle resultData = new Bundle();
-        resultData.putInt("progress" ,100);
-        receiver.send(UPDATE_PROGRESS, resultData);
+     	Log.d("DownloadActivity", "download receiver = " + downloadReceiver);
+     	IntentFilter intentFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+     	registerReceiver(downloadReceiver, intentFilter);
     }
+    
+    /**
+     * @param context used to check the device version and DownloadManager information
+     * @return true if the download manager is available
+     */
+    public static boolean isDownloadManagerAvailable(Context context) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD) {
+                return false;
+            }
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            intent.setClassName("com.android.providers.downloads.ui", "com.android.providers.downloads.ui.DownloadList");
+            List<ResolveInfo> list = context.getPackageManager().queryIntentActivities(intent,
+                    PackageManager.MATCH_DEFAULT_ONLY);
+            return list.size() > 0;
+        } catch (Exception e) {
+        	return false;
+        }
+    }
+    
+    private BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
+
+    	@Override
+    	public void onReceive(Context context, Intent intent) {
+    		Log.d("DownloadActivity", "downloadReceiver intent called");
+    	
+    	}
+    };     
 }
