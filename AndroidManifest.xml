@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="org.love2d.android"
       android:versionCode="10"
-      android:versionName="0.9.0-beta1"
+      android:versionName="0.9.0-beta2"
       android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -60,6 +60,7 @@
           <data android:scheme="https"
             android:host="*"
             android:pathPrefix="*"
+            android:mimeType="*/*"
             android:pathPattern=".*\\.love" />
         </intent-filter>
       </activity>
