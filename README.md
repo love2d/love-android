@@ -33,6 +33,7 @@ Changelog:
 ----------
 
 beta2:
+
 * fixed bug with canvases
 * fixed writing of files when no identity in conf.lua was set
 * added file association (somewhat experimental)
