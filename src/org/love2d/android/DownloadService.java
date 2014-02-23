@@ -22,7 +22,7 @@ public class DownloadService extends IntentService {
 
     @Override
     public void onDestroy() {
-    	Log.d("DownloadService", "ending");
+    	Log.d("DownloadService", "destroying");
     	unregisterReceiver(downloadReceiver);
     }
     
@@ -33,7 +33,7 @@ public class DownloadService extends IntentService {
         String url = intent.getStringExtra("url");
         Uri uri = Uri.parse(url);
 
-        Log.d("DownloadActivity", "Downloading from url: " + url + "file = " + uri.getLastPathSegment());
+        Log.d("DownloadService", "Downloading from url: " + url + "file = " + uri.getLastPathSegment());
 
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setDescription("LÖVE Game Download");
@@ -42,8 +42,8 @@ public class DownloadService extends IntentService {
         
        	// in order for this if to run, you must use the android 3.2 to compile your app
         	if (Build.VERSION.SDK_INT >= 11) {
-        	    request.allowScanningByMediaScanner();
-        	    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+						DownloadRequestSettings_API11 settings = new DownloadRequestSettings_API11();
+						settings.setup (request);
         	}
         	request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, uri.getLastPathSegment());
         // get download service and enqueue file
@@ -86,4 +86,11 @@ public class DownloadService extends IntentService {
     	
     	}
     };     
+}
+
+class DownloadRequestSettings_API11 {
+	public static void setup (DownloadManager.Request request) {
+		request.allowScanningByMediaScanner();
+		request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+	}
 }

@@ -9,55 +9,60 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+      android:allowBackup="true"
+      android:icon="@drawable/ic_launcher"
+      android:label="LÖVE for Android"
+      android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+      <service android:name=".DownloadService" />
+      <activity
+        android:name="GameActivity"
+        android:configChanges="orientation|screenSize"
         android:label="LÖVE for Android"
-        android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
-        <service android:name=".DownloadService" />
-        <activity
-            android:name="GameActivity"
-            android:configChanges="orientation|screenSize"
-            android:label="LÖVE for Android"
-            android:screenOrientation="landscape" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="tv.ouya.intent.category.GAME"/>
-            </intent-filter>
-        </activity>
-        <activity
-            android:name="GameActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="landscape" >
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <data android:mimeType="application/x-love-game" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="file" />
-                <data android:mimeType="*/*" />
-                <data android:pathPattern=".*\\.love" />
-                <data android:host="*" />
-            </intent-filter>
-        </activity>
-        <activity
-          android:name="DownloadActivity" 
-          android:noHistory="true" >
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" />
-                <data android:scheme="https" />
-                <data android:host="*" />
-                <data android:pathPattern=".*\\.love" />
-            </intent-filter>
-        </activity>
+        android:screenOrientation="landscape" >
+        <intent-filter>
+          <action android:name="android.intent.action.MAIN" />
+          <category android:name="android.intent.category.LAUNCHER" />
+          <category android:name="tv.ouya.intent.category.GAME"/>
+        </intent-filter>
+      </activity>
+      <activity
+        android:name="GameActivity"
+        android:configChanges="orientation|screenSize"
+        android:screenOrientation="landscape" >
+        <intent-filter>
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <data android:scheme="file" />
+          <data android:scheme="content" />
+          <data android:mimeType="application/x-love-game" />
+        </intent-filter>
+        <intent-filter>
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <data android:scheme="file" />
+          <data android:mimeType="*/*" />
+          <data android:pathPattern=".*\\.love" />
+          <data android:host="*" />
+        </intent-filter>
+      </activity>
+      <activity
+        android:name="DownloadActivity" 
+        android:noHistory="true" >
+        <intent-filter>
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
+          <data android:scheme="http"
+            android:host="*"
+            android:pathPrefix="*"
+            android:mimeType="*/*"
+            android:pathPattern=".*\\.love" />
+          <data android:scheme="https"
+            android:host="*"
+            android:pathPrefix="*"
+            android:pathPattern=".*\\.love" />
+        </intent-filter>
+      </activity>
     </application>
 
     <!-- Android 2.3.3 -->
