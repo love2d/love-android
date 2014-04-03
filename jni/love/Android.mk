@@ -15,7 +15,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/modules \
 	${LOCAL_PATH}/src/libraries/ \
 	${LOCAL_PATH}/src/libraries/enet/libenet/include \
-	${LOCAL_PATH}/../SDL2-2.0.1/include \
+	${LOCAL_PATH}/../SDL2-2.0.3/include \
 	${LOCAL_PATH}/../devil-1.7.8/include \
 	${LOCAL_PATH}/../devil-1.7.8/src-IL/include \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
@@ -104,7 +104,7 @@ LOCAL_STATIC_LIBRARIES := libluajit SDL2_static
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
 
-SDL_PATH := ../SDL2-2.0.1
+SDL_PATH := ../SDL2-2.0.3
 LOCAL_SRC_FILES += $(SDL_PATH)/src/main/android/SDL_android_main.c 
 LOCAL_LDLIBS := -lz -lGLESv1_CM -lGLESv2 -ldl -landroid
 
