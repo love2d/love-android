@@ -31,32 +31,43 @@ import android.widget.Toast;
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
     private static String gamePath = "";
-	
+    private static Context context;
+  
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-    	Log.d("GameActivity", "started");
-    	
-        Uri game = this.getIntent().getData();
-        if (game != null) {
-          if (game.getScheme().equals ("file")) {
-            gamePath = game.getPath();
-          } else {
-            copyGameToCache (game);
-          }
-          Log.d("GameActivity", "Selected the file: " + getGamePath());
+      Log.d("GameActivity", "started");
+
+      context = this.getApplicationContext();
+
+      Uri game = this.getIntent().getData();
+      if (game != null) {
+        if (game.getScheme().equals ("file")) {
+          gamePath = game.getPath();
+        } else {
+          copyGameToCache (game);
         }
-        
-        super.onCreate(savedInstanceState);
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        Log.d("GameActivity", "Selected the file: " + getGamePath());
+      }
+
+      super.onCreate(savedInstanceState);
+      getWindowManager().getDefaultDisplay().getMetrics(metrics);
     }
 
     public static String getGamePath() {
-			Log.d ("GameActivity", "called getGamePath(), game path = " + gamePath);
+      Log.d ("GameActivity", "called getGamePath(), game path = " + gamePath);
         return gamePath;
     }
 
-		public static DisplayMetrics getMetrics() {
+    public static DisplayMetrics getMetrics() {
         return metrics;
+    }
+
+    public static void openURL (String url) {
+      Log.d ("GameActivity", "opening url = " + url);
+      Intent i = new Intent(Intent.ACTION_VIEW);
+      i.setData(Uri.parse(url));
+      i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      context.startActivity(i);
     }
   
     void copyGameToCache (Uri sourceuri)

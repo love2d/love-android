@@ -25,6 +25,8 @@
 
 #ifdef LOVE_ANDROID
 
+#include <string>
+
 namespace love
 {
 namespace android
@@ -40,6 +42,8 @@ double getScreenScale();
  * Gets the selected love file in the device filesystem.
  **/
 const char* getSelectedGameFile();
+
+bool openURL (const std::string &url);
 
 } // android
 } // love
