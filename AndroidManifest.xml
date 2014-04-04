@@ -24,11 +24,6 @@
           <category android:name="android.intent.category.LAUNCHER" />
           <category android:name="tv.ouya.intent.category.GAME"/>
         </intent-filter>
-      </activity>
-      <activity
-        android:name="GameActivity"
-        android:configChanges="orientation|screenSize"
-        android:screenOrientation="landscape" >
         <intent-filter>
           <action android:name="android.intent.action.VIEW" />
           <category android:name="android.intent.category.DEFAULT" />
