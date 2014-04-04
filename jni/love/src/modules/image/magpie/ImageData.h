@@ -22,8 +22,12 @@
 #define LOVE_IMAGE_MAGPIE_IMAGE_DATA_H
 
 // LOVE
+#include "FormatHandler.h"
 #include "filesystem/File.h"
 #include "image/ImageData.h"
+
+// C++
+#include <list>
 
 namespace love
 {
@@ -36,9 +40,9 @@ class ImageData : public love::image::ImageData
 {
 public:
 
-	ImageData(love::filesystem::FileData *data);
-	ImageData(int width, int height);
-	ImageData(int width, int height, void *data, bool own);
+	ImageData(std::list<FormatHandler *> formats, love::filesystem::FileData *data);
+	ImageData(std::list<FormatHandler *> formats, int width, int height);
+	ImageData(std::list<FormatHandler *> formats, int width, int height, void *data, bool own);
 	virtual ~ImageData();
 
 	// Implements image::ImageData.
@@ -51,6 +55,9 @@ private:
 
 	// Decode and load an encoded format.
 	void decode(love::filesystem::FileData *data);
+
+	// Image format handlers we can use for decoding and encoding.
+	std::list<FormatHandler *> formatHandlers;
 
 }; // ImageData
 

@@ -52,6 +52,7 @@ Graphics::Graphics()
 	, width(0)
 	, height(0)
 	, created(false)
+	, activeStencil(false)
 	, savedState()
 {
 	currentWindow = love::window::sdl::Window::createSingleton();
@@ -266,17 +267,19 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 
 void Graphics::unSetMode()
 {
+	if (!isCreated())
+		return;
+
 	// Window re-creation may destroy the GL context, so we must save the state.
-	if (isCreated())
-	{
-		savedState = saveState();
+	savedState = saveState();
 
-		// Unload all volatile objects. These must be reloaded after the display
-		// mode change.
-		Volatile::unloadAll();
+	// Unload all volatile objects. These must be reloaded after the display
+	// mode change.
+	Volatile::unloadAll();
 
-		gl.deInitContext();
-	}
+	gl.deInitContext();
+
+	created = false;
 }
 
 static void APIENTRY debugCB(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*len*/, const GLchar *msg, const GLvoid* /*usr*/)
@@ -439,6 +442,8 @@ void Graphics::defineStencil()
 	glEnable(GL_STENCIL_TEST);
 	glStencilFunc(GL_ALWAYS, 1, 1);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	activeStencil = true;
 }
 
 void Graphics::useStencil(bool invert)
@@ -450,8 +455,12 @@ void Graphics::useStencil(bool invert)
 
 void Graphics::discardStencil()
 {
+	if (!activeStencil)
+		return;
+
 	setColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
 	glDisable(GL_STENCIL_TEST);
+	activeStencil = false;
 }
 
 Image *Graphics::newImage(love::image::ImageData *data, Texture::Format format)
@@ -691,6 +700,10 @@ void Graphics::setBlendMode(Graphics::BlendMode mode)
 		state.srcRGB = state.srcA = GL_SRC_ALPHA;
 		state.dstRGB = state.dstA = GL_ONE;
 		break;
+	case BLEND_SCREEN:
+		state.srcRGB = state.srcA = GL_ONE;
+		state.dstRGB = state.dstA = GL_ONE_MINUS_SRC_COLOR;
+		break;
 	case BLEND_REPLACE:
 	default:
 		state.srcRGB = state.srcA = GL_ONE;
@@ -718,6 +731,8 @@ Graphics::BlendMode Graphics::getBlendMode() const
 			return BLEND_MULTIPLICATIVE;
 		else if (state.srcRGB == GL_ONE && state.dstRGB == GL_ONE_MINUS_SRC_ALPHA)
 			return BLEND_PREMULTIPLIED;
+		else if (state.srcRGB == GL_ONE && state.dstRGB == GL_ONE_MINUS_SRC_COLOR)
+			return BLEND_SCREEN;
 		else if (state.srcRGB == GL_ONE && state.dstRGB == GL_ZERO)
 			return BLEND_REPLACE;
 	}

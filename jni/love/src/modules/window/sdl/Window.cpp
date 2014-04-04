@@ -77,10 +77,6 @@ Window::_currentMode::_currentMode()
 
 bool Window::setWindow(int width, int height, WindowSettings *settings)
 {
-	graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
-	if (gfx != nullptr)
-		gfx->unSetMode();
-
 	WindowSettings f;
 
 	if (settings)
@@ -123,10 +119,15 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 	if (f.borderless)
 		sdlflags |= SDL_WINDOW_BORDERLESS;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+	// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 	if (f.highdpi)
 		sdlflags |= SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
+
+	graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+	if (gfx != nullptr)
+		gfx->unSetMode();
 
 	// Destroy and recreate the window if the dimensions or flags have changed.
 	if (window)
@@ -137,7 +138,8 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		Uint32 testflags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP
 			| SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+		// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 		testflags |= SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 
@@ -160,6 +162,8 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	if (!window)
 	{
+		created = false;
+
 		// In Windows and Linux, some GL attributes are set on window creation.
 		setWindowGLAttributes(f.fsaa, f.sRGB);
 
@@ -212,7 +216,8 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		int width = curMode.width;
 		int height = curMode.height;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+		// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 		SDL_GL_GetDrawableSize(window, &width, &height);
 #endif
 
@@ -411,13 +416,10 @@ void Window::updateSettings(const WindowSettings &newsettings)
 #endif
 
 	// Only minimize on focus loss if the window is in exclusive-fullscreen
-	// mode (mimics behaviour of SDL 2.0.2+).
-	// In OS X we always disable this to prevent dock minimization weirdness.
-#ifndef LOVE_MACOSX
+	// mode.
 	if (curMode.settings.fullscreen && curMode.settings.fstype == FULLSCREEN_TYPE_NORMAL)
 		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1");
 	else
-#endif
 		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
 	curMode.settings.sRGB = newsettings.sRGB;
@@ -435,9 +437,9 @@ void Window::displayError(const std::string &title, const std::string &text) con
 
 void Window::getWindow(int &width, int &height, WindowSettings &settings)
 {
-	// Window position may be different from creation - update display index.
+	// The window might have been modified (moved, resized, etc.) by the user.
 	if (window)
-		curMode.settings.display = std::max(SDL_GetWindowDisplayIndex(window), 0);
+		updateSettings(curMode.settings);
 
 	width = curMode.width;
 	height = curMode.height;
@@ -484,7 +486,8 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 			int width = curMode.width;
 			int height = curMode.height;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+			// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 			SDL_GL_GetDrawableSize(window, &width, &height);
 #endif
 
@@ -688,7 +691,8 @@ double Window::getPixelScale() const
 
 #ifdef LOVE_ANDROID
 	scale = love::android::getScreenScale();
-#elif SDL_VERSION_ATLEAST(2,0,1)
+	// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#elif SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 	if (window)
 	{
 		int wheight;

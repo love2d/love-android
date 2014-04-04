@@ -18,57 +18,45 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_SOUND_SOUND_DATA_H
-#define LOVE_SOUND_SOUND_DATA_H
-
 // LOVE
-#include "filesystem/File.h"
-#include "common/int.h"
-#include "Decoder.h"
+#include "FormatHandler.h"
+#include "common/Exception.h"
 
 namespace love
 {
-namespace sound
+namespace image
+{
+namespace magpie
 {
 
-class SoundData : public love::Data
+FormatHandler::FormatHandler()
 {
-public:
+}
 
-	SoundData(Decoder *decoder);
-	SoundData(int samples, int sampleRate, int bitDepth, int channels);
-	SoundData(void *d, int samples, int sampleRate, int bitDepth, int channels);
+FormatHandler::~FormatHandler()
+{
+}
 
-	virtual ~SoundData();
+bool FormatHandler::canDecode(love::filesystem::FileData* /*data*/)
+{
+	return false;
+}
 
-	// Implements Data.
-	void *getData() const;
-	size_t getSize() const;
+bool FormatHandler::canEncode(ImageData::Format /*format*/)
+{
+	return false;
+}
 
-	virtual int getChannels() const;
-	virtual int getBitDepth() const;
-	virtual int getSampleRate() const;
-	virtual int getSampleCount() const;
+FormatHandler::DecodedImage FormatHandler::decode(love::filesystem::FileData* /*data*/)
+{
+	throw love::Exception("Image decoding is not implemented for this format backend.");
+}
 
-	virtual float getDuration() const;
+FormatHandler::EncodedImage FormatHandler::encode(const DecodedImage& /*img*/, ImageData::Format /*format*/)
+{
+	throw love::Exception("Image encoding is not implemented for this format backend.");
+}
 
-	void setSample(int i, float sample);
-	float getSample(int i) const;
-
-private:
-
-	void load(int samples, int sampleRate, int bitDepth, int channels, void *newData = 0);
-
-	uint8 *data;
-	size_t size;
-
-	int sampleRate;
-	int bitDepth;
-	int channels;
-
-}; // SoundData
-
-} // sound
+} // magpie
+} // image
 } // love
-
-#endif // LOVE_SOUND_SOUND_DATA_H

@@ -89,7 +89,7 @@ static void parse_address(lua_State *l, const char *addr_str, ENetAddress *addre
 /**
  * Find the index of a given peer for which we only have the pointer.
  */
-size_t find_peer_index (lua_State *l, ENetHost *enet_host, ENetPeer *peer) {
+static size_t find_peer_index(lua_State *l, ENetHost *enet_host, ENetPeer *peer) {
 	size_t peer_index;
 	for (peer_index = 0; peer_index < enet_host->peerCount; peer_index++) {
 		if (peer == &(enet_host->peers[peer_index]))
@@ -713,10 +713,6 @@ static const struct luaL_Reg enet_peer_funcs [] = {
 	{"connect_id", peer_connect_id},
 	{"round_trip_time", peer_round_trip_time},
 	{"last_round_trip_time", peer_last_round_trip_time},
-	{NULL, NULL}
-};
-
-static const struct luaL_Reg enet_event_funcs [] = {
 	{NULL, NULL}
 };
 

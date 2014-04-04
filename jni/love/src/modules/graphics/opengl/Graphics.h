@@ -481,6 +481,8 @@ private:
 	int height;
 	bool created;
 
+	bool activeStencil;
+
 	DisplayState savedState;
 
 }; // Graphics

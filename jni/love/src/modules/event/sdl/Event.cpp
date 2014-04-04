@@ -28,6 +28,7 @@
 #include "window/Window.h"
 #include "common/Exception.h"
 #include "audio/Audio.h"
+#include "common/config.h"
 
 #include <cmath>
 
@@ -254,6 +255,9 @@ Message *Event::convert(const SDL_Event &e) const
 	case SDL_QUIT:
 		msg = new Message("quit");
 		break;
+	case SDL_APP_LOWMEMORY:
+		msg = new Message("lowmemory");
+		break;
 	default:
 		break;
 	}
@@ -446,7 +450,8 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 			int px_w = e.window.data1;
 			int px_h = e.window.data2;
 
-#if SDL_VERSION_ATLEAST(2,0,1)
+			// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
+#if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 			SDL_Window *sdlwin = SDL_GetWindowFromID(e.window.windowID);
 			if (sdlwin)
 				SDL_GL_GetDrawableSize(sdlwin, &px_w, &px_h);
@@ -682,6 +687,17 @@ std::map<SDL_Keycode, love::keyboard::Keyboard::Key> Event::createKeyMap()
 	k[SDLK_AUDIOPLAY] = Keyboard::KEY_AUDIOPLAY;
 	k[SDLK_AUDIOMUTE] = Keyboard::KEY_AUDIOMUTE;
 	k[SDLK_MEDIASELECT] = Keyboard::KEY_MEDIASELECT;
+	k[SDLK_WWW] = Keyboard::KEY_WWW;
+	k[SDLK_MAIL] = Keyboard::KEY_MAIL;
+	k[SDLK_CALCULATOR] = Keyboard::KEY_CALCULATOR;
+	k[SDLK_COMPUTER] = Keyboard::KEY_COMPUTER;
+	k[SDLK_AC_SEARCH] = Keyboard::KEY_APP_SEARCH;
+	k[SDLK_AC_HOME] = Keyboard::KEY_APP_HOME;
+	k[SDLK_AC_BACK] = Keyboard::KEY_APP_BACK;
+	k[SDLK_AC_FORWARD] = Keyboard::KEY_APP_FORWARD;
+	k[SDLK_AC_STOP] = Keyboard::KEY_APP_STOP;
+	k[SDLK_AC_REFRESH] = Keyboard::KEY_APP_REFRESH;
+	k[SDLK_AC_BOOKMARKS] = Keyboard::KEY_APP_BOOKMARKS;
 
 	k[SDLK_BRIGHTNESSDOWN] = Keyboard::KEY_BRIGHTNESSDOWN;
 	k[SDLK_BRIGHTNESSUP] = Keyboard::KEY_BRIGHTNESSUP;
