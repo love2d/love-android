@@ -24,6 +24,7 @@
 #include "mouse/Mouse.h"
 #include "joystick/JoystickModule.h"
 #include "joystick/sdl/Joystick.h"
+#include "touch/sdl/Touch.h"
 #include "graphics/Graphics.h"
 #include "window/Window.h"
 #include "common/Exception.h"
@@ -123,6 +124,7 @@ Message *Event::convert(const SDL_Event &e) const
 	vargs.reserve(4);
 
 	love::keyboard::Keyboard *kb = nullptr;
+	love::touch::sdl::Touch *touch = nullptr;
 
 	love::keyboard::Keyboard::Key key;
 	love::mouse::Mouse::Button button;
@@ -214,6 +216,11 @@ Message *Event::convert(const SDL_Event &e) const
 	case SDL_FINGERDOWN:
 	case SDL_FINGERUP:
 	case SDL_FINGERMOTION:
+		// We need to update the love.touch.sdl internal state from here.
+		touch = (touch::sdl::Touch *) Module::getInstance("love.touch.sdl");
+		if (touch)
+			touch->onEvent(e.tfinger);
+
 		vargs.push_back(new Variant((double) e.tfinger.fingerId));
 		vargs.push_back(new Variant((double) e.tfinger.x));
 		vargs.push_back(new Variant((double) e.tfinger.y));
@@ -312,10 +319,7 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 
 			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
 			vargs.push_back(new Variant((double)(e.jaxis.axis+1)));
-			float value = e.jaxis.value / 32768.0f;
-			if (fabsf(value) < 0.001f) value = 0.0f;
-			if (value < -0.99f) value = -1.0f;
-			if (value > 0.99f) value = 1.0f;
+			float value = joystick::Joystick::clampval(e.jaxis.value / 32768.0f);
 			vargs.push_back(new Variant((double) value));
 			msg = new Message("joystickaxis", vargs);
 		}
@@ -364,12 +368,8 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 				break;
 
 			vargs.push_back(new Variant(JOYSTICK_JOYSTICK_ID, (void *) &proxy));
-
 			vargs.push_back(new Variant(txt, strlen(txt)));
-			float value = e.jaxis.value / 32768.0f;
-			if (fabsf(value) < 0.001f) value = 0.0f;
-			if (value < -0.99f) value = -1.0f;
-			if (value > 0.99f) value = 1.0f;
+			float value = joystick::Joystick::clampval(e.caxis.value / 32768.0f);
 			vargs.push_back(new Variant((double) value));
 			msg = new Message("gamepadaxis", vargs);
 		}

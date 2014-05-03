@@ -23,9 +23,6 @@
 #include "common/Exception.h"
 #include "Touch.h"
 
-// SDL
-#include <SDL_touch.h>
-
 namespace love
 {
 namespace touch
@@ -35,57 +32,53 @@ namespace sdl
 
 int Touch::getTouchCount() const
 {
-	int count = 0;
-
-	for (int i = 0; i < SDL_GetNumTouchDevices(); i++)
-		count += SDL_GetNumTouchFingers(SDL_GetTouchDevice(i));
-
-	return count;
+	return (int) touches.size();
 }
 
 Touch::TouchInfo Touch::getTouch(int index) const
 {
-	SDL_TouchID deviceID = 0;
+	if (index < 0)
+		throw love::Exception("Invalid touch index: %d", index);
 
-	int touchcount = 0;
-	int fingerindex = -1;
+	std::map<int64, TouchInfo>::const_iterator it = touches.begin();
 
-	// Find the device and finger index from the given external index.
-	for (int i = 0; i < SDL_GetNumTouchDevices(); i++)
+	// We can't do something like "touches.begin() + index", so we get the
+	// value at the index by iterating from the beginning of the map.
+	for (int i = 0; i < index; i++)
 	{
-		deviceID = SDL_GetTouchDevice(i);
-		int fingercount = SDL_GetNumTouchFingers(deviceID);
-
-		if (index < touchcount + fingercount)
-		{
-			fingerindex = index - touchcount;
-			break;
-		}
-
-		touchcount += fingercount;
+		if (++it == touches.end())
+			throw love::Exception("Invalid touch index: %d", index);
 	}
 
-	if (fingerindex < 0)
-		throw love::Exception("Invalid touch index.");
-
-	SDL_Finger *finger = SDL_GetTouchFinger(deviceID, fingerindex);
-
-	if (finger == nullptr)
-		throw love::Exception("Cannot get touch info.");
-
-	TouchInfo info = {};
-
-	info.id = (int64) finger->id;
-	info.x = finger->x;
-	info.y = finger->y;
-	info.pressure = finger->pressure;
-
-	return info;
+	return it->second;
 }
 
 const char *Touch::getName() const
 {
 	return "love.touch.sdl";
+}
+
+void Touch::onEvent(const SDL_TouchFingerEvent &event)
+{
+	TouchInfo info = {
+		(int64) event.fingerId,
+		event.x,
+		event.y,
+		event.pressure
+	};
+
+	switch (event.type)
+	{
+	case SDL_FINGERDOWN:
+	case SDL_FINGERMOTION:
+		touches[info.id] = info;
+		break;
+	case SDL_FINGERUP:
+		touches.erase(info.id);
+		break;
+	default:
+		break;
+	}
 }
 
 } // sdl

@@ -295,7 +295,7 @@ function love.boot()
 	-- before the save directory (the identity should be appended.)
 	pcall(love.filesystem.setIdentity, identity, true)
 
-	if can_has_game and not (love.filesystem.exists("main.lua") or love.filesystem.exists("conf.lua")) then
+	if can_has_game and not (love.filesystem.isFile("main.lua") or love.filesystem.isFile("conf.lua")) then
 		no_game_code = true
 	end
 
@@ -352,7 +352,7 @@ function love.init()
 	}
 
 	-- If config file exists, load it and allow it to update config table.
-	if not love.conf and love.filesystem and love.filesystem.exists("conf.lua") then
+	if not love.conf and love.filesystem and love.filesystem.isFile("conf.lua") then
 		require("conf")
 	end
 
@@ -434,7 +434,7 @@ function love.init()
 
 	if love.filesystem then
 		love.filesystem.setIdentity(c.identity or love.filesystem.getIdentity(), c.appendidentity)
-		if love.filesystem.exists("main.lua") then
+		if love.filesystem.isFile("main.lua") then
 			require("main")
 		end
 	end
@@ -486,7 +486,6 @@ function love.run()
 
 	if love.math then
 		love.math.setRandomSeed(os.time())
-		for i=1,3 do love.math.random() end
 	end
 
 	if love.event then

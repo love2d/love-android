@@ -77,10 +77,15 @@ void RandomGenerator::setSeed(RandomGenerator::Seed newseed)
 {
 	// 0 xor 0 is still 0, so Xorshift can't generate new numbers.
 	if (newseed.b64 == 0)
-		throw love::Exception("Invalid random seed.");
+		throw love::Exception("Random seed cannot be 0.");
 
 	seed = newseed;
 	rng_state = seed;
+
+	// Xorshift's first couple results after seeding will be similar to results
+	// from very similar seeds, so we immediately discard them here.
+	for (int i = 0; i < 2; i++)
+		rand();
 }
 
 RandomGenerator::Seed RandomGenerator::getSeed() const

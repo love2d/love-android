@@ -24,6 +24,12 @@
 // LOVE
 #include "touch/Touch.h"
 
+// C++
+#include <map>
+
+// SDL
+#include <SDL_events.h>
+
 namespace love
 {
 namespace touch
@@ -42,6 +48,18 @@ public:
 
 	// Implements Module.
 	virtual const char *getName() const;
+
+	// SDL has functions to query the state of touch presses, but unfortunately
+	// they are updated on a different thread in some backends, which causes
+	// issues especially if the user is iterating through the current touches
+	// when they're updated. So we only update our touch press state in
+	// love::event::sdl::Event::convert.
+	void onEvent(const SDL_TouchFingerEvent &event);
+
+private:
+
+	// All current touches, indexed by their IDs.
+	std::map<int64, TouchInfo> touches;
 
 }; // Touch
 
