@@ -1425,7 +1425,7 @@ varying lowp vec4 VaryingColor;]],
 		local vertexcodes = {
 			lang.VERSION,
 			lang.SYNTAX, lang.VERTEX.HEADER, lang.UNIFORMS,
-			"#line 0",
+			"#line 1",
 			vertexcode,
 			lang.VERTEX.FOOTER,
 		}
@@ -1436,7 +1436,7 @@ varying lowp vec4 VaryingColor;]],
 		local pixelcodes = {
 			lang.VERSION,
 			lang.SYNTAX, lang.PIXEL.HEADER, lang.UNIFORMS,
-			"#line 0",
+			"#line 1",
 			pixelcode,
 			is_multicanvas and lang.PIXEL.FOOTER_MULTI_CANVAS or lang.PIXEL.FOOTER,
 		}
