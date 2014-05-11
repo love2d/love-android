@@ -11,7 +11,7 @@ LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
 LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libjasper/include \
-	${LOCAL_PATH}/../jpeg-9a/
+	${LOCAL_PATH}/../jpeg-8d/
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
