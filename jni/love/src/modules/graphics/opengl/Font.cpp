@@ -42,6 +42,7 @@ const int Font::TEXTURE_HEIGHTS[] = {128, 128, 256, 256, 512, 512,  1024};
 
 Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	: rasterizer(r)
+	, indexBuffer(nullptr)
 	, height(r->getHeight())
 	, lineHeight(1)
 	, mSpacing(1)
@@ -68,6 +69,8 @@ Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	textureWidth = TEXTURE_WIDTHS[textureSizeIndex];
 	textureHeight = TEXTURE_HEIGHTS[textureSizeIndex];
 
+	indexBuffer = new VertexIndex(20);
+
 	love::font::GlyphData *gd = nullptr;
 
 	try
@@ -93,6 +96,7 @@ Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 
 Font::~Font()
 {
+	delete indexBuffer;
 	rasterizer->release();
 	unloadVolatile();
 }
@@ -368,28 +372,17 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 	// second (using the struct's < operator).
 	std::sort(glyphinfolist.begin(), glyphinfolist.end());
 
-	std::vector<uint16> indices;
-
-	int indicescount = 0;
+	int maxvertices = 0;
 	for (auto it = glyphinfolist.begin(); it != glyphinfolist.end(); ++it)
+		maxvertices = std::max(maxvertices, it->vertexcount);
+
+	// If the index buffer is too small for the number of glyphs we're going to
+	// draw, we need to make a new one that has the correct size.
+	if ((size_t) maxvertices / 4 > indexBuffer->getSize())
 	{
-		if ((it->vertexcount / 4) * 6 > indicescount)
-			indicescount = (it->vertexcount / 4) * 6;
-	}
-
-	indices.reserve(indicescount);
-
-	for (int i = 0; i < indicescount / 6; i++)
-	{
-		// First triangle.
-		indices.push_back(i * 4 + 0);
-		indices.push_back(i * 4 + 1);
-		indices.push_back(i * 4 + 2);
-
-		// Second triangle.
-		indices.push_back(i * 4 + 0);
-		indices.push_back(i * 4 + 2);
-		indices.push_back(i * 4 + 3);
+		VertexIndex *newIndexBuffer = new VertexIndex(maxvertices / 4);
+		delete indexBuffer;
+		indexBuffer = newIndexBuffer;
 	}
 
 	gl.matrices.transform.push(gl.matrices.transform.top());
@@ -403,16 +396,36 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 
 	gl.prepareDraw();
 
+	VertexBuffer::Bind index_bind(*indexBuffer->getVertexBuffer());
+	GLenum elemtype = indexBuffer->getType();
+	const GLvoid *elemoffset = indexBuffer->getPointer(0);
+
+	// Optimization: we can take these calls out of the loop if we have support.
+	if (GLAD_VERSION_3_2 || GLAD_ARB_draw_elements_base_vertex)
+	{
+		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[0].x);
+		gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[0].s);
+	}
+
 	// We need to draw a new vertex array for every section of the string which
 	// uses a different texture than the previous section.
 	for (auto it = glyphinfolist.begin(); it != glyphinfolist.end(); ++it)
 	{
 		gl.bindTexture(it->texture);
 
-		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), (GLvoid *)&glyphverts[it->startvertex].x);
-		gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), (GLvoid *)&glyphverts[it->startvertex].s);
+		if (GLAD_VERSION_3_2 || GLAD_ARB_draw_elements_base_vertex)
+		{
+			// Optimization: setting a base vertex is faster than redoing the
+			// setVertexAttribArray calls before each draw.
+			glDrawElementsBaseVertex(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset, it->startvertex);
+		}
+		else
+		{
+			gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].x);
+			gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].s);
 
-		glDrawElements(GL_TRIANGLES, (it->vertexcount / 4) * 6, GL_UNSIGNED_SHORT, &indices[0]);
+			glDrawElements(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset);
+		}
 	}
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);

@@ -60,6 +60,12 @@ int w_isCreated(lua_State *L)
 	return 1;
 }
 
+int w_isActive(lua_State *L)
+{
+	luax_pushboolean(L, instance->isActive());
+	return 1;
+}
+
 int w_getWidth(lua_State *L)
 {
 	lua_pushinteger(L, instance->getWidth());
@@ -155,14 +161,11 @@ int w_newImage(lua_State *L)
 	love::image::ImageData *data = nullptr;
 	love::image::CompressedData *cdata = nullptr;
 
-	Texture::Format format = Texture::FORMAT_NORMAL;
+	Image::Format format = Image::FORMAT_NORMAL;
 	const char *fstr = lua_isnoneornil(L, 2) ? nullptr : luaL_checkstring(L, 2);
 
-	if (fstr != nullptr && !Texture::getConstant(fstr, format))
-		return luaL_error(L, "Invalid texture format: %s", fstr);
-
-	if (format == Texture::FORMAT_HDR) // For now...
-		return luaL_error(L, "HDR images are not supported.");
+	if (fstr != nullptr && !Image::getConstant(fstr, format))
+		return luaL_error(L, "Invalid Image format: %s", fstr);
 
 	// Convert to FileData, if necessary.
 	if (lua_isstring(L, 1) || luax_istype(L, 1, FILESYSTEM_FILE_T))
@@ -334,9 +337,9 @@ int w_newCanvas(lua_State *L)
 	const char *str = luaL_optstring(L, 3, "normal");
 	int fsaa        = luaL_optint(L, 4, 0);
 
-	Texture::Format format;
-	if (!Texture::getConstant(str, format))
-		return luaL_error(L, "Invalid texture format: %s", str);
+	Canvas::Format format;
+	if (!Canvas::getConstant(str, format))
+		return luaL_error(L, "Invalid Canvas format: %s", str);
 
 	Canvas *canvas = nullptr;
 	EXCEPT_GUARD(canvas = instance->newCanvas(width, height, format, fsaa);)
@@ -1015,7 +1018,7 @@ int w_isSupported(lua_State *L)
 				supported = false;
 			break;
 		case Graphics::SUPPORT_HDR_CANVAS:
-			if (!Canvas::isHDRSupported())
+			if (!Canvas::isFormatSupported(Canvas::FORMAT_HDR))
 				supported = false;
 			break;
 		case Graphics::SUPPORT_MULTI_CANVAS:
@@ -1046,12 +1049,20 @@ int w_isSupported(lua_State *L)
 			if (!Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_BC5))
 				supported = false;
 			break;
+		case Graphics::SUPPORT_ETC1:
+			if (!Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_ETC1))
+				supported = false;
+			break;
+		case Graphics::SUPPORT_PVRTC1:
+			if (!Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_PVR1_RGBA4))
+				supported = false;
+			break;
 		case Graphics::SUPPORT_INSTANCING:
 			if (!(GLAD_ARB_draw_instanced || (GLAD_ES_VERSION_2_0 && GLAD_EXT_draw_instanced)))
 				supported = false;
 			break;
 		case Graphics::SUPPORT_SRGB:
-			if (!Canvas::isSRGBSupported())
+			if (!Canvas::isFormatSupported(Canvas::FORMAT_SRGB))
 				supported = false;
 			break;
 		default:
@@ -1061,6 +1072,18 @@ int w_isSupported(lua_State *L)
 			break;
 	}
 	lua_pushboolean(L, supported);
+	return 1;
+}
+
+int w_hasCanvasFormat(lua_State *L)
+{
+	const char *str = luaL_checkstring(L, 1);
+	Canvas::Format format;
+
+	if (!Canvas::getConstant(str, format))
+		return luaL_error(L, "Invalid canvas format: %s", str);
+
+	luax_pushboolean(L, Canvas::isFormatSupported(format));
 	return 1;
 }
 
@@ -1441,6 +1464,7 @@ static const luaL_Reg functions[] =
 	{ "_setDefaultShaderCode", w_setDefaultShaderCode },
 
 	{ "isSupported", w_isSupported },
+	{ "hasCanvasFormat", w_hasCanvasFormat },
 	{ "getRendererInfo", w_getRendererInfo },
 	{ "getSystemLimit", w_getSystemLimit },
 
@@ -1450,6 +1474,7 @@ static const luaL_Reg functions[] =
 	{ "printf", w_printf },
 
 	{ "isCreated", w_isCreated },
+	{ "isActive", w_isActive },
 	{ "getWidth", w_getWidth },
 	{ "getHeight", w_getHeight },
 	{ "getDimensions", w_getDimensions },

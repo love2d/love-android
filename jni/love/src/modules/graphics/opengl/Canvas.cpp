@@ -451,7 +451,7 @@ static void getStrategy()
 	}
 }
 
-Canvas::Canvas(int width, int height, Texture::Format format, int fsaa)
+Canvas::Canvas(int width, int height, Format format, int fsaa)
 	: fbo(0)
     , resolve_fbo(0)
 	, texture(0)
@@ -556,36 +556,31 @@ bool Canvas::loadVolatile()
 	glGenTextures(1, &texture);
 	gl.bindTexture(texture);
 
+	if (GLAD_ANGLE_texture_usage)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_USAGE_ANGLE, GL_FRAMEBUFFER_ATTACHMENT_ANGLE);
+
 	setFilter(filter);
 	setWrap(wrap);
 
-	GLint internalformat;
-	GLenum textype;
-	switch (format)
-	{
-	case Texture::FORMAT_HDR:
-		internalformat = GL_RGBA16F;
-		textype = GL_FLOAT;
-		break;
-	case Texture::FORMAT_SRGB:
-		internalformat = GL_SRGB_ALPHA;
-		textype = GL_UNSIGNED_BYTE;
-		break;
-	case Texture::FORMAT_NORMAL:
-	default:
-		internalformat = GL_RGBA;
-		textype = GL_UNSIGNED_BYTE;
-	}
+	GLenum internalformat = GL_RGBA;
+	GLenum externalformat = GL_RGBA;
+	GLenum textype = GL_UNSIGNED_BYTE;
+
+	convertFormat(format, internalformat, externalformat, textype);
+
+	// in ES2, the internalformat and format params of TexImage have to match.
+	if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
+		internalformat = externalformat;
 
 	while (glGetError() != GL_NO_ERROR)
 		/* Clear the error buffer. */;
 
 	glTexImage2D(GL_TEXTURE_2D,
 	             0,
-	             internalformat,
+	             (GLint) internalformat,
 	             width, height,
 	             0,
-	             GL_RGBA,
+	             externalformat,
 	             textype,
 	             nullptr);
 
@@ -736,10 +731,13 @@ void Canvas::setupGrab()
 	gl.matrices.projection.push(Matrix::ortho(0.0, width, 0.0, height));
 
 	// Make sure the correct sRGB setting is used when drawing to the canvas.
-	if (format == FORMAT_SRGB)
-		glEnable(GL_FRAMEBUFFER_SRGB);
-	else if (screenHasSRGB)
-		glDisable(GL_FRAMEBUFFER_SRGB);
+	if (GLAD_VERSION_1_1 || GLAD_EXT_sRGB_write_control)
+	{
+		if (format == FORMAT_SRGB)
+			glEnable(GL_FRAMEBUFFER_SRGB);
+		else if (screenHasSRGB)
+			glDisable(GL_FRAMEBUFFER_SRGB);
+	}
 
 	if (fsaa_buffer != 0)
 		fsaa_dirty = true;
@@ -828,8 +826,11 @@ void Canvas::stopGrab(bool switchingToOtherCanvas)
 
 	if (switchingToOtherCanvas)
 	{
-		if (format == FORMAT_SRGB)
-			glDisable(GL_FRAMEBUFFER_SRGB);
+		if (GLAD_VERSION_1_1 || GLAD_EXT_sRGB_write_control)
+		{
+			if (format == FORMAT_SRGB)
+				glDisable(GL_FRAMEBUFFER_SRGB);
+		}
 	}
 	else
 	{
@@ -838,10 +839,13 @@ void Canvas::stopGrab(bool switchingToOtherCanvas)
 		current = nullptr;
 		gl.setViewport(systemViewport);
 
-		if (format == FORMAT_SRGB && !screenHasSRGB)
-			glDisable(GL_FRAMEBUFFER_SRGB);
-		else if (format != FORMAT_SRGB && screenHasSRGB)
-			glEnable(GL_FRAMEBUFFER_SRGB);
+		if (GLAD_VERSION_1_1 || GLAD_EXT_sRGB_write_control)
+		{
+			if (format == FORMAT_SRGB && !screenHasSRGB)
+				glDisable(GL_FRAMEBUFFER_SRGB);
+			else if (format != FORMAT_SRGB && screenHasSRGB)
+				glEnable(GL_FRAMEBUFFER_SRGB);
+		}
 	}
 
 	gl.matrices.projection.pop();
@@ -1007,27 +1011,83 @@ bool Canvas::resolveMSAA()
 	return true;
 }
 
+Canvas::Format Canvas::getSizedFormat(Canvas::Format format)
+{
+	switch (format)
+	{
+	case FORMAT_NORMAL:
+		// 32-bit render targets don't have guaranteed support on OpenGL ES 2.
+		if (GLAD_ES_VERSION_2_0 && !(GLAD_ES_VERSION_3_0 || GLAD_OES_rgb8_rgba8 || GLAD_ARM_rgba8))
+			return FORMAT_RGBA4;
+		else
+			return FORMAT_RGBA8;
+	case FORMAT_HDR:
+		return FORMAT_RGBA16F;
+	default:
+		return format;
+	}
+}
+
+void Canvas::convertFormat(Canvas::Format format, GLenum &internalformat, GLenum &externalformat, GLenum &type)
+{
+	format = getSizedFormat(format);
+	externalformat = GL_RGBA;
+
+	switch (format)
+	{
+	case FORMAT_RGBA8:
+	default:
+		internalformat = GL_RGBA8;
+		type = GL_UNSIGNED_BYTE;
+		break;
+	case FORMAT_RGBA4:
+		internalformat = GL_RGBA4;
+		type = GL_UNSIGNED_SHORT_4_4_4_4;
+		break;
+	case FORMAT_RGB5A1:
+		internalformat = GL_RGB5_A1;
+		type = GL_UNSIGNED_SHORT_5_5_5_1;
+		break;
+	case FORMAT_RGB565:
+		internalformat = GL_RGB565;
+		externalformat = GL_RGB;
+		type = GL_UNSIGNED_SHORT_5_6_5;
+		break;
+	case FORMAT_RGB10A2:
+		internalformat = GL_RGB10_A2;
+		type = GL_UNSIGNED_INT_2_10_10_10_REV;
+		break;
+	case FORMAT_RG11B10F:
+		internalformat = GL_R11F_G11F_B10F;
+		externalformat = GL_RGB;
+		type = GL_UNSIGNED_INT_10F_11F_11F_REV;
+		break;
+	case FORMAT_RGBA16F:
+		internalformat = GL_RGBA16F;
+		if (GLAD_OES_texture_float)
+			type = GL_HALF_FLOAT_OES;
+		else if (GLAD_VERSION_1_1)
+			type = GL_FLOAT;
+		else
+			type = GL_HALF_FLOAT;
+		break;
+	case FORMAT_RGBA32F:
+		internalformat = GL_RGBA32F;
+		type = GL_FLOAT;
+		break;
+	case FORMAT_SRGB:
+		internalformat = GL_SRGB8_ALPHA8;
+		type = GL_UNSIGNED_BYTE;
+		if (GLAD_ES_VERSION_2_0)
+			externalformat = GL_SRGB_ALPHA;
+		break;
+	}
+}
+
 bool Canvas::isSupported()
 {
 	getStrategy();
 	return (strategy != &strategyNone);
-}
-
-bool Canvas::isHDRSupported()
-{
-	return GLAD_VERSION_3_0 || (isSupported() && GLAD_ARB_texture_float);
-}
-
-bool Canvas::isSRGBSupported()
-{
-	if (GLAD_VERSION_3_0)
-		return true;
-
-	if (!isSupported())
-		return false;
-
-	return (GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB)
-		&& GLAD_EXT_texture_sRGB;
 }
 
 bool Canvas::isMultiCanvasSupported()
@@ -1036,11 +1096,145 @@ bool Canvas::isMultiCanvasSupported()
 	return gl.getMaxRenderTargets() >= 4;
 }
 
+bool Canvas::supportedFormats[] = {false};
+bool Canvas::checkedFormats[] = {false};
+
+bool Canvas::isFormatSupported(Canvas::Format format)
+{
+	if (!isSupported())
+		return false;
+
+	bool supported = true;
+	format = getSizedFormat(format);
+
+	switch (format)
+	{
+	case FORMAT_RGBA8:
+		if (GLAD_VERSION_1_1)
+			supported = true;
+		else
+			supported = GLAD_ES_VERSION_3_0 || GLAD_OES_rgb8_rgba8 || GLAD_ARM_rgba8;
+		break;
+	case FORMAT_RGBA4:
+	case FORMAT_RGB5A1:
+		supported = true;
+		break;
+	case FORMAT_RGB565:
+		supported = GLAD_ES_VERSION_2_0 || GLAD_VERSION_4_2 || GLAD_ARB_ES2_compatibility;
+		break;
+	case FORMAT_RGB10A2:
+		if (GLAD_VERSION_1_1)
+			supported = true;
+		else
+			supported = GLAD_ES_VERSION_3_0;
+		break;
+	case FORMAT_RG11B10F:
+		if (GLAD_VERSION_1_1)
+			supported = GLAD_VERSION_3_0 || GLAD_EXT_packed_float;
+		else
+			supported = GLAD_ES_VERSION_3_0 /*|| GLAD_NV_packed_float*/;
+		break;
+	case FORMAT_RGBA16F:
+		if (GLAD_VERSION_1_1)
+			supported = GLAD_VERSION_3_0 || GLAD_ARB_texture_float;
+		else
+			supported = GLAD_EXT_color_buffer_half_float && (GLAD_ES_VERSION_3_0 || GLAD_OES_texture_half_float);
+		break;
+	case FORMAT_RGBA32F:
+		if (GLAD_VERSION_1_1)
+			supported = GLAD_VERSION_3_0 || GLAD_ARB_texture_float;
+		else
+			supported = false; // GLAD_EXT_color_buffer_float && GLAD_ES_VERSION_3_0;
+		break;
+	case FORMAT_SRGB:
+		if (GLAD_VERSION_1_1)
+			supported = GLAD_VERSION_3_0 || ((GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB)
+				&& (GLAD_VERSION_2_1 || GLAD_EXT_texture_sRGB));
+		else
+			supported = GLAD_ES_VERSION_3_0 || GLAD_EXT_sRGB;
+		break;
+	default:
+		supported = false;
+		break;
+	}
+
+	if (!supported)
+		return false;
+
+	if (checkedFormats[format])
+		return supportedFormats[format];
+
+	// Even though we might have the necessary OpenGL version or extension,
+	// drivers are still allowed to throw FRAMEBUFFER_UNSUPPORTED when attaching
+	// a texture to a FBO whose format the driver doesn't like. So we should
+	// test with an actual FBO.
+
+	GLenum internalformat = GL_RGBA;
+	GLenum externalformat = GL_RGBA;
+	GLenum textype = GL_UNSIGNED_BYTE;
+	convertFormat(format, internalformat, externalformat, textype);
+
+	if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
+		internalformat = externalformat;
+
+	GLuint texture = 0;
+	glGenTextures(1, &texture);
+	gl.bindTexture(texture);
+
+	Texture::Filter f;
+	f.min = f.mag = Texture::FILTER_NEAREST;
+	gl.setTextureFilter(f);
+
+	Texture::Wrap w;
+	gl.setTextureWrap(w);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, 2, 2, 0, externalformat, textype, nullptr);
+
+	GLuint fbo = 0;
+	supported = (strategy->createFBO(fbo, texture) == GL_FRAMEBUFFER_COMPLETE);
+	strategy->deleteFBO(fbo, 0, 0);
+
+	gl.deleteTexture(texture);
+
+	// Cache the result so we don't do this for every isFormatSupported call.
+	checkedFormats[format] = true;
+	supportedFormats[format] = supported;
+
+	return supported;
+}
+
 void Canvas::bindDefaultCanvas()
 {
 	if (current != nullptr)
 		current->stopGrab();
 }
+
+bool Canvas::getConstant(const char *in, Format &out)
+{
+	return formats.find(in, out);
+}
+
+bool Canvas::getConstant(Format in, const char *&out)
+{
+	return formats.find(in, out);
+}
+
+StringMap<Canvas::Format, Canvas::FORMAT_MAX_ENUM>::Entry Canvas::formatEntries[] =
+{
+	{"normal", Canvas::FORMAT_NORMAL},
+	{"hdr", Canvas::FORMAT_HDR},
+	{"rgba8", Canvas::FORMAT_RGBA8},
+	{"rgba4", Canvas::FORMAT_RGBA4},
+	{"rgb5a1", Canvas::FORMAT_RGB5A1},
+	{"rgb565", Canvas::FORMAT_RGB565},
+	{"rgb10a2", Canvas::FORMAT_RGB10A2},
+	{"rg11b10f", Canvas::FORMAT_RG11B10F},
+	{"rgba16f", Canvas::FORMAT_RGBA16F},
+	{"rgba32f", Canvas::FORMAT_RGBA32F},
+	{"srgb", Canvas::FORMAT_SRGB},
+};
+
+StringMap<Canvas::Format, Canvas::FORMAT_MAX_ENUM> Canvas::formats(Canvas::formatEntries, sizeof(Canvas::formatEntries));
 
 } // opengl
 } // graphics

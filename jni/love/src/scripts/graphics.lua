@@ -1317,9 +1317,9 @@ uniform mat4 TransformMatrix;
 uniform mat4 ProjectionMatrix;
 uniform mat4 TransformProjectionMatrix;
 // uniform mat4 NormalMatrix;
-uniform float love_PointSize;
 uniform sampler2D _tex0_;
-uniform vec4 love_ScreenSize;]]
+uniform mediump vec4 love_ScreenSize;
+uniform mediump float love_PointSize;]]
 
 	GLSL.VERTEX = {
 		HEADER = [[
@@ -1357,7 +1357,7 @@ attribute vec4 VertexPosition;
 attribute vec4 VertexTexCoord;
 attribute vec4 VertexColor;
 
-varying vec4 VaryingTexCoord;
+varying mediump vec4 VaryingTexCoord;
 varying lowp vec4 VaryingColor;
 
 //#if defined(GL_EXT_draw_instanced)
@@ -1414,18 +1414,36 @@ void main() {
 
 precision mediump float;
 
-varying vec4 VaryingTexCoord;
+varying mediump vec4 VaryingTexCoord;
 varying lowp vec4 VaryingColor;]],
 
 		FOOTER = GLSL.PIXEL.FOOTER,
 		FOOTER_MULTI_CANVAS = GLSL.PIXEL.FOOTER_MULTI_CANVAS,
 	}
 
+	-- Unfortunately, GLSL 1.20 can't deal with precision qualifier statements.
+	local function stripPrecision(code)
+		-- Remove "precision mediump float;", etc.
+		code = code:gsub("precision(%s+)lowp(%s+)(%w+)(%s*);", "")
+		code = code:gsub("precision(%s+)mediump(%s+)(%w+)(%s*);", "")
+		code = code:gsub("precision(%s+)highp(%s+)(%w+)(%s*);", "")
+
+		-- Remove all remaining "lowp", "mediump", "highp".
+		code = code:gsub("(%W+)lowp(%s+)", "%1"):gsub("^lowp(%s+)", "")
+		code = code:gsub("(%W+)mediump(%s+)", "%1"):gsub("^mediump(%s+)", "")
+		code = code:gsub("(%W+)highp(%s+)", "%1"):gsub("^highp(%s+)", "")
+
+		return code
+	end
+
 	local function createVertexCode(vertexcode, lang)
+		if lang == GLSL then
+			vertexcode = stripPrecision(vertexcode)
+		end
 		local vertexcodes = {
 			lang.VERSION,
 			lang.SYNTAX, lang.VERTEX.HEADER, lang.UNIFORMS,
-			"#line 1",
+			lang == GLSLES and "#line 1" or "#line 0", -- specification differences for #line...
 			vertexcode,
 			lang.VERTEX.FOOTER,
 		}
@@ -1433,10 +1451,13 @@ varying lowp vec4 VaryingColor;]],
 	end
 
 	local function createPixelCode(pixelcode, lang, is_multicanvas)
+		if lang == GLSL then
+			pixelcode = stripPrecision(pixelcode)
+		end
 		local pixelcodes = {
 			lang.VERSION,
 			lang.SYNTAX, lang.PIXEL.HEADER, lang.UNIFORMS,
-			"#line 1",
+			lang == GLSLES and "#line 1" or "#line 0",
 			pixelcode,
 			is_multicanvas and lang.PIXEL.FOOTER_MULTI_CANVAS or lang.PIXEL.FOOTER,
 		}
@@ -1539,7 +1560,7 @@ vec4 position(mat4 transform_proj, vec4 vertpos) {
 	return transform_proj * vertpos;	
 }]],
 		pixel = [[
-vec4 effect(vec4 vcolor, Image texture, vec2 texcoord, vec2 pixcoord) {
+lowp vec4 effect(lowp vec4 vcolor, Image texture, vec2 texcoord, vec2 pixcoord) {
 	return Texel(texture, texcoord) * vcolor;	
 }]]
 	}

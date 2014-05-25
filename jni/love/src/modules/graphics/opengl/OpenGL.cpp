@@ -160,6 +160,7 @@ void OpenGL::initVendor()
 	}
 
 	// http://feedback.wildfiregames.com/report/opengl/feature/GL_VENDOR
+	// http://stackoverflow.com/questions/2093594/opengl-extensions-available-on-different-android-devices
 	if (strstr(vstr, "ATI Technologies"))
 		vendor = VENDOR_ATI_AMD;
 	else if (strstr(vstr, "NVIDIA"))
@@ -172,6 +173,16 @@ void OpenGL::initVendor()
 		vendor = VENDOR_APPLE;
 	else if (strstr(vstr, "Microsoft"))
 		vendor = VENDOR_MICROSOFT;
+	else if (strstr(vstr, "Imagination"))
+		vendor = VENDOR_IMGTEC;
+	else if (strstr(vstr, "ARM"))
+		vendor = VENDOR_ARM;
+	else if (strstr(vstr, "Qualcomm"))
+		vendor = VENDOR_QUALCOMM;
+	else if (strstr(vstr, "Broadcom"))
+		vendor = VENDOR_BROADCOM;
+	else if (strstr(vstr, "Vivante"))
+		vendor = VENDOR_VIVANTE;
 	else
 		vendor = VENDOR_UNKNOWN;
 }

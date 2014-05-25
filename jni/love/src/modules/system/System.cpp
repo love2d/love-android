@@ -27,8 +27,9 @@
 #elif defined(LOVE_ANDROID)
 #include "common/android.h"
 #elif defined(LOVE_LINUX)
-#include <stdlib.h>
-#include <unistd.h>
+#include <spawn.h>
+//#include <stdlib.h>
+//#include <unistd.h>
 #include <sys/wait.h>
 #elif defined(LOVE_WINDOWS)
 #include "common/utf8.h"
@@ -57,12 +58,17 @@ std::string System::getOS() const
 #endif
 }
 
+extern "C"
+{
+	extern char **environ; // The environment, always available
+}
+
 bool System::openURL(const std::string &url) const
 {
-	bool success = false;
 
 #if defined(LOVE_MACOSX)
 
+	bool success = false;
 	// We could be lazy and use system("open " + url), but this is safer.
 	CFURLRef cfurl = CFURLCreateWithBytes(nullptr,
 	                                      (const UInt8 *) url.c_str(),
@@ -72,38 +78,28 @@ bool System::openURL(const std::string &url) const
 
 	success = LSOpenCFURLRef(cfurl, nullptr) == noErr;
 	CFRelease(cfurl);
+	return success;
 
 #elif defined(LOVE_ANDROID)
 
-	success = love::android::openURL (url);	
+	return love::android::openURL (url);	
 
 #elif defined(LOVE_LINUX)
 
-	// Spawn a child process, which we'll replace with xdg-open.
-	pid_t pid = vfork();
+	pid_t pid;
+	const char *argv[] = {"xdg-open", url.c_str(), nullptr};
 
-	if (pid == 0) // Child process.
-	{
-		// Replace the child process with xdg-open and pass in the URL.
-		execlp("xdg-open", "xdg-open", url.c_str(), nullptr);
+	// Note: at the moment this process inherits our file descriptors.
+	// Note: the below const_cast is really ugly as well.
+	if (posix_spawnp(&pid, "xdg-open", nullptr, nullptr, const_cast<char **>(argv), environ) != 0)
+		return false;
 
-		// exec will only return if it errored, so we should exit with non-zero.
-		_exit(1);
-	}
-	else if (pid > 0) // Parent process.
-	{
-		// Wait for xdg-open to complete (or fail.)
-		int status = 0;
-		if (waitpid(pid, &status, 0) == pid)
-			success = (status == 0);
-		else
-			success = false;
-	}
+	// Wait for xdg-open to complete (or fail.)
+	int status = 0;
+	if (waitpid(pid, &status, 0) == pid)
+		return (status == 0);
 	else
-	{
-		// vfork() failed.
-		success = false;
-	}
+		return false;
 
 #elif defined(LOVE_WINDOWS)
 
@@ -117,11 +113,9 @@ bool System::openURL(const std::string &url) const
 	                                 nullptr,
 	                                 SW_SHOW);
 
-	success = (int) result > 32;
+	return (int) result > 32;
 
 #endif
-
-	return success;
 }
 
 bool System::getConstant(const char *in, System::PowerState &out)

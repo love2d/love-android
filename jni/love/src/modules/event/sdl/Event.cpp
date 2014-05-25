@@ -59,6 +59,34 @@ static void windowToPixelCoords(int *x, int *y)
 #endif
 }
 
+// SDL's event watch callbacks trigger when the event is actually posted inside
+// SDL, unlike with SDL_PollEvents. This is useful for some events which require
+// handling inside the function which triggered them on some backends.
+static int SDLCALL watchAppEvents(void * /*udata*/, SDL_Event *event)
+{
+	graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+
+	switch (event->type)
+	{
+	// On iOS, calling any OpenGL ES function after the function which triggers
+	// SDL_APP_DIDENTERBACKGROUND is called will kill the app, so we handle it
+	// with an event watch callback, which will be called inside that function.
+	case SDL_APP_DIDENTERBACKGROUND:
+	case SDL_APP_WILLENTERFOREGROUND:
+		// On Android, before calling setActive we should probably also call a
+		// window function to un-set the graphics mode and delete the context,
+		// after DIDENTERBACKGROUND (and the reverse after WILLENTERFOREGROUND.)
+		if (gfx)
+			gfx->setActive(event->type == SDL_APP_WILLENTERFOREGROUND);
+		break;
+	default:
+		break;
+	}
+
+	// Don't prevent the event from being processed further.
+	return 1;
+}
+
 
 const char *Event::getName() const
 {
@@ -69,10 +97,13 @@ Event::Event()
 {
 	if (SDL_InitSubSystem(SDL_INIT_EVENTS) < 0)
 		throw love::Exception("%s", SDL_GetError());
+
+	SDL_AddEventWatch(watchAppEvents, this);
 }
 
 Event::~Event()
 {
+	SDL_DelEventWatch(watchAppEvents, this);
 	SDL_QuitSubSystem(SDL_INIT_EVENTS);
 }
 
@@ -260,6 +291,7 @@ Message *Event::convert(const SDL_Event &e) const
 		SDL_free(e.drop.file);
 		break;
 	case SDL_QUIT:
+	case SDL_APP_TERMINATING:
 		msg = new Message("quit");
 		break;
 	case SDL_APP_LOWMEMORY:

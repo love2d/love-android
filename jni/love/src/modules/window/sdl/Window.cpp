@@ -269,11 +269,14 @@ bool Window::setContext(int fsaa, bool vsync, bool sRGB)
 	if (!context)
 	{
 		int flags = 0;
+		int profilemask = 0;
 		SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &flags);
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profilemask);
 		if (flags & SDL_GL_CONTEXT_DEBUG_FLAG)
 		{
+			profilemask &= ~SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 0);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profilemask);
 			context = SDL_GL_CreateContext(window);
 		}
 	}
@@ -315,6 +318,7 @@ void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
+	SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
 
 	// FSAA.
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, (fsaa > 0) ? 1 : 0);
@@ -331,19 +335,26 @@ void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
 
 	int contextprofile = 0;
 
-	bool tryES2 = false;
+	bool tryGLES = false;
 
 	const char *driver = SDL_GetCurrentVideoDriver();
+	const char *glesdrivers[] = {"RPI", "Android", "uikit", "winrt"};
 
 	// We always want to use OpenGL ES on certain video backends.
-	if (driver && (strstr(driver, "RPI") || strstr(driver, "Android") || strstr(driver, "uikit")))
-		tryES2 = true;
+	for (size_t i = 0; i < sizeof(glesdrivers) / sizeof(glesdrivers[0]); i++)
+	{
+		if (driver && strstr(driver, glesdrivers[i]))
+		{
+			tryGLES = true;
+			break;
+		}
+	}
 
 	const char *hint = SDL_GetHint("LOVE_GRAPHICS_USE_OPENGLES");
 	if (hint)
-		tryES2 = (*hint) != '0';
+		tryGLES = (*hint) != '0';
 
-	if (tryES2)
+	if (tryGLES)
 	{
 		// Use OpenGL ES 2+.
 		contextprofile = SDL_GL_CONTEXT_PROFILE_ES;
@@ -363,7 +374,7 @@ void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
 	if (debugenv && *debugenv == '1')
 	{
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-		if (!tryES2)
+		if (!tryGLES)
 			contextprofile |= SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
 	}
 	else

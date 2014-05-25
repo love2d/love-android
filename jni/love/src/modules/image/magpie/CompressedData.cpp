@@ -29,29 +29,47 @@ namespace image
 namespace magpie
 {
 
-CompressedData::CompressedData(love::filesystem::FileData *filedata)
+CompressedData::CompressedData(std::list<CompressedFormatHandler *> formats, love::filesystem::FileData *filedata)
+	: formatHandlers(formats)
 {
+	for (CompressedFormatHandler *handler : formatHandlers)
+		handler->retain();
+
 	load(filedata);
 }
 
 CompressedData::~CompressedData()
 {
 	delete[] data;
+
+	for (CompressedFormatHandler *handler : formatHandlers)
+		handler->release();
 }
 
 void CompressedData::load(love::filesystem::FileData *filedata)
 {
+	CompressedFormatHandler *parser = nullptr;
+
+	for (CompressedFormatHandler *handler : formatHandlers)
+	{
+		if (handler->canParse(filedata))
+		{
+			parser = handler;
+			break;
+		}
+	}
+
+	if (parser == nullptr)
+		throw love::Exception("Could not parse compressed data: Unknown format.");
+
 	// SubImage vector will be populated by a parser.
 	std::vector<SubImage> parsedimages;
 	Format texformat = FORMAT_UNKNOWN;
 
-	uint8 *newdata = 0;
 	size_t newdata_size = 0;
+	uint8 *newdata = parser->parse(filedata, parsedimages, newdata_size, texformat);
 
-	if (ddsHandler::canParse(filedata))
-		newdata = ddsHandler::parse(filedata, parsedimages, newdata_size, texformat);
-
-	if (newdata == 0)
+	if (newdata == nullptr)
 		throw love::Exception("Could not parse compressed data.");
 
 	if (texformat == FORMAT_UNKNOWN)
@@ -74,14 +92,6 @@ void CompressedData::load(love::filesystem::FileData *filedata)
 
 	dataImages = parsedimages;
 	format = texformat;
-}
-
-bool CompressedData::isCompressed(love::filesystem::FileData *filedata)
-{
-	if (ddsHandler::canParse(filedata))
-		return true;
-
-	return false;
 }
 
 } // magpie

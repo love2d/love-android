@@ -52,6 +52,7 @@ Graphics::Graphics()
 	, width(0)
 	, height(0)
 	, created(false)
+	, active(true)
 	, activeStencil(false)
 	, savedState()
 {
@@ -72,7 +73,10 @@ Graphics::~Graphics()
 		currentFont->release();
 
 	if (Shader::defaultShader)
+	{
 		Shader::defaultShader->release();
+		Shader::defaultShader = nullptr;
+	}
 
 	currentWindow->release();
 }
@@ -235,12 +239,16 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 	}
 
 	// Set whether drawing converts input from linear -> sRGB colorspace.
-	if (GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB)
+	if (GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB
+		|| (GLAD_ES_VERSION_3_0 || GLAD_EXT_sRGB))
 	{
-		if (sRGB)
-			glEnable(GL_FRAMEBUFFER_SRGB);
-		else
-			glDisable(GL_FRAMEBUFFER_SRGB);
+		if (GLAD_VERSION_1_1 || GLAD_EXT_sRGB_write_control)
+		{
+			if (sRGB)
+				glEnable(GL_FRAMEBUFFER_SRGB);
+			else
+				glDisable(GL_FRAMEBUFFER_SRGB);
+		}
 	}
 	else
 		sRGB = false;
@@ -280,6 +288,23 @@ void Graphics::unSetMode()
 	gl.deInitContext();
 
 	created = false;
+}
+
+void Graphics::setActive(bool active)
+{
+	// Make sure all pending OpenGL commands have fully executed before
+	// returning, if we're going from active to inactive.
+	if (isCreated() && this->active && !active)
+		glFinish();
+
+	this->active = active;
+}
+
+bool Graphics::isActive() const
+{
+	// The graphics module is only completely 'active' if there's a window, a
+	// context, and the active variable is set.
+	return active && isCreated() && currentWindow && currentWindow->isCreated();
 }
 
 static void APIENTRY debugCB(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*len*/, const GLchar *msg, const GLvoid* /*usr*/)
@@ -364,6 +389,9 @@ void Graphics::clear()
 
 void Graphics::present()
 {
+	if (!isActive())
+		return;
+
 	// Make sure we don't have a canvas active.
 	Canvas *c = Canvas::current;
 	Canvas::bindDefaultCanvas();
@@ -463,7 +491,7 @@ void Graphics::discardStencil()
 	activeStencil = false;
 }
 
-Image *Graphics::newImage(love::image::ImageData *data, Texture::Format format)
+Image *Graphics::newImage(love::image::ImageData *data, Image::Format format)
 {
 	// Create the image.
 	Image *image = new Image(data, format);
@@ -490,7 +518,7 @@ Image *Graphics::newImage(love::image::ImageData *data, Texture::Format format)
 	return image;
 }
 
-Image *Graphics::newImage(love::image::CompressedData *cdata, Texture::Format format)
+Image *Graphics::newImage(love::image::CompressedData *cdata, Image::Format format)
 {
 	// Create the image.
 	Image *image = new Image(cdata, format);
@@ -537,13 +565,14 @@ ParticleSystem *Graphics::newParticleSystem(Texture *texture, int size)
 	return new ParticleSystem(texture, size);
 }
 
-Canvas *Graphics::newCanvas(int width, int height, Texture::Format format, int fsaa)
+Canvas *Graphics::newCanvas(int width, int height, Canvas::Format format, int fsaa)
 {
-	if (format == Texture::FORMAT_HDR && !Canvas::isHDRSupported())
-		throw Exception("HDR Canvases are not supported by your OpenGL implementation");
-
-	if (format == Texture::FORMAT_SRGB && !Canvas::isSRGBSupported())
-		throw Exception("sRGB Canvases are not supported by your OpenGL implementation");
+	if (!Canvas::isFormatSupported(format))
+	{
+		const char *fstr = "rgba8";
+		Canvas::getConstant(format, fstr);
+		throw love::Exception("The %s canvas format is not supported by your OpenGL implementation.", fstr);
+	}
 
 	if (width > gl.getMaxTextureSize())
 		throw Exception("Cannot create canvas: width of %d pixels is too large for this system.", width);
@@ -594,8 +623,8 @@ Canvas *Graphics::newCanvas(int width, int height, Texture::Format format, int f
 	}
 
 	canvas->release();
-	throw Exception(error_string.str().c_str());
-	return NULL; // never reached
+	throw Exception("%s", error_string.str().c_str());
+	return nullptr; // never reached
 }
 
 Shader *Graphics::newShader(const Shader::ShaderSources &sources)
@@ -972,7 +1001,24 @@ void Graphics::circle(DrawMode mode, float x, float y, float radius, int points)
 	float angle_shift = (two_pi / points);
 	float phi = .0f;
 
-	float *coords = new float[2 * (points + 1)];
+	float *coords = nullptr;
+	int extrapoints = 1;
+
+	// Fill mode will use a triangle fan internally, so we want the "hub" of the
+	// fan (its first vertex) to be the midpoint of the circle.
+	if (mode == DRAW_FILL)
+	{
+		extrapoints = 2;
+		coords = new float[2 * (points + extrapoints)];
+
+		coords[0] = x;
+		coords[1] = y;
+
+		coords += 2;
+	}
+	else
+		coords = new float[2 * (points + extrapoints)];
+
 	for (int i = 0; i < points; ++i, phi += angle_shift)
 	{
 		coords[2*i]   = x + radius * cosf(phi);
@@ -982,7 +1028,10 @@ void Graphics::circle(DrawMode mode, float x, float y, float radius, int points)
 	coords[2*points]   = coords[0];
 	coords[2*points+1] = coords[1];
 
-	polygon(mode, coords, (points + 1) * 2);
+	if (mode == DRAW_FILL)
+		coords -= 2;
+
+	polygon(mode, coords, 2 * (points + extrapoints));
 
 	delete[] coords;
 }
@@ -1059,7 +1108,7 @@ void Graphics::polygon(DrawMode mode, const float *coords, size_t count)
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
 
-		glDrawArrays(GL_TRIANGLE_FAN, 0, count/2-1); // opengl will close the polygon for us
+		glDrawArrays(GL_TRIANGLE_FAN, 0, count / 2);
 
 		gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	}

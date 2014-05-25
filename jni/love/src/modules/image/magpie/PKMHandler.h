@@ -18,17 +18,11 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_IMAGE_MAGPIE_DDS_HANDLER_H
-#define LOVE_IMAGE_MAGPIE_DDS_HANDLER_H
+#ifndef LOVE_IMAGE_MAGPIE_PKM_HANDLER_H
+#define LOVE_IMAGE_MAGPIE_PKM_HANDLER_H
 
-// LOVE
+#include "common/config.h"
 #include "CompressedFormatHandler.h"
-
-// dds parser
-#include "ddsparse/ddsparse.h"
-
-// STL
-#include <string>
 
 namespace love
 {
@@ -38,26 +32,22 @@ namespace magpie
 {
 
 /**
- * Interface between CompressedData and the ddsparse library.
+ * Handles PKM files with compressed ETC data inside.
  **/
-class DDSHandler : public CompressedFormatHandler
+class PKMHandler : public CompressedFormatHandler
 {
 public:
 
-	virtual ~DDSHandler() {}
+	virtual ~PKMHandler() {}
 
 	// Implements CompressedFormatHandler.
 	virtual bool canParse(const filesystem::FileData *data);
 	virtual uint8 *parse(filesystem::FileData *filedata, std::vector<CompressedData::SubImage> &images, size_t &dataSize, CompressedData::Format &format);
 
-private:
-
-	static CompressedData::Format convertFormat(dds::Format ddsformat);
-
-}; // DDSHandler
+}; // PKMHandler
 
 } // magpie
 } // image
 } // love
 
-#endif // LOVE_IMAGE_MAGPIE_DDS_HANDLER_H
+#endif // LOVE_IMAGE_MAGPIE_PKM_HANDLER_H

@@ -18,8 +18,10 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
+// LOVE
 #include "ddsHandler.h"
 
+// C++
 #include <algorithm>
 
 namespace love
@@ -29,7 +31,7 @@ namespace image
 namespace magpie
 {
 
-bool ddsHandler::canParse(const filesystem::FileData *data)
+bool DDSHandler::canParse(const filesystem::FileData *data)
 {
 	std::string ext = data->getExtension();
 	std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
@@ -40,14 +42,14 @@ bool ddsHandler::canParse(const filesystem::FileData *data)
 	return dds::isCompressedDDS(data->getData(), data->getSize());
 }
 
-uint8 *ddsHandler::parse(filesystem::FileData *filedata, std::vector<CompressedData::SubImage> &images, size_t &dataSize, CompressedData::Format &format)
+uint8 *DDSHandler::parse(filesystem::FileData *filedata, std::vector<CompressedData::SubImage> &images, size_t &dataSize, CompressedData::Format &format)
 {
 	if (!dds::isDDS(filedata->getData(), filedata->getSize()))
 		throw love::Exception("Could not decode compressed data (not a DDS file?)");
 
 	CompressedData::Format texformat = CompressedData::FORMAT_UNKNOWN;
 
-	uint8 *data = 0;
+	uint8 *data = nullptr;
 	dataSize = 0;
 	images.clear();
 
@@ -107,7 +109,7 @@ uint8 *ddsHandler::parse(filesystem::FileData *filedata, std::vector<CompressedD
 	return data;
 }
 
-CompressedData::Format ddsHandler::convertFormat(dds::Format ddsformat)
+CompressedData::Format DDSHandler::convertFormat(dds::Format ddsformat)
 {
 	switch (ddsformat)
 	{
@@ -128,8 +130,6 @@ CompressedData::Format ddsHandler::convertFormat(dds::Format ddsformat)
 	default:
 		return CompressedData::FORMAT_UNKNOWN;
 	}
-
-	return CompressedData::FORMAT_UNKNOWN;
 }
 
 } // magpie

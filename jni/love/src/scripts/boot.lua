@@ -526,7 +526,7 @@ function love.run()
 		-- Call update and draw
 		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
 
-		if love.window and love.graphics and love.window.isCreated() then
+		if love.window and love.graphics and love.graphics.isActive() then
 			love.graphics.clear()
 			love.graphics.origin()
 			if love.draw then love.draw() end

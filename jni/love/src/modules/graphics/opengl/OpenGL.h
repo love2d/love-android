@@ -66,8 +66,13 @@ public:
 		VENDOR_NVIDIA,
 		VENDOR_INTEL,
 		VENDOR_MESA_SOFT, // Software renderer.
-		VENDOR_APPLE,     // Software renderer.
+		VENDOR_APPLE,     // Software renderer (or Apple A7 chips and newer.)
 		VENDOR_MICROSOFT, // Software renderer.
+		VENDOR_IMGTEC,
+		VENDOR_ARM,
+		VENDOR_QUALCOMM,
+		VENDOR_BROADCOM,
+		VENDOR_VIVANTE,
 		VENDOR_UNKNOWN
 	};
 

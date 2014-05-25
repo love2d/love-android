@@ -36,7 +36,7 @@ float Image::maxMipmapSharpness = 0.0f;
 Texture::FilterMode Image::defaultMipmapFilter = Texture::FILTER_NONE;
 float Image::defaultMipmapSharpness = 0.0f;
 
-Image::Image(love::image::ImageData *data, Texture::Format format)
+Image::Image(love::image::ImageData *data, Format format)
 	: data(data)
 	, cdata(nullptr)
 	, paddedWidth(width)
@@ -55,7 +55,7 @@ Image::Image(love::image::ImageData *data, Texture::Format format)
 	preload();
 }
 
-Image::Image(love::image::CompressedData *cdata, Texture::Format format)
+Image::Image(love::image::CompressedData *cdata, Format format)
 	: data(nullptr)
 	, cdata(cdata)
 	, paddedWidth(width)
@@ -504,7 +504,7 @@ bool Image::refresh()
 	return true;
 }
 
-Texture::Format Image::getFormat() const
+Image::Format Image::getFormat() const
 {
 	return format;
 }
@@ -602,6 +602,20 @@ GLenum Image::getCompressedFormat(image::CompressedData::Format cformat) const
 		return GL_COMPRESSED_RG_RGTC2;
 	case image::CompressedData::FORMAT_BC5s:
 		return GL_COMPRESSED_SIGNED_RG_RGTC2;
+	case image::CompressedData::FORMAT_ETC1:
+		// The ETC2 format can load ETC1 textures.
+		if (GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility)
+			return GL_COMPRESSED_RGB8_ETC2;
+		else
+			return GL_ETC1_RGB8_OES;
+	case image::CompressedData::FORMAT_PVR1_RGB2:
+		return GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG;
+	case image::CompressedData::FORMAT_PVR1_RGB4:
+		return GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG;
+	case image::CompressedData::FORMAT_PVR1_RGBA2:
+		return GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG;
+	case image::CompressedData::FORMAT_PVR1_RGBA4:
+		return GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG;
 	default:
 		if (srgb)
 			return GL_SRGB_ALPHA;
@@ -635,14 +649,24 @@ bool Image::hasCompressedTextureSupport(image::CompressedData::Format format)
 	switch (format)
 	{
 	case image::CompressedData::FORMAT_DXT1:
+		return GLAD_EXT_texture_compression_s3tc || GLAD_EXT_texture_compression_dxt1;
 	case image::CompressedData::FORMAT_DXT3:
+		return GLAD_EXT_texture_compression_s3tc || GLAD_ANGLE_texture_compression_dxt3;
 	case image::CompressedData::FORMAT_DXT5:
-		return GLAD_EXT_texture_compression_s3tc;
+		return GLAD_EXT_texture_compression_s3tc || GLAD_ANGLE_texture_compression_dxt5;
 	case image::CompressedData::FORMAT_BC4:
 	case image::CompressedData::FORMAT_BC4s:
 	case image::CompressedData::FORMAT_BC5:
 	case image::CompressedData::FORMAT_BC5s:
 		return (GLAD_VERSION_3_0 || GLAD_ARB_texture_compression_rgtc || GLAD_EXT_texture_compression_rgtc);
+	case image::CompressedData::FORMAT_ETC1:
+		// ETC2 support guarantees ETC1 support as well.
+		return GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility || GLAD_OES_compressed_ETC1_RGB8_texture;
+	case image::CompressedData::FORMAT_PVR1_RGB2:
+	case image::CompressedData::FORMAT_PVR1_RGB4:
+	case image::CompressedData::FORMAT_PVR1_RGBA2:
+	case image::CompressedData::FORMAT_PVR1_RGBA4:
+		return GLAD_IMG_texture_compression_pvrtc;
 	default:
 		break;
 	}
@@ -654,6 +678,24 @@ bool Image::hasSRGBSupport()
 {
 	return GLAD_VERSION_2_1 || GLAD_EXT_texture_sRGB || GLAD_EXT_sRGB;
 }
+
+bool Image::getConstant(const char *in, Format &out)
+{
+	return formats.find(in, out);
+}
+
+bool Image::getConstant(Format in, const char *&out)
+{
+	return formats.find(in, out);
+}
+
+StringMap<Image::Format, Image::FORMAT_MAX_ENUM>::Entry Image::formatEntries[] =
+{
+	{"normal", Image::FORMAT_NORMAL},
+	{"srgb", Image::FORMAT_SRGB},
+};
+
+StringMap<Image::Format, Image::FORMAT_MAX_ENUM> Image::formats(Image::formatEntries, sizeof(Image::formatEntries));
 
 } // opengl
 } // graphics
