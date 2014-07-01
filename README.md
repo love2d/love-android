@@ -4,7 +4,7 @@ Copyright (c) 2013-2014 Martin Felis <martin@fysx.org>
 Instructions:
 -------------
 
-For detailed instructions please refer to the [wiki](wiki).
+For detailed instructions please refer to the wiki at [https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home](https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home).
 
 Quick Start:
 ------------
@@ -26,11 +26,21 @@ install on your phone.
 Bugs:
 -----
 
-Bugs and feature requests should be reported to the [issue
-tracker](issues).
+Bugs and feature requests should be reported to the issue tracker at [https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open](https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open).
 
 Changelog:
 ----------
+
+0.9.1a:
+* using latest SDL\_androidgl.c (fixes some random performance issues)
+* using latest love-android @ changeset 8659be0e75a3 (adds support for
+	compressed textures)
+
+0.9.1:
+* uses 0.9.1 API
+* fixed crash on Moto G (and possibly other devices). This was a nasty bug that would just show a blue screen without an error message. The bug was resolved using the help of headchant
+* fixed loading of jpegs (it probably hasn't worked up to now)
+* fixed issues with looping over active touches. This fix was sponsored by slime!
 
 beta2:
 
