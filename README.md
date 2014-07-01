@@ -32,11 +32,13 @@ Changelog:
 ----------
 
 0.9.1a:
+
 * using latest SDL\_androidgl.c (fixes some random performance issues)
 * using latest love-android @ changeset 8659be0e75a3 (adds support for
 	compressed textures)
 
 0.9.1:
+
 * uses 0.9.1 API
 * fixed crash on Moto G (and possibly other devices). This was a nasty bug that would just show a blue screen without an error message. The bug was resolved using the help of headchant
 * fixed loading of jpegs (it probably hasn't worked up to now)
