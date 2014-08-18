@@ -38,6 +38,8 @@ extern "C" {
 #include "OSX.h"
 #endif // LOVE_MACOSX
 
+#include <string>
+
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
 
 void get_utf8_arguments(int &argc, char **&argv)
@@ -133,21 +135,21 @@ static int love_preload(lua_State *L, lua_CFunction f, const char *name)
 	return 0;
 }
 
-static int l_sdl_log(lua_State *L) {
-	if ((lua_gettop(L) != 1) || !lua_isstring(L, -1)) {
-		SDL_Log ("[LöveSDL] invalid error message: expected string");
+static int l_print_sdl_log (lua_State *L) {
+	int nargs = lua_gettop(L);
+
+	if (nargs == 0)
 		return 0;
+
+	std::string out_string = lua_tostring (L, 1);
+	for (int i = 2; i <= nargs; i++) {
+		out_string += "\t";
+		out_string += lua_tostring (L, i);
 	}
 
-    SDL_Log ("[LöveSDL] %s", lua_tostring(L, -1));
-
+	SDL_Log ("[LOVE2D] %s", out_string.c_str());
 	return 0;
 }
-
-static const struct luaL_Reg sdl_lib[] = {
-		{"log", l_sdl_log},
-		{NULL, NULL}
-};
 
 int main(int argc, char **argv)
 {
@@ -181,7 +183,9 @@ int main(int argc, char **argv)
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 
-	luaL_register (L, "SDL", sdl_lib);
+#ifdef LOVE_ANDROID
+	lua_register (L, "print", l_print_sdl_log);
+#endif
 
 	// Add love to package.preload for easy requiring.
 	love_preload(L, luaopen_love, "love");
