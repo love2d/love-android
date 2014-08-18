@@ -147,7 +147,7 @@ static int l_print_sdl_log (lua_State *L) {
 		out_string += lua_tostring (L, i);
 	}
 
-	SDL_Log ("[LOVE2D] %s", out_string.c_str());
+	SDL_Log ("[LOVE] %s", out_string.c_str());
 	return 0;
 }
 
