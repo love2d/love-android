@@ -91,6 +91,17 @@ bool openURL(const std::string &url)
 	return true;
 }
 
+void vibrate (double seconds)
+{
+	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+	jclass activity = env->FindClass("org/love2d/android/GameActivity");
+
+	jmethodID vibrate_method = env->GetStaticMethodID(activity, "vibrate", "(D)V");
+	env->CallStaticVoidMethod(activity, vibrate_method, seconds);
+
+	env->DeleteLocalRef (activity);
+}
+
 } // android
 } // love
 

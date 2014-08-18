@@ -45,6 +45,8 @@ const char* getSelectedGameFile();
 
 bool openURL (const std::string &url);
 
+void vibrate (double seconds);
+
 } // android
 } // love
 

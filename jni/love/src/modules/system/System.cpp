@@ -118,6 +118,12 @@ bool System::openURL(const std::string &url) const
 #endif
 }
 
+void System::vibrate(double seconds) const {
+#ifdef LOVE_ANDROID
+	love::android::vibrate (seconds);	
+#endif
+}
+
 bool System::getConstant(const char *in, System::PowerState &out)
 {
 	return powerStates.find(in, out);

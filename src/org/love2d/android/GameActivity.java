@@ -24,6 +24,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
@@ -32,12 +33,14 @@ public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
     private static String gamePath = "";
     private static Context context;
-  
+    private static Vibrator vibrator;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
       Log.d("GameActivity", "started");
-
+ 
       context = this.getApplicationContext();
+      vibrator = (Vibrator) this.context.getSystemService(Context.VIBRATOR_SERVICE);
 
       Uri game = this.getIntent().getData();
       if (game != null) {
@@ -61,6 +64,11 @@ public class GameActivity extends SDLActivity {
     public static DisplayMetrics getMetrics() {
         return metrics;
     }
+
+    public static void vibrate (double seconds) {
+      Log.d ("GameActivity", "vibrating for " + seconds + " seconds");
+      vibrator.vibrate((long) (seconds * 1000.));
+    }milli
 
     public static void openURL (String url) {
       Log.d ("GameActivity", "opening url = " + url);
