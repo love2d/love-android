@@ -68,7 +68,7 @@ public class GameActivity extends SDLActivity {
     public static void vibrate (double seconds) {
       Log.d ("GameActivity", "vibrating for " + seconds + " seconds");
       vibrator.vibrate((long) (seconds * 1000.));
-    }milli
+    }
 
     public static void openURL (String url) {
       Log.d ("GameActivity", "opening url = " + url);
