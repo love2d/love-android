@@ -15,6 +15,7 @@ LOCAL_SRC_FILES := \
 		jccolext.c \
 		jdcolext.c \
 		jdmrgext.c \
+		turbojpeg-jni.c \
 		,$(subst $(LOCAL_PATH)/,,\
 		$(wildcard ${LOCAL_PATH}/*.c) \
 	))
