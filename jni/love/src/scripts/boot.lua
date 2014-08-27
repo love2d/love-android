@@ -229,6 +229,7 @@ function love.createhandlers()
 		end,
 		lowmemory = function()
 			collectgarbage("collect")
+			collectgarbage("collect")
 			if love.lowmemory then return love.lowmemory() end
 		end,
 	}, {
@@ -251,7 +252,6 @@ local no_game_code = false
 function love.boot()
 
 	-- This is absolutely needed.
-	require("love")
 	require("love.filesystem")
 
 	love.arg.parse_options()
@@ -321,7 +321,8 @@ function love.init()
 			fullscreentype = "normal",
 			display = 1,
 			vsync = true,
-			fsaa = 0,
+			msaa = 0,
+			fsaa = 0, -- For backward-compatibility. TODO: remove!
 			borderless = false,
 			resizable = false,
 			centered = true,
@@ -349,6 +350,7 @@ function love.init()
 		console = false, -- Only relevant for windows.
 		identity = false,
 		appendidentity = false,
+		accelerometerjoystick = true, -- Only relevant for Android / iOS.
 	}
 
 	-- If config file exists, load it and allow it to update config table.
@@ -373,6 +375,11 @@ function love.init()
 	-- Console hack
 	if c.console and love._openConsole then
 		love._openConsole()
+	end
+
+	-- Hack for disabling accelerometer-as-joystick on Android / iOS.
+	if love._setAccelerometerAsJoystick then
+		love._setAccelerometerAsJoystick(c.accelerometerjoystick)
 	end
 
 	-- Gets desired modules.
@@ -410,7 +417,8 @@ function love.init()
 			fullscreen = c.window.fullscreen,
 			fullscreentype = c.window.fullscreentype,
 			vsync = c.window.vsync,
-			fsaa = c.window.fsaa,
+			fsaa = c.window.fsaa, -- For backward-compatibility. TODO: remove!
+			msaa = c.window.msaa,
 			resizable = c.window.resizable,
 			minwidth = c.window.minwidth,
 			minheight = c.window.minheight,
@@ -1580,7 +1588,7 @@ function love.errhand(msg)
 	if love.audio then love.audio.stop() end
 	love.graphics.reset()
 	love.graphics.setBackgroundColor(89, 157, 220)
-	local font = love.graphics.setNewFont(14)
+	local font = love.graphics.setNewFont(math.floor(14 * love.window.getPixelScale()))
 
 	love.graphics.setColor(255, 255, 255, 255)
 
@@ -1607,8 +1615,9 @@ function love.errhand(msg)
 	p = string.gsub(p, "%[string \"(.-)\"%]", "%1")
 
 	local function draw()
+		local pos = 70 * love.window.getPixelScale()
 		love.graphics.clear()
-		love.graphics.printf(p, 70, 70, love.graphics.getWidth() - 70)
+		love.graphics.printf(p, pos, pos, love.graphics.getWidth() - pos)
 		love.graphics.present()
 	end
 

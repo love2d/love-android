@@ -1357,8 +1357,8 @@ attribute vec4 VertexPosition;
 attribute vec4 VertexTexCoord;
 attribute vec4 VertexColor;
 
-varying mediump vec4 VaryingTexCoord;
-varying lowp vec4 VaryingColor;
+varying vec4 VaryingTexCoord;
+varying vec4 VaryingColor;
 
 //#if defined(GL_EXT_draw_instanced)
 //	#extension GL_EXT_draw_instanced : enable
@@ -1465,13 +1465,14 @@ varying lowp vec4 VaryingColor;]],
 	end
 
 	local function isVertexCode(code)
-		return code:match("vec4%s*position%(") ~= nil
+		return code:match("vec4%s+position%s*%(") ~= nil
 	end
 
 	local function isPixelCode(code)
-		if code:match("vec4%s*effect%(") then
-			return true, false
-		elseif code:match("void%s*effects%(") then -- render to multiple canvases simultaniously
+		if code:match("vec4%s+effect%s*%(") then
+			return true
+		elseif code:match("void%s+effects%s*%(") then
+			-- function for rendering to multiple canvases simultaneously
 			return true, true
 		else
 			return false, false
@@ -1488,14 +1489,11 @@ varying lowp vec4 VaryingColor;]],
 		end
 
 		if arg1 then
-			local s = arg1:gsub("\r\n\t", " ") -- convert whitespace to spaces for parsing
-			s = s:gsub("(%w+)(%s+)%(", "%1(") -- convert "func ()" to "func()"
-
-			if isVertexCode(s) then
+			if isVertexCode(arg1) then
 				vertexcode = arg1 -- first arg contains vertex shader code
 			end
 
-			local ispixel, isMultiCanvas = isPixelCode(s)
+			local ispixel, isMultiCanvas = isPixelCode(arg1)
 			if ispixel then
 				pixelcode = arg1 -- first arg contains pixel shader code
 				is_multicanvas = isMultiCanvas
@@ -1503,14 +1501,11 @@ varying lowp vec4 VaryingColor;]],
 		end
 
 		if arg2 then
-			local s = arg2:gsub("\r\n\t", " ") -- convert whitespace to spaces for parsing
-			s = s:gsub("(%w+)(%s+)%(", "%1(") -- convert "func ()" to "func()"
-
-			if isVertexCode(s) then
+			if isVertexCode(arg2) then
 				vertexcode = arg2 -- second arg contains vertex shader code
 			end
 
-			local ispixel, isMultiCanvas = isPixelCode(s)
+			local ispixel, isMultiCanvas = isPixelCode(arg2)
 			if ispixel then
 				pixelcode = arg2 -- second arg contains pixel shader code
 				is_multicanvas = isMultiCanvas
@@ -1560,7 +1555,7 @@ vec4 position(mat4 transform_proj, vec4 vertpos) {
 	return transform_proj * vertpos;	
 }]],
 		pixel = [[
-lowp vec4 effect(lowp vec4 vcolor, Image texture, vec2 texcoord, vec2 pixcoord) {
+vec4 effect(lowp vec4 vcolor, Image texture, vec2 texcoord, vec2 pixcoord) {
 	return Texel(texture, texcoord) * vcolor;	
 }]]
 	}

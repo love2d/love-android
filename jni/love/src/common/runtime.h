@@ -33,6 +33,9 @@ extern "C" {
 	#include <lauxlib.h>
 }
 
+// C++
+#include <exception>
+
 namespace love
 {
 
@@ -40,16 +43,13 @@ namespace love
 class Module;
 class Reference;
 
-// Exposed mutex of the GC
-extern void *_gcmutex;
-
 /**
  * Registries represent special tables which can be accessed with
  * luax_insistregistry and luax_getregistry.
  **/
 enum Registry
 {
-	REGISTRY_GC = 1,
+	REGISTRY_GC,
 	REGISTRY_MODULES,
 	REGISTRY_TYPES
 };
@@ -67,9 +67,6 @@ struct Proxy
 
 	// The light userdata (pointer to the love::Object).
 	void *data;
-
-	// The number of times release() should be called on GC.
-	int retains;
 };
 
 /**
@@ -228,6 +225,9 @@ void luax_setfuncs(lua_State *L, const luaL_Reg *l);
 
 /**
  * Register a module in the love table. The love table will be created if it does not exist.
+ * NOTE: The module-object is expected to have a +1 reference count before calling
+ * this function, as it doesn't retain the object itself but Lua will release it
+ * upon garbage collection.
  * @param L The Lua state.
  **/
 int luax_register_module(lua_State *L, const WrappedModule &m);
@@ -268,27 +268,27 @@ int luax_register_searcher(lua_State *L, lua_CFunction f, int pos = -1);
 /**
  * Pushes a Lua representation of the given object onto the stack, creating and
  * storing the Lua representation in a weak table if it doesn't exist yet.
+ * NOTE: The object will be retained by Lua and released upon garbage collection.
  * @param L The Lua state.
  * @param name The name of the type. This must match the name used with luax_register_type.
  * @param flags The type information of the object.
- * @param data The pointer to the actual object.
- * @param own Set this to true (default) if the object should be released upon garbage collection.
+ * @param object The pointer to the actual object.
  **/
-void luax_pushtype(lua_State *L, const char *name, bits flags, love::Object *data, bool own = true);
+void luax_pushtype(lua_State *L, const char *name, bits flags, love::Object *object);
 
 /**
  * Creates a new Lua representation of the given object *without* checking if it
  * exists yet, and *without* storing it in a weak table.
  * This should only be used when performance is an extreme concern and the
  * object is not ever expected to be pushed to Lua again, as it prevents the
- * Lua-side objects from working in all cases when used as keys in tables.
+ * Lua-side objects from working in some cases when used as keys in tables.
+ * NOTE: The object will be retained by Lua and released upon garbage collection.
  * @param L The Lua state.
  * @param name The name of the type. This must match the name used with luax_register_type.
  * @param flags The type information of the object.
- * @param data The pointer to the actual object.
- * @param own Set this to true (default) if the object should be released upon garbage collection.
+ * @param object The pointer to the actual object.
  **/
-void luax_rawnewtype(lua_State *L, const char *name, bits flags, love::Object *data, bool own = true);
+void luax_rawnewtype(lua_State *L, const char *name, bits flags, love::Object *object);
 
 /**
  * Checks whether the value at idx is a certain type.
@@ -471,22 +471,55 @@ T *luax_totype(lua_State *L, int idx, const char * /* name */, love::bits /* typ
 Type luax_type(lua_State *L, int idx);
 
 /**
- * Macro for converting a LOVE exception into a Lua error.
+ * Converts any exceptions thrown by the passed lambda function into a Lua error.
  * lua_error (and luaL_error) cannot be called from inside the exception handler
  * because they use longjmp, which causes undefined behaviour when the
  * destructor of the exception would have been called.
  **/
-#define EXCEPT_GUARD(A) \
-{ \
-	bool should_error = false; \
-	try { A } \
-	catch (love::Exception &e) \
-	{ \
-		should_error = true; \
-		lua_pushstring(L, e.what()); \
-	} \
-	if (should_error) \
-		return luaL_error(L, "%s", lua_tostring(L, -1)); \
+template <typename T>
+int luax_catchexcept(lua_State *L, const T& func)
+{
+	bool should_error = false;
+
+	try
+	{
+		func();
+	}
+	catch (const std::exception &e)
+	{
+		should_error = true;
+		lua_pushstring(L, e.what());
+	}
+
+	if (should_error)
+		return luaL_error(L, "%s", lua_tostring(L, -1));
+
+	return 0;
+
+}
+
+template <typename T, typename F>
+int luax_catchexcept(lua_State *L, const T& func, const F& finallyfunc)
+{
+	bool should_error = false;
+
+	try
+	{
+		func();
+	}
+	catch (const std::exception &e)
+	{
+		should_error = true;
+		lua_pushstring(L, e.what());
+	}
+
+	finallyfunc();
+
+	if (should_error)
+		return luaL_error(L, "%s", lua_tostring(L, -1));
+	
+	return 0;
+	
 }
 
 } // love
