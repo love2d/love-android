@@ -102,7 +102,7 @@ public:
 	virtual GLuint getGLTexture() const;
 
 	virtual void setFilter(const Texture::Filter &f);
-	virtual void setWrap(const Texture::Wrap &w);
+	virtual bool setWrap(const Texture::Wrap &w);
 
 	void setMipmapSharpness(float sharpness);
 	float getMipmapSharpness() const;
@@ -155,11 +155,11 @@ private:
 
 	// The ImageData from which the texture is created. May be null if
 	// Compressed image data was used to create the texture.
-	love::image::ImageData *data;
+	Object::StrongRef<love::image::ImageData> data;
 
 	// Or the Compressed Image Data from which the texture is created. May be
 	// null if raw ImageData was used to create the texture.
-	love::image::CompressedData *cdata;
+	Object::StrongRef<love::image::CompressedData> cdata;
 
 	// Real dimensions of the texture, if it was auto-padded to POT size.
 	int paddedWidth, paddedHeight;

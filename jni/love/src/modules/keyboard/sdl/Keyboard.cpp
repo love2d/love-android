@@ -71,9 +71,22 @@ void Keyboard::setTextInput(bool enable)
 		SDL_StopTextInput();
 }
 
+void Keyboard::setTextInput(bool enable, int x, int y, int w, int h)
+{
+	setTextInput(enable);
+
+	SDL_Rect textrect = {x, y, w, h};
+	SDL_SetTextInputRect(&textrect);
+}
+
 bool Keyboard::hasTextInput() const
 {
 	return SDL_IsTextInputActive();
+}
+
+bool Keyboard::hasScreenKeyboard() const
+{
+	return SDL_HasScreenKeyboardSupport();
 }
 
 std::map<Keyboard::Key, SDL_Keycode> Keyboard::createKeyMap()

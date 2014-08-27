@@ -22,6 +22,10 @@
 #define LOVE_IMAGE_MAGPIE_DEVIL_HANDLER_H
 
 // LOVE
+#include "common/config.h"
+
+#ifndef LOVE_NO_DEVIL
+
 #include "filesystem/FileData.h"
 #include "FormatHandler.h"
 #include "thread/threads.h"
@@ -60,5 +64,7 @@ private:
 } // magpie
 } // image
 } // love
+
+#endif // !LOVE_NO_DEVIL
 
 #endif // LOVE_IMAGE_MAGPIE_DEVIL_HANDLER_H

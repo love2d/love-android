@@ -47,7 +47,7 @@ int w_Image_setMipmapFilter(lua_State *L)
 			return luaL_error(L, "Invalid filter mode: %s", mipmapstr);
 	}
 
-	EXCEPT_GUARD(t->setFilter(f);)
+	luax_catchexcept(L, [&](){ t->setFilter(f); });
 
 	float sharpness = (float) luaL_optnumber(L, 3, 0);
 	t->setMipmapSharpness(sharpness);
@@ -81,7 +81,7 @@ int w_Image_isCompressed(lua_State *L)
 int w_Image_refresh(lua_State *L)
 {
 	Image *i = luax_checkimage(L, 1);
-	EXCEPT_GUARD(i->refresh();)
+	luax_catchexcept(L, [&](){ i->refresh(); });
 	return 0;
 }
 
@@ -93,10 +93,7 @@ int w_Image_getData(lua_State *L)
 	{
 		love::image::CompressedData *t = i->getCompressedData();
 		if (t)
-		{
-			t->retain();
 			luax_pushtype(L, "CompressedData", IMAGE_COMPRESSED_DATA_T, t);
-		}
 		else
 			lua_pushnil(L);
 	}
@@ -104,10 +101,7 @@ int w_Image_getData(lua_State *L)
 	{
 		love::image::ImageData *t = i->getImageData();
 		if (t)
-		{
-			t->retain();
 			luax_pushtype(L, "ImageData", IMAGE_IMAGE_DATA_T, t);
-		}
 		else
 			lua_pushnil(L);
 	}

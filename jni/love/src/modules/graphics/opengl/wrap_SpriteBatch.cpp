@@ -64,12 +64,12 @@ int w_SpriteBatch_add(lua_State *L)
 	float ky = (float) luaL_optnumber(L, startidx + 8, 0.0);
 
 	int id = 0;
-	EXCEPT_GUARD(
+	luax_catchexcept(L, [&]() {
 		if (quad)
 			id = t->addq(quad, x, y, a, sx, sy, ox, oy, kx, ky);
 		else
 			id = t->add(x, y, a, sx, sy, ox, oy, kx, ky);
-	)
+	});
 
 	lua_pushinteger(L, id);
 	return 1;
@@ -101,12 +101,12 @@ int w_SpriteBatch_set(lua_State *L)
 	float kx = (float) luaL_optnumber(L, startidx + 7, 0.0);
 	float ky = (float) luaL_optnumber(L, startidx + 8, 0.0);
 
-	EXCEPT_GUARD(
+	luax_catchexcept(L, [&]() {
 		if (quad)
 			t->addq(quad, x, y, a, sx, sy, ox, oy, kx, ky, id);
 		else
 			t->add(x, y, a, sx, sy, ox, oy, kx, ky, id);
-	)
+	});
 
 	return 0;
 }
@@ -118,17 +118,16 @@ int w_SpriteBatch_clear(lua_State *L)
 	return 0;
 }
 
-int w_SpriteBatch_bind(lua_State *L)
+int w_SpriteBatch_bind(lua_State* /*L*/)
 {
-	SpriteBatch *t = luax_checkspritebatch(L, 1);
-	EXCEPT_GUARD(t->lock();)
+	// No-op (deprecated.)
 	return 0;
 }
 
-int w_SpriteBatch_unbind(lua_State *L)
+int w_SpriteBatch_flush(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
-	t->unlock();
+	t->flush();
 	return 0;
 }
 
@@ -144,7 +143,6 @@ int w_SpriteBatch_getTexture(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
 	Texture *tex = t->getTexture();
-	tex->retain();
 
 	// FIXME: big hack right here.
 	if (typeid(*tex) == typeid(Image))
@@ -152,10 +150,7 @@ int w_SpriteBatch_getTexture(lua_State *L)
 	else if (typeid(*tex) == typeid(Canvas))
 		luax_pushtype(L, "Canvas", GRAPHICS_CANVAS_T, tex);
 	else
-	{
-		tex->release();
 		return luaL_error(L, "Unable to determine texture type.");
-	}
 
 	return 1;
 }
@@ -223,7 +218,7 @@ int w_SpriteBatch_setBufferSize(lua_State *L)
 {
 	SpriteBatch *t = luax_checkspritebatch(L, 1);
 	int size = luaL_checkint(L, 2);
-	EXCEPT_GUARD(t->setBufferSize(size);)
+	luax_catchexcept(L, [&]() {t->setBufferSize(size); });
 	return 0;
 }
 
@@ -239,8 +234,7 @@ static const luaL_Reg functions[] =
 	{ "add", w_SpriteBatch_add },
 	{ "set", w_SpriteBatch_set },
 	{ "clear", w_SpriteBatch_clear },
-	{ "bind", w_SpriteBatch_bind },
-	{ "unbind", w_SpriteBatch_unbind },
+	{ "flush", w_SpriteBatch_flush },
 	{ "setTexture", w_SpriteBatch_setTexture },
 	{ "getTexture", w_SpriteBatch_getTexture },
 	{ "setColor", w_SpriteBatch_setColor },
@@ -252,6 +246,11 @@ static const luaL_Reg functions[] =
 	// Deprecated since 0.9.1.
 	{ "setImage", w_SpriteBatch_setTexture },
 	{ "getImage", w_SpriteBatch_getTexture },
+
+	// Deprecated since 0.9.2.
+	{ "bind", w_SpriteBatch_bind },
+	{ "unbind", w_SpriteBatch_flush },
+
 	{ 0, 0 }
 };
 

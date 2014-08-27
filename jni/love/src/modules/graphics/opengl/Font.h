@@ -143,7 +143,7 @@ private:
 
 	enum FontType
 	{
-		FONT_TRUETYPE = 1,
+		FONT_TRUETYPE,
 		FONT_IMAGE,
 		FONT_UNKNOWN
 	};
@@ -184,7 +184,7 @@ private:
 	Glyph *addGlyph(uint32 glyph);
 	Glyph *findGlyph(uint32 glyph);
 
-	love::font::Rasterizer *rasterizer;
+	Object::StrongRef<love::font::Rasterizer> rasterizer;
 
 	VertexIndex *indexBuffer;
 

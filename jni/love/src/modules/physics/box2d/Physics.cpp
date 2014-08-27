@@ -125,8 +125,8 @@ int Physics::newPolygonShape(lua_State *L)
 	}
 
 	PolygonShape *p = new PolygonShape(s);
-
 	luax_pushtype(L, "PolygonShape", PHYSICS_POLYGON_SHAPE_T, p);
+	p->release();
 	return 1;
 }
 
@@ -167,6 +167,7 @@ int Physics::newChainShape(lua_State *L)
 
 	ChainShape *c = new ChainShape(s);
 	luax_pushtype(L, "ChainShape", PHYSICS_CHAIN_SHAPE_T, c);
+	c->release();
 	return 1;
 }
 
@@ -246,7 +247,7 @@ int Physics::getDistance(lua_State *L)
 	b2SimplexCache c;
 	c.count = 0;
 
-	EXCEPT_GUARD(
+	luax_catchexcept(L, [&]() {
 		pA.Set(fixtureA->fixture->GetShape(), 0);
 		pB.Set(fixtureB->fixture->GetShape(), 0);
 		i.proxyA = pA;
@@ -255,7 +256,7 @@ int Physics::getDistance(lua_State *L)
 		i.transformB = fixtureB->fixture->GetBody()->GetTransform();
 		i.useRadii = true;
 		b2Distance(&o, &c, &i);
-	)
+	});
 
 	lua_pushnumber(L, Physics::scaleUp(o.distance));
 	lua_pushnumber(L, Physics::scaleUp(o.pointA.x));

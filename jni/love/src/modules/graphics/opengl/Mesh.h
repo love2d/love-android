@@ -120,15 +120,6 @@ public:
 	size_t getVertexMapCount() const;
 
 	/**
-	 * Sets the number of instances of this Mesh to draw (uses hardware
-	 * instancing when possible.)
-	 * A custom vertex shader is necessary in order to introduce differences
-	 * in each instance.
-	 **/
-	void setInstanceCount(int count);
-	int getInstanceCount() const;
-
-	/**
 	 * Sets the texture used when drawing the Mesh.
 	 **/
 	void setTexture(Texture *texture);
@@ -171,6 +162,7 @@ private:
 
 	GLenum getGLDrawMode(DrawMode mode) const;
 	GLenum getGLDataTypeFromMax(size_t maxvalue) const;
+	size_t getGLDataTypeSize(GLenum datatype) const;
 
 	// Vertex buffer.
 	VertexBuffer *vbo;
@@ -181,14 +173,12 @@ private:
 	size_t element_count;
 	GLenum element_data_type;
 
-	int instance_count;
-
 	DrawMode draw_mode;
 
 	int range_min;
 	int range_max;
 
-	Texture *texture;
+	Object::StrongRef<Texture> texture;
 
 	// Whether the per-vertex colors are used when drawing.
 	bool colors_enabled;

@@ -103,7 +103,6 @@ ParticleSystem::ParticleSystem(Texture *texture, uint32 size)
 	sizes.push_back(1.0f);
 	colors.push_back(Colorf(1.0f, 1.0f, 1.0f, 1.0f));
 	setBufferSize(size);
-	texture->retain();
 }
 
 ParticleSystem::ParticleSystem(const ParticleSystem &p)
@@ -147,19 +146,14 @@ ParticleSystem::ParticleSystem(const ParticleSystem &p)
 	, offsetX(p.offsetX)
 	, offsetY(p.offsetY)
 	, colors(p.colors)
+	, quads(p.quads)
 	, relativeRotation(p.relativeRotation)
 {
 	setBufferSize(maxParticles);
-
-	if (texture != nullptr)
-		texture->retain();
 }
 
 ParticleSystem::~ParticleSystem()
 {
-	if (texture != nullptr)
-		texture->release();
-
 	deleteBuffers();
 }
 
@@ -315,6 +309,8 @@ void ParticleSystem::initParticle(Particle *p, float t)
 		p->angle += atan2f(p->velocity.y, p->velocity.x);
 
 	p->color = colors[0];
+
+	p->quadIndex = 0;
 }
 
 void ParticleSystem::insertTop(Particle *p)
@@ -423,19 +419,14 @@ ParticleSystem::Particle *ParticleSystem::removeParticle(Particle *p)
 	return pNext;
 }
 
-void ParticleSystem::setTexture(Texture *texture)
+void ParticleSystem::setTexture(Texture *tex)
 {
-	Object::AutoRelease imagerelease(this->texture);
-
-	this->texture = texture;
-
-	if (texture)
-		texture->retain();
+	texture.set(tex);
 }
 
 Texture *ParticleSystem::getTexture() const
 {
-	return texture;
+	return texture.get();
 }
 
 void ParticleSystem::setInsertMode(InsertMode mode)
@@ -731,6 +722,33 @@ std::vector<Color> ParticleSystem::getColor() const
 	return ncolors;
 }
 
+void ParticleSystem::setQuads(const std::vector<Quad *> &newQuads)
+{
+	std::vector<StrongRef<Quad>> quadlist;
+	quadlist.reserve(newQuads.size());
+
+	for (Quad *q : newQuads)
+		quadlist.push_back(q);
+
+	quads = quadlist;
+}
+
+void ParticleSystem::setQuads()
+{
+	quads.clear();
+}
+
+std::vector<Quad *> ParticleSystem::getQuads() const
+{
+	std::vector<Quad *> quadlist;
+	quadlist.reserve(quads.size());
+
+	for (const Object::StrongRef<Quad> &q : quads)
+		quadlist.push_back(q.get());
+
+	return quadlist;
+}
+
 void ParticleSystem::setRelativeRotation(bool enable)
 {
 	relativeRotation = enable;
@@ -815,7 +833,7 @@ bool ParticleSystem::isFull() const
 void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
 	uint32 pCount = getCount();
-	if (pCount == 0 || texture == nullptr || pMem == nullptr || particleVerts == nullptr)
+	if (pCount == 0 || texture.get() == nullptr || pMem == nullptr || particleVerts == nullptr)
 		return;
 
 	Color curcolor = gl.getColor();
@@ -823,16 +841,21 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 	Matrix t;
 	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
 
-	gl.matrices.transform.push(gl.matrices.transform.top());
-	gl.matrices.transform.top() *= t;
+	OpenGL::TempTransform transform(gl);
+	transform.get() *= t;
 
 	const Vertex *textureVerts = texture->getVertices();
 	Vertex *pVerts = particleVerts;
 	Particle *p = pHead;
 
+	bool useQuads = !quads.empty();
+
 	// set the vertex data for each particle (transformation, texcoords, color)
 	while (p)
 	{
+		if (useQuads)
+			textureVerts = quads[p->quadIndex]->getVertices();
+
 		// particle vertices are image vertices transformed by particle information
 		t.setTransformation(p->position[0], p->position[1], p->angle, p->size, p->size, offsetX, offsetY, 0.0f, 0.0f);
 		t.transform(pVerts, textureVerts, 4);
@@ -875,8 +898,6 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_COLOR);
 
 	texture->postdraw();
-
-	gl.matrices.transform.pop();
 
 	gl.setColor(curcolor);
 }
@@ -960,6 +981,15 @@ void ParticleSystem::update(float dt)
 			k = (i == colors.size() - 1) ? i : i + 1;
 			s -= (float)i;                            // 0 <= s <= 1
 			p->color = colors[i] * (1.0f - s) + colors[k] * s;
+
+			// Update the quad index.
+			k = quads.size();
+			if (k > 0)
+			{
+				s = t * (float) k; // [0:numquads-1] (clamped below)
+				i = (s > 0.0f) ? (size_t) s : 0;
+				p->quadIndex = (i < k) ? i : k - 1;
+			}
 
 			// Next particle.
 			p = p->next;

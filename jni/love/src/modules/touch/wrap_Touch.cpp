@@ -30,11 +30,11 @@ namespace love
 namespace touch
 {
 
-static Touch *instance = nullptr;
+#define instance() (Module::getInstance<Touch>(Module::M_TOUCH))
 
 int w_getTouchCount(lua_State *L)
 {
-	lua_pushinteger(L, instance->getTouchCount());
+	lua_pushinteger(L, instance()->getTouchCount());
 	return 1;
 }
 
@@ -43,7 +43,7 @@ int w_getTouch(lua_State *L)
 	int index = luaL_checkint(L, 1) - 1;
 
 	Touch::TouchInfo info;
-	EXCEPT_GUARD(info = instance->getTouch(index);)
+	luax_catchexcept(L, [&](){ info = instance()->getTouch(index); });
 
 	// Lets hope the ID can be accurately represented in a Lua number...
 	lua_pushnumber(L, (lua_Number) info.id);
@@ -63,9 +63,10 @@ static const luaL_Reg functions[] =
 
 extern "C" int luaopen_love_touch(lua_State *L)
 {
+	Touch *instance = instance();
 	if (instance == nullptr)
 	{
-		EXCEPT_GUARD(instance = new love::touch::sdl::Touch();)
+		luax_catchexcept(L, [&](){ instance = new love::touch::sdl::Touch(); });
 	}
 	else
 		instance->retain();

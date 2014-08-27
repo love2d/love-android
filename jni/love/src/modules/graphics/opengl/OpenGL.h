@@ -21,6 +21,8 @@
 #ifndef LOVE_GRAPHICS_OPENGL_OPENGL_H
 #define LOVE_GRAPHICS_OPENGL_OPENGL_H
 
+#include <stddef.h>
+
 // LOVE
 #include "graphics/Color.h"
 #include "graphics/Texture.h"
@@ -115,12 +117,35 @@ public:
 		GLenum func;
 	};
 
-	// Transformation matrix stacks.
 	struct
 	{
-		std::stack<Matrix> transform;
-		std::stack<Matrix> projection;
+		std::vector<Matrix> transform;
+		std::vector<Matrix> projection;
 	} matrices;
+
+	class TempTransform
+	{
+	public:
+
+		TempTransform(OpenGL &gl)
+			: gl(gl)
+		{
+			gl.pushTransform();
+		}
+
+		~TempTransform()
+		{
+			gl.popTransform();
+		}
+
+		Matrix &get()
+		{
+			return gl.getTransform();
+		}
+
+	private:
+		OpenGL &gl;
+	};
 
 	OpenGL();
 	virtual ~OpenGL() {}
@@ -137,6 +162,10 @@ public:
 	 * an OpenGL context!
 	 **/
 	void deInitContext();
+
+	void pushTransform();
+	void popTransform();
+	Matrix &getTransform();
 
 	/**
 	 * Set up necessary state (matrices etc.) for drawing. This *must* be called
@@ -359,6 +388,9 @@ private:
 
 		// The last ID value used for pseudo-instancing.
 		int lastPseudoInstanceID;
+
+		Matrix lastProjectionMatrix;
+		Matrix lastTransformMatrix;
 
 	} state;
 

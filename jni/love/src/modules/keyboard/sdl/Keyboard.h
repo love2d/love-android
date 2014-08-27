@@ -52,7 +52,9 @@ public:
 	bool isDown(Key *keylist) const;
 
 	void setTextInput(bool enable);
+	void setTextInput(bool enable, int x, int y, int w, int h);
 	bool hasTextInput() const;
+	bool hasScreenKeyboard() const;
 
 private:
 

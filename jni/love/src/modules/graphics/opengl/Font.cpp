@@ -90,14 +90,11 @@ Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	}
 
 	delete gd;
-
-	rasterizer->retain();
 }
 
 Font::~Font()
 {
 	delete indexBuffer;
-	rasterizer->release();
 	unloadVolatile();
 }
 
@@ -385,11 +382,11 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 		indexBuffer = newIndexBuffer;
 	}
 
-	gl.matrices.transform.push(gl.matrices.transform.top());
-
 	Matrix t;
 	t.setTransformation(ceilf(x), ceilf(y), angle, sx, sy, ox, oy, kx, ky);
-	gl.matrices.transform.top() *= t;
+
+	OpenGL::TempTransform transform(gl);
+	transform.get() *= t;
 
 	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
@@ -430,8 +427,6 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-
-	gl.matrices.transform.pop();
 }
 
 int Font::getWidth(const std::string &str)

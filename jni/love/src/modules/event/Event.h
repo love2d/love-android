@@ -43,7 +43,7 @@ class Message : public Object
 {
 public:
 
-	Message(const std::string &name, const std::vector<Variant *> &vargs = std::vector<Variant *>());
+	Message(const std::string &name, const std::vector<Object::StrongRef<Variant>> &vargs = std::vector<Object::StrongRef<Variant>>());
 	~Message();
 
 	int toLua(lua_State *L);
@@ -52,7 +52,7 @@ public:
 private:
 
 	std::string name;
-	std::vector<Variant *> args;
+	std::vector<Object::StrongRef<Variant>> args;
 
 }; // Message
 
@@ -62,6 +62,9 @@ public:
 
 	Event();
 	virtual ~Event();
+
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_EVENT; }
 
 	void push(Message *msg);
 	bool poll(Message *&msg);

@@ -75,10 +75,24 @@ int w_Joint_getCollideConnected(lua_State *L)
 	return 1;
 }
 
+int w_Joint_setUserData(lua_State *L)
+{
+	Joint *t = luax_checkjoint(L, 1);
+	lua_remove(L, 1);
+	return t->setUserData(L);
+}
+
+int w_Joint_getUserData(lua_State *L)
+{
+	Joint *t = luax_checkjoint(L, 1);
+	lua_remove(L, 1);
+	return t->getUserData(L);
+}
+
 int w_Joint_destroy(lua_State *L)
 {
 	Joint *t = luax_checkjoint(L, 1);
-	EXCEPT_GUARD(t->destroyJoint();)
+	luax_catchexcept(L, [&](){ t->destroyJoint(); });
 	return 0;
 }
 
@@ -89,6 +103,8 @@ static const luaL_Reg functions[] =
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
 	{ "getCollideConnected", w_Joint_getCollideConnected },
+	{ "setUserData", w_Joint_setUserData },
+	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
 	{ 0, 0 }
 };

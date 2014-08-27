@@ -30,6 +30,7 @@ namespace window
 {
 
 int w_getDisplayCount(lua_State *L);
+int w_getDisplayName(lua_State *L);
 int w_setMode(lua_State *L);
 int w_getMode(lua_State *L);
 int w_getFullscreenModes(lua_State *L);
@@ -48,6 +49,9 @@ int w_hasFocus(lua_State *L);
 int w_hasMouseFocus(lua_State *L);
 int w_isVisible(lua_State *L);
 int w_getPixelScale(lua_State *L);
+int w_isTouchScreen(lua_State *L);
+int w_minimize(lua_State *L);
+int w_showMessageBox(lua_State *L);
 extern "C" LOVE_EXPORT int luaopen_love_window(lua_State *L);
 
 } // window

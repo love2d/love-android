@@ -44,10 +44,9 @@ namespace sdl
 // we want them in pixel coordinates (may be different with high-DPI enabled.)
 static void windowToPixelCoords(int *x, int *y)
 {
-#ifndef LOVE_ANDROID
 	double scale = 1.0;
 
-	window::Window *window = (window::Window *) Module::findInstance("love.window.");
+	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
 	if (window != nullptr)
 		scale = window->getPixelScale();
 
@@ -56,7 +55,6 @@ static void windowToPixelCoords(int *x, int *y)
 
 	if (y != nullptr)
 		*y = int(double(*y) * scale);
-#endif
 }
 
 // SDL's event watch callbacks trigger when the event is actually posted inside
@@ -64,7 +62,7 @@ static void windowToPixelCoords(int *x, int *y)
 // handling inside the function which triggered them on some backends.
 static int SDLCALL watchAppEvents(void * /*udata*/, SDL_Event *event)
 {
-	graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+	graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 
 	switch (event->type)
 	{
@@ -151,7 +149,7 @@ Message *Event::convert(const SDL_Event &e) const
 {
 	Message *msg = nullptr;
 
-	std::vector<Variant *> vargs;
+	std::vector<StrongRef<Variant>> vargs;
 	vargs.reserve(4);
 
 	love::keyboard::Keyboard *kb = nullptr;
@@ -167,7 +165,7 @@ Message *Event::convert(const SDL_Event &e) const
 	case SDL_KEYDOWN:
 		if (e.key.repeat)
 		{
-			kb = (love::keyboard::Keyboard *) Module::findInstance("love.keyboard.");
+			kb = Module::getInstance<love::keyboard::Keyboard>(Module::M_KEYBOARD);
 			if (kb && !kb->hasKeyRepeat())
 				break;
 		}
@@ -301,10 +299,11 @@ Message *Event::convert(const SDL_Event &e) const
 		break;
 	}
 
-	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	for (const StrongRef<Variant> &v : vargs)
 	{
-		if ((*it) != nullptr)
-			(*it)->release();
+		// We gave +1 refs to the StrongRef list, so we should release them.
+		if (v.get() != nullptr)
+			v->release();
 	}
 
 	return msg;
@@ -312,13 +311,13 @@ Message *Event::convert(const SDL_Event &e) const
 
 Message *Event::convertJoystickEvent(const SDL_Event &e) const
 {
-	joystick::JoystickModule *joymodule = (joystick::JoystickModule *) Module::findInstance("love.joystick.");
+	joystick::JoystickModule *joymodule = Module::getInstance<joystick::JoystickModule>(Module::M_JOYSTICK);
 	if (!joymodule)
 		return nullptr;
 
 	Message *msg = nullptr;
 
-	std::vector<Variant *> vargs;
+	std::vector<StrongRef<Variant>> vargs;
 	vargs.reserve(4);
 
 	Proxy proxy;
@@ -431,10 +430,11 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 		break;
 	}
 
-	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	for (const StrongRef<Variant> &v : vargs)
 	{
-		if ((*it) != nullptr)
-			(*it)->release();
+		// We gave +1 refs to the StrongRef list, so we should release them.
+		if (v.get() != nullptr)
+			v->release();
 	}
 
 	return msg;
@@ -444,7 +444,7 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 {
 	Message *msg = nullptr;
 
-	std::vector<Variant *> vargs;
+	std::vector<StrongRef<Variant>> vargs;
 	vargs.reserve(4);
 
 	window::Window *win = nullptr;
@@ -476,7 +476,7 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 		msg = new Message("visible", vargs);
 		break;
 	case SDL_WINDOWEVENT_RESIZED:
-		win = (window::Window *) Module::findInstance("love.window.");
+		win = Module::getInstance<window::Window>(Module::M_WINDOW);
 		if (win)
 		{
 			int px_w = e.window.data1;
@@ -491,7 +491,7 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 
 			win->onWindowResize(e.window.data1, e.window.data2);
 
-			graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+			graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 			if (gfx)
 				gfx->setViewportSize(px_w, px_h);
 
@@ -505,14 +505,14 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 #ifdef LOVE_ANDROID
 		case SDL_WINDOWEVENT_MINIMIZED:
 		{
-			audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+			audio::Audio *audio = (audio::Audio *) Module::getInstance("love.audio.");
 			if (audio)
 				audio->pause();
 		}
 		break;
 		case SDL_WINDOWEVENT_RESTORED:
 		{
-			audio::Audio *audio = (audio::Audio *) Module::findInstance("love.audio.");
+			audio::Audio *audio = (audio::Audio *) Module::getInstance("love.audio.");
 			if (audio)
 				audio->resume();
 		}
@@ -520,10 +520,11 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 #endif
 	}
 
-	for (auto it = vargs.begin(); it != vargs.end(); ++it)
+	for (const StrongRef<Variant> &v : vargs)
 	{
-		if ((*it) != nullptr)
-			(*it)->release();
+		// We gave +1 refs to the StrongRef list, so we should release them.
+		if (v.get() != nullptr)
+			v->release();
 	}
 
 	return msg;

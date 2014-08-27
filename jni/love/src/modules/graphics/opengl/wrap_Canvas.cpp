@@ -19,6 +19,7 @@
  **/
 
 #include "wrap_Canvas.h"
+#include "Graphics.h"
 
 namespace love
 {
@@ -37,18 +38,26 @@ int w_Canvas_renderTo(lua_State *L)
 	Canvas *canvas = luax_checkcanvas(L, 1);
 	luaL_checktype(L, 2, LUA_TFUNCTION);
 
-	// Save the current Canvas so we can restore it when we're done.
-	Canvas *oldcanvas = Canvas::current;
+	Graphics *graphics = Module::getInstance<Graphics>(Module::M_GRAPHICS);
 
-	EXCEPT_GUARD(canvas->startGrab();)
+	if (graphics)
+	{
+		// Save the current Canvas so we can restore it when we're done.
+		std::vector<Canvas *> oldcanvases = graphics->getCanvas();
 
-	lua_settop(L, 2); // make sure the function is on top of the stack
-	lua_call(L, 0, 0);
+		for (Canvas *c : oldcanvases)
+			c->retain();
 
-	if (oldcanvas != nullptr)
-		oldcanvas->startGrab(oldcanvas->getAttachedCanvases());
-	else
-		Canvas::bindDefaultCanvas();
+		luax_catchexcept(L, [&](){ graphics->setCanvas(canvas); });
+
+		lua_settop(L, 2); // make sure the function is on top of the stack
+		lua_call(L, 0, 0);
+
+		graphics->setCanvas(oldcanvases);
+
+		for (Canvas *c : oldcanvases)
+			c->release();
+	}
 
 	return 0;
 }
@@ -59,6 +68,7 @@ int w_Canvas_getImageData(lua_State *L)
 	love::image::Image *image = luax_getmodule<love::image::Image>(L, "image", MODULE_IMAGE_T);
 	love::image::ImageData *img = canvas->getImageData(image);
 	luax_pushtype(L, "ImageData", IMAGE_IMAGE_DATA_T, img);
+	img->release();
 	return 1;
 }
 
@@ -69,7 +79,7 @@ int w_Canvas_getPixel(lua_State * L)
 	int y = luaL_checkint(L, 3);
 	unsigned char c[4];
 
-	EXCEPT_GUARD(canvas->getPixel(c, x, y);)
+	luax_catchexcept(L, [&](){ canvas->getPixel(c, x, y); });
 
 	lua_pushnumber(L, c[0]);
 	lua_pushnumber(L, c[1]);
@@ -122,10 +132,10 @@ int w_Canvas_getFormat(lua_State *L)
 	return 1;
 }
 
-int w_Canvas_getFSAA(lua_State *L)
+int w_Canvas_getMSAA(lua_State *L)
 {
 	Canvas *canvas = luax_checkcanvas(L, 1);
-	lua_pushinteger(L, canvas->getFSAA());
+	lua_pushinteger(L, canvas->getMSAA());
 	return 1;
 }
 
@@ -145,10 +155,14 @@ static const luaL_Reg functions[] =
 	{ "getPixel", w_Canvas_getPixel },
 	{ "clear", w_Canvas_clear },
 	{ "getFormat", w_Canvas_getFormat },
-	{ "getFSAA", w_Canvas_getFSAA },
+	{ "getMSAA", w_Canvas_getMSAA },
 
 	// Deprecated since 0.9.1.
 	{ "getType", w_Canvas_getFormat },
+
+	// Deprecated since 0.9.2.
+	{ "getFSAA", w_Canvas_getMSAA },
+
 	{ 0, 0 }
 };
 

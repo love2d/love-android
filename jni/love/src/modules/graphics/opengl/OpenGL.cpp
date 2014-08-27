@@ -28,6 +28,7 @@
 
 // C++
 #include <algorithm>
+#include <limits>
 
 // C
 #include <cstring>
@@ -47,6 +48,8 @@ OpenGL::OpenGL()
 	, vendor(VENDOR_UNKNOWN)
 	, state()
 {
+	matrices.transform.reserve(10);
+	matrices.projection.reserve(2);
 }
 
 bool OpenGL::initContext()
@@ -134,6 +137,14 @@ bool OpenGL::initContext()
 	createDefaultTexture();
 
 	state.lastPseudoInstanceID = -1;
+
+	// Invalidate the cached matrices by setting some elements to NaN.
+	float nan = std::numeric_limits<float>::quiet_NaN();
+	state.lastProjectionMatrix.setTranslation(nan, nan);
+	state.lastTransformMatrix.setTranslation(nan, nan);
+
+	if (GLAD_VERSION_1_1)
+		glMatrixMode(GL_MODELVIEW);
 
 	contextInitialized = true;
 	return true;
@@ -234,14 +245,11 @@ void OpenGL::initMaxValues()
 
 void OpenGL::initMatrices()
 {
-	while (matrices.transform.size() > 0)
-		matrices.transform.pop();
+	matrices.transform.clear();
+	matrices.projection.clear();
 
-	while (matrices.projection.size() > 0)
-		matrices.projection.pop();
-
-	matrices.transform.push(Matrix());
-	matrices.projection.push(Matrix());
+	matrices.transform.push_back(Matrix());
+	matrices.projection.push_back(Matrix());
 }
 
 void OpenGL::createDefaultTexture()
@@ -268,10 +276,25 @@ void OpenGL::createDefaultTexture()
 	bindTexture(curtexture);
 }
 
+void OpenGL::pushTransform()
+{
+	matrices.transform.push_back(matrices.transform.back());
+}
+
+void OpenGL::popTransform()
+{
+	matrices.transform.pop_back();
+}
+
+Matrix &OpenGL::getTransform()
+{
+	return matrices.transform.back();
+}
+
 void OpenGL::prepareDraw()
 {
-	const Matrix &transform = matrices.transform.top();
-	const Matrix &proj = matrices.projection.top();
+	const Matrix &transform = matrices.transform.back();
+	const Matrix &proj = matrices.projection.back();
 
 	Shader *shader = Shader::current;
 
@@ -292,11 +315,10 @@ void OpenGL::prepareDraw()
 		// We need to make sure antialiased Canvases are properly resolved
 		// before sampling from their textures in a shader.
 		// This is kind of a big hack. :(
-		const std::map<std::string, Object *> &r = shader->getBoundRetainables();
-		for (auto it = r.begin(); it != r.end(); ++it)
+		for (auto &r : shader->getBoundRetainables())
 		{
 			// Even bigger hack! D:
-			Canvas *canvas = dynamic_cast<Canvas *>(it->second);
+			Canvas *canvas = dynamic_cast<Canvas *>(r.second);
 			if (canvas != nullptr)
 				canvas->resolveMSAA();
 		}
@@ -315,10 +337,26 @@ void OpenGL::prepareDraw()
 	}
 	else if (GLAD_VERSION_1_0)
 	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(proj.getElements());
-		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(transform.getElements());
+		const float *lastproj = state.lastProjectionMatrix.getElements();
+
+		// We only need to re-upload the projection matrix if it's changed.
+		if (memcmp(proj.getElements(), lastproj, sizeof(float) * 16) != 0)
+		{
+			glMatrixMode(GL_PROJECTION);
+			glLoadMatrixf(proj.getElements());
+			glMatrixMode(GL_MODELVIEW);
+
+			state.lastProjectionMatrix = proj;
+		}
+
+		const float *lastxform = state.lastTransformMatrix.getElements();
+
+		// Same with the transform matrix.
+		if (memcmp(transform.getElements(), lastxform, sizeof(float) * 16) != 0)
+		{
+			glLoadMatrixf(transform.getElements());
+			state.lastTransformMatrix = transform;
+		}
 	}
 }
 

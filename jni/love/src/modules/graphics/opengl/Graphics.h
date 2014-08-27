@@ -57,48 +57,7 @@ namespace opengl
 // During display mode changing, certain
 // variables about the OpenGL context are
 // lost.
-struct DisplayState
-{
-	// Colors.
-	Color color;
-	Color backgroundColor;
 
-	// Blend mode.
-	Graphics::BlendMode blendMode;
-
-	// Line.
-	Graphics::LineStyle lineStyle;
-	Graphics::LineJoin lineJoin;
-
-	// Point.
-	float pointSize;
-	Graphics::PointStyle pointStyle;
-
-	// Scissor.
-	bool scissor;
-	OpenGL::Viewport scissorBox;
-
-	// Color mask.
-	bool colorMask[4];
-
-	bool wireframe;
-
-	// Default values.
-	DisplayState()
-	{
-		color.set(255,255,255,255);
-		backgroundColor.set(0, 0, 0, 255);
-		blendMode = Graphics::BLEND_ALPHA;
-		lineStyle = Graphics::LINE_SMOOTH;
-		lineJoin  = Graphics::LINE_JOIN_MITER;
-		pointSize = 1.0f;
-		pointStyle = Graphics::POINT_SMOOTH;
-		scissor = false;
-		colorMask[0] = colorMask[1] = colorMask[2] = colorMask[3] = true;
-		wireframe = false;
-	}
-
-};
 
 class Graphics : public love::graphics::Graphics
 {
@@ -109,10 +68,6 @@ public:
 
 	// Implements Module.
 	const char *getName() const;
-
-	DisplayState saveState();
-
-	void restoreState(const DisplayState &s);
 
 	virtual void setViewportSize(int width, int height);
 	virtual bool setMode(int width, int height, bool &sRGB);
@@ -211,7 +166,7 @@ public:
 
 	ParticleSystem *newParticleSystem(Texture *texture, int size);
 
-	Canvas *newCanvas(int width, int height, Canvas::Format format = Canvas::FORMAT_NORMAL, int fsaa = 0);
+	Canvas *newCanvas(int width, int height, Canvas::Format format = Canvas::FORMAT_NORMAL, int msaa = 0);
 
 	Shader *newShader(const Shader::ShaderSources &sources);
 
@@ -249,10 +204,22 @@ public:
 	 **/
 	Font *getFont() const;
 
+	void setShader(Shader *shader);
+	void setShader();
+
+	Shader *getShader() const;
+
+	void setCanvas(Canvas *canvas);
+	void setCanvas(const std::vector<Canvas *> &canvases);
+	void setCanvas(const std::vector<Object::StrongRef<Canvas>> &canvases);
+	void setCanvas();
+
+	std::vector<Canvas *> getCanvas() const;
+
 	/**
 	 * Sets the enabled color components when rendering.
 	 **/
-	void setColorMask(bool r, bool g, bool b, bool a);
+	void setColorMask(const bool mask[4]);
 
 	/**
 	 * Gets the current color mask.
@@ -447,20 +414,25 @@ public:
 	love::image::ImageData *newScreenshot(love::image::Image *image, bool copyAlpha = true);
 
 	/**
-	 * Returns a string containing system-dependent renderer information.
-	 * Returned string can vary greatly between systems! Do not rely on it for
+	 * Returns system-dependent renderer information.
+	 * Returned string s can vary greatly between systems! Do not rely on it for
 	 * anything!
-	 * @param infotype The type of information to return.
 	 **/
-	std::string getRendererInfo(Graphics::RendererInfo infotype) const;
+	RendererInfo getRendererInfo() const;
 
 	/**
 	 * Gets the system-dependent numeric limit for the specified parameter.
 	 **/
 	double getSystemLimit(SystemLimit limittype) const;
 
-	void push();
+	/**
+	 * Gets whether a graphics feature is supported on this system.
+	 **/
+	bool isSupported(Support feature) const;
+
+	void push(StackType type = STACK_TRANSFORM);
 	void pop();
+
 	void rotate(float r);
 	void scale(float x, float y = 1.0f);
 	void translate(float x, float y);
@@ -469,16 +441,51 @@ public:
 
 private:
 
-	Font *currentFont;
+	struct DisplayState
+	{
+		// Colors.
+		Color color;
+		Color backgroundColor;
+
+		// Blend mode.
+		BlendMode blendMode;
+
+		// Line.
+		float lineWidth;
+		LineStyle lineStyle;
+		LineJoin lineJoin;
+
+		// Point.
+		float pointSize;
+		PointStyle pointStyle;
+
+		// Scissor.
+		bool scissor;
+		OpenGL::Viewport scissorBox;
+
+		Object::StrongRef<Font> font;
+		Object::StrongRef<Shader> shader;
+
+		std::vector<Object::StrongRef<Canvas>> canvases;
+
+		// Color mask.
+		bool colorMask[4];
+
+		bool wireframe;
+
+		DisplayState();
+		DisplayState(const DisplayState &other);
+		~DisplayState();
+
+		DisplayState &operator = (const DisplayState &other);
+	};
+
+	void restoreState(const DisplayState &s);
+	void restoreStateChecked(const DisplayState &s);
+
 	love::window::Window *currentWindow;
 
 	std::vector<double> pixel_size_stack; // stores current size of a pixel (needed for line drawing)
-	LineStyle lineStyle;
-	LineJoin lineJoin;
-	float lineWidth;
-	size_t matrixLimit;
-	bool colorMask[4];
-	bool wireframe;
 
 	int width;
 	int height;
@@ -487,7 +494,10 @@ private:
 
 	bool activeStencil;
 
-	DisplayState savedState;
+	std::vector<DisplayState> states;
+	std::vector<StackType> stackTypes; // Keeps track of the pushed stack types.
+
+	static const size_t MAX_USER_STACK_DEPTH = 64;
 
 }; // Graphics
 

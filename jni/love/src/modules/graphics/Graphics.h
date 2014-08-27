@@ -25,6 +25,9 @@
 #include "common/Module.h"
 #include "common/StringMap.h"
 
+// C++
+#include <string>
+
 namespace love
 {
 namespace graphics
@@ -36,14 +39,14 @@ public:
 
 	enum DrawMode
 	{
-		DRAW_LINE = 1,
+		DRAW_LINE,
 		DRAW_FILL,
 		DRAW_MAX_ENUM
 	};
 
 	enum AlignMode
 	{
-		ALIGN_LEFT = 1,
+		ALIGN_LEFT,
 		ALIGN_CENTER,
 		ALIGN_RIGHT,
 		ALIGN_JUSTIFY,
@@ -52,7 +55,7 @@ public:
 
 	enum BlendMode
 	{
-		BLEND_ALPHA = 1,
+		BLEND_ALPHA,
 		BLEND_ADDITIVE,
 		BLEND_SUBTRACTIVE,
 		BLEND_MULTIPLICATIVE,
@@ -64,14 +67,14 @@ public:
 
 	enum LineStyle
 	{
-		LINE_ROUGH = 1,
+		LINE_ROUGH,
 		LINE_SMOOTH,
 		LINE_MAX_ENUM
 	};
 
 	enum LineJoin
 	{
-		LINE_JOIN_NONE = 1,
+		LINE_JOIN_NONE,
 		LINE_JOIN_MITER,
 		LINE_JOIN_BEVEL,
 		LINE_JOIN_MAX_ENUM
@@ -79,14 +82,14 @@ public:
 
 	enum PointStyle
 	{
-		POINT_ROUGH = 1,
+		POINT_ROUGH,
 		POINT_SMOOTH,
 		POINT_MAX_ENUM
 	};
 
 	enum Support
 	{
-		SUPPORT_CANVAS = 1,
+		SUPPORT_CANVAS,
 		SUPPORT_HDR_CANVAS,
 		SUPPORT_MULTI_CANVAS,
 		SUPPORT_SHADER,
@@ -97,7 +100,6 @@ public:
 		SUPPORT_BC5,
 		SUPPORT_ETC1,
 		SUPPORT_PVRTC1,
-		SUPPORT_INSTANCING,
 		SUPPORT_SRGB,
 		SUPPORT_MAX_ENUM
 	};
@@ -109,25 +111,35 @@ public:
 		RENDERER_MAX_ENUM
 	};
 
-	enum RendererInfo
-	{
-		RENDERER_INFO_NAME = 1,
-		RENDERER_INFO_VERSION,
-		RENDERER_INFO_VENDOR,
-		RENDERER_INFO_DEVICE,
-		RENDERER_INFO_MAX_ENUM
-	};
-
 	enum SystemLimit
 	{
 		LIMIT_POINT_SIZE,
 		LIMIT_TEXTURE_SIZE,
 		LIMIT_MULTI_CANVAS,
-		LIMIT_CANVAS_FSAA,
+		LIMIT_CANVAS_FSAA, // For backward-compatibility. TODO: remove!
+		LIMIT_CANVAS_MSAA,
 		LIMIT_MAX_ENUM
 	};
 
+	enum StackType
+	{
+		STACK_ALL,
+		STACK_TRANSFORM,
+		STACK_MAX_ENUM
+	};
+
+	struct RendererInfo
+	{
+		std::string name;
+		std::string version;
+		std::string vendor;
+		std::string device;
+	};
+
 	virtual ~Graphics();
+
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_GRAPHICS; }
 
 	/**
 	 * Sets the current graphics display viewport dimensions.
@@ -185,6 +197,9 @@ public:
 	static bool getConstant(const char *in, SystemLimit &out);
 	static bool getConstant(SystemLimit in, const char *&out);
 
+	static bool getConstant(const char *in, StackType &out);
+	static bool getConstant(StackType in, const char *&out);
+
 private:
 
 	static StringMap<DrawMode, DRAW_MAX_ENUM>::Entry drawModeEntries[];
@@ -210,6 +225,9 @@ private:
 
 	static StringMap<SystemLimit, LIMIT_MAX_ENUM>::Entry systemLimitEntries[];
 	static StringMap<SystemLimit, LIMIT_MAX_ENUM> systemLimits;
+
+	static StringMap<StackType, STACK_MAX_ENUM>::Entry stackTypeEntries[];
+	static StringMap<StackType, STACK_MAX_ENUM> stackTypes;
 
 }; // Graphics
 

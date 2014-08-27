@@ -46,8 +46,10 @@ SpriteBatch::SpriteBatch(Texture *texture, int size, int usage)
 	, size(size)
 	, next(0)
 	, color(0)
-	, array_buf(0)
-	, element_buf(0)
+	, array_buf(nullptr)
+	, element_buf(nullptr)
+	, buffer_used_offset(0)
+	, buffer_used_size(0)
 {
 	if (size <= 0)
 		throw love::Exception("Invalid SpriteBatch size.");
@@ -86,14 +88,10 @@ SpriteBatch::SpriteBatch(Texture *texture, int size, int usage)
 		delete element_buf;
 		throw love::Exception("Out of memory.");
 	}
-
-	texture->retain();
 }
 
 SpriteBatch::~SpriteBatch()
 {
-	texture->release();
-
 	delete color;
 	delete array_buf;
 	delete element_buf;
@@ -160,31 +158,22 @@ void SpriteBatch::clear()
 	next = 0;
 }
 
-void *SpriteBatch::lock()
+void SpriteBatch::flush()
 {
 	VertexBuffer::Bind bind(*array_buf);
+	array_buf->unmap(buffer_used_offset, buffer_used_size);
 
-	return array_buf->map();
-}
-
-void SpriteBatch::unlock()
-{
-	VertexBuffer::Bind bind(*array_buf);
-
-	array_buf->unmap();
+	buffer_used_offset = buffer_used_size = 0;
 }
 
 void SpriteBatch::setTexture(Texture *newtexture)
 {
-	Object::AutoRelease imagerelease(texture);
-
-	newtexture->retain();
-	texture = newtexture;
+	texture.set(newtexture);
 }
 
 Texture *SpriteBatch::getTexture()
 {
-	return texture;
+	return texture.get();
 }
 
 void SpriteBatch::setColor(const Color &color)
@@ -220,33 +209,31 @@ void SpriteBatch::setBufferSize(int newsize)
 		return;
 
 	// Map (lock) the old VertexBuffer to get a pointer to its data.
-	void *old_data = lock();
+	void *old_data = nullptr;
+	{
+		VertexBuffer::Bind bind(*array_buf);
+		old_data = array_buf->map();
+	}
 
 	size_t vertex_size = sizeof(Vertex) * 4 * newsize;
 
-	VertexBuffer *new_array_buf = 0;
-	VertexIndex *new_element_buf = 0;
-	void *new_data = 0;
+	VertexBuffer *new_array_buf = nullptr;
+	VertexIndex *new_element_buf = nullptr;
 
 	try
 	{
 		new_array_buf = VertexBuffer::Create(vertex_size, array_buf->getTarget(), array_buf->getUsage());
 		new_element_buf = new VertexIndex(newsize);
-
-		// VBO::map can throw an exception. Also we want to scope the bind.
-		VertexBuffer::Bind bind(*new_array_buf);
-		new_data = new_array_buf->map();
 	}
 	catch (love::Exception &)
 	{
 		delete new_array_buf;
 		delete new_element_buf;
-		unlock();
 		throw;
 	}
 
 	// Copy as much of the old data into the new VertexBuffer as can fit.
-	memcpy(new_data, old_data, sizeof(Vertex) * 4 * std::min(newsize, size));
+	new_array_buf->fill(0, sizeof(Vertex) * 4 * std::min(newsize, size), old_data);
 
 	// We don't need to unmap the old VertexBuffer since we're deleting it.
 	delete array_buf;
@@ -258,8 +245,8 @@ void SpriteBatch::setBufferSize(int newsize)
 
 	next = std::min(next, newsize);
 
-	// But we should unmap (unlock) the new one!
-	unlock();
+	// The new VertexBuffer isn't mapped, so we should reset these variables.
+	buffer_used_offset = buffer_used_size = 0;
 }
 
 int SpriteBatch::getBufferSize() const
@@ -269,29 +256,27 @@ int SpriteBatch::getBufferSize() const
 
 void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
-	const size_t vertex_offset = offsetof(Vertex, x);
+	const size_t pos_offset = offsetof(Vertex, x);
 	const size_t texel_offset = offsetof(Vertex, s);
 	const size_t color_offset = offsetof(Vertex, r);
 
 	if (next == 0)
 		return;
 
-	Matrix t;
+	static Matrix t;
 	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
 
-	gl.matrices.transform.push(gl.matrices.transform.top());
-	gl.matrices.transform.top() *= t;
+	OpenGL::TempTransform transform(gl);
+	transform.get() *= t;
 
 	texture->predraw();
 
 	VertexBuffer::Bind array_bind(*array_buf);
 	VertexBuffer::Bind element_bind(*element_buf->getVertexBuffer());
 
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-
-	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), array_buf->getPointer(vertex_offset));
-	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), array_buf->getPointer(texel_offset));
+	// Make sure the VBO isn't mapped when we draw (sends data to GPU if needed.)
+	array_buf->unmap(buffer_used_offset, buffer_used_size);
+	buffer_used_offset = buffer_used_size = 0;
 
 	Color curcolor = gl.getColor();
 
@@ -301,6 +286,12 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_COLOR);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, sizeof(Vertex), array_buf->getPointer(color_offset));
 	}
+
+	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
+	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), array_buf->getPointer(pos_offset));
+
+	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), array_buf->getPointer(texel_offset));
 
 	gl.prepareDraw();
 	glDrawElements(GL_TRIANGLES, element_buf->getIndexCount(next), element_buf->getType(), element_buf->getPointer(0));
@@ -315,15 +306,22 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 	}
 
 	texture->postdraw();
-
-	gl.matrices.transform.pop();
 }
 
 void SpriteBatch::addv(const Vertex *v, int index)
 {
-	static const int sprite_size = 4 * sizeof(Vertex); // bytecount
+	static const size_t sprite_size = 4 * sizeof(Vertex); // bytecount
+
 	VertexBuffer::Bind bind(*array_buf);
+
+	// Always keep the VBO mapped when adding data for now (it'll be unmapped
+	// on draw.)
+	array_buf->map();
+
 	array_buf->fill(index * sprite_size, sprite_size, v);
+
+	buffer_used_offset = std::min(buffer_used_offset, index * sprite_size);
+	buffer_used_size = std::max(buffer_used_size, (index + 1) * sprite_size - buffer_used_offset);
 }
 
 void SpriteBatch::setColorv(Vertex *v, const Color &color)

@@ -24,6 +24,7 @@
 #include <vector>
 
 // LOVE
+#include "common/config.h"
 #include "common/Vector.h"
 
 // OpenGL
@@ -43,13 +44,8 @@ namespace opengl
 class Polyline
 {
 public:
-	Polyline(GLenum mode = GL_TRIANGLE_STRIP)
-		: vertices(NULL)
-		, overdraw(NULL)
-		, vertex_count(0)
-		, overdraw_vertex_count(0)
-		, draw_mode(mode)
-	{}
+
+	Polyline(GLenum mode = GL_TRIANGLE_STRIP, bool quadindices = false);
 	virtual ~Polyline();
 
 	/**
@@ -90,6 +86,7 @@ protected:
 	size_t vertex_count;
 	size_t overdraw_vertex_count;
 	GLenum draw_mode;
+	bool use_quad_indices;
 
 }; // Polyline
 
@@ -102,8 +99,8 @@ class NoneJoinPolyline : public Polyline
 {
 public:
 	NoneJoinPolyline()
-		// TODO: replace GL_QUADS (indexed triangles?)
-		: Polyline(GL_QUADS)
+		// Draw quads using GL_TRIANGLES and a vertex index array.
+		: Polyline(GL_TRIANGLES, true)
 	{}
 
 	void render(const float *vertices, size_t count, float halfwidth, float pixel_size, bool draw_overdraw)

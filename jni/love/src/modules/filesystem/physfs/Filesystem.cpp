@@ -21,6 +21,7 @@
 #include "common/config.h"
 
 #include <iostream>
+#include <sstream>
 
 #include "common/utf8.h"
 #include "common/b64.h"
@@ -165,6 +166,22 @@ namespace
 		return true;
 	}
 #endif
+
+	std::string normalize(const std::string &input)
+	{
+		std::stringstream out;
+		bool seenSep = false, isSep = false;
+		for (size_t i = 0; i < input.size(); ++i)
+		{
+			isSep = (input[i] == LOVE_PATH_SEPARATOR[0]);
+			if (!isSep || !seenSep)
+				out << input[i];
+			seenSep = isSep;
+		}
+
+		return out.str();
+	}
+
 }
 
 namespace love
@@ -239,6 +256,8 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 	else
 		save_path_full += save_path_relative;
 
+	save_path_full = normalize(save_path_full);	
+	
 #ifdef LOVE_ANDROID
 	if (save_identity == "")
 		save_identity = "unnamed";
@@ -532,40 +551,33 @@ const char *Filesystem::getWorkingDirectory()
 
 std::string Filesystem::getUserDirectory()
 {
-	return std::string(PHYSFS_getUserDir());
+	static std::string userDir = normalize(PHYSFS_getUserDir());
+	return userDir;
 }
 
 std::string Filesystem::getAppdataDirectory()
 {
-#ifdef LOVE_WINDOWS
 	if (appdata.empty())
 	{
+#ifdef LOVE_WINDOWS
 		wchar_t *w_appdata = _wgetenv(L"APPDATA");
 		appdata = to_utf8(w_appdata);
 		replace_char(appdata, '\\', '/');
-	}
-	return appdata;
 #elif defined(LOVE_MACOSX)
-	if (appdata.empty())
-	{
 		std::string udir = getUserDirectory();
 		udir.append("/Library/Application Support");
-		appdata = udir;
-	}
-	return appdata;
+		appdata = normalize(udir);
 #elif defined(LOVE_LINUX)
-	if (appdata.empty())
-	{
 		char *xdgdatahome = getenv("XDG_DATA_HOME");
 		if (!xdgdatahome)
-			appdata = std::string(getUserDirectory()) + "/.local/share/";
+			appdata = normalize(std::string(getUserDirectory()) + "/.local/share/");
 		else
 			appdata = xdgdatahome;
+#else
+		appdata = getUserDirectory();
+#endif
 	}
 	return appdata;
-#else
-	return getUserDirectory();
-#endif
 }
 
 
@@ -826,6 +838,21 @@ int64 Filesystem::getSize(const char *filename) const
 	File file(filename);
 	int64 size = file.getSize();
 	return size;
+}
+
+void Filesystem::setSymlinksEnabled(bool enable)
+{
+	PHYSFS_permitSymbolicLinks(enable ? 1 : 0);
+}
+
+bool Filesystem::areSymlinksEnabled() const
+{
+	return PHYSFS_symbolicLinksPermitted() != 0;
+}
+
+bool Filesystem::isSymlink(const char *filename) const
+{
+	return PHYSFS_isSymbolicLink(filename) != 0;
 }
 
 } // physfs

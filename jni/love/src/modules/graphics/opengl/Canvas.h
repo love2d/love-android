@@ -57,7 +57,7 @@ public:
 		FORMAT_MAX_ENUM
 	};
 
-	Canvas(int width, int height, Format format = FORMAT_NORMAL, int fsaa = 0);
+	Canvas(int width, int height, Format format = FORMAT_NORMAL, int msaa = 0);
 	virtual ~Canvas();
 
 	// Implements Volatile.
@@ -70,7 +70,7 @@ public:
 	// Implements Texture.
 	virtual void drawq(Quad *quad, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
 	virtual void setFilter(const Texture::Filter &f);
-	virtual void setWrap(const Texture::Wrap &w);
+	virtual bool setWrap(const Texture::Wrap &w);
 	virtual GLuint getGLTexture() const;
 	virtual void predraw();
 
@@ -108,9 +108,9 @@ public:
 		return format;
 	}
 
-	inline int getFSAA() const
+	inline int getMSAA() const
 	{
-		return fsaa_samples;
+		return msaa_samples;
 	}
 
 	bool resolveMSAA();
@@ -120,7 +120,6 @@ public:
 	static bool isFormatSupported(Format format);
 
 	static Canvas *current;
-	static void bindDefaultCanvas();
 
 	// The viewport dimensions of the system (default) framebuffer.
 	static OpenGL::Viewport systemViewport;
@@ -133,7 +132,7 @@ public:
 
 private:
 
-	bool createFSAAFBO(GLenum internalformat);
+	bool createMSAAFBO(GLenum internalformat);
 
 	static Format getSizedFormat(Format format);
 	static void convertFormat(Format format, GLenum &internalformat, GLenum &externalformat, GLenum &type);
@@ -142,7 +141,7 @@ private:
 	GLuint resolve_fbo;
 
 	GLuint texture;
-	GLuint fsaa_buffer;
+	GLuint msaa_buffer;
 	GLuint depth_stencil;
 
 	Format format;
@@ -151,8 +150,8 @@ private:
 
 	std::vector<Canvas *> attachedCanvases;
 
-	int fsaa_samples;
-	bool fsaa_dirty;
+	int msaa_samples;
+	bool msaa_dirty;
 
 	void setupGrab();
 	void drawv(const Matrix &t, const Vertex *v);

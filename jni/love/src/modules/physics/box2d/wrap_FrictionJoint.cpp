@@ -40,7 +40,7 @@ int w_FrictionJoint_setMaxForce(lua_State *L)
 {
 	FrictionJoint *t = luax_checkfrictionjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setMaxForce(arg1);)
+	luax_catchexcept(L, [&](){ t->setMaxForce(arg1); });
 	return 0;
 }
 
@@ -55,7 +55,7 @@ int w_FrictionJoint_setMaxTorque(lua_State *L)
 {
 	FrictionJoint *t = luax_checkfrictionjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setMaxTorque(arg1);)
+	luax_catchexcept(L, [&](){ t->setMaxTorque(arg1); });
 	return 0;
 }
 
@@ -78,6 +78,8 @@ static const luaL_Reg functions[] =
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
 	{ "getCollideConnected", w_Joint_getCollideConnected },
+	{ "setUserData", w_Joint_setUserData },
+	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
 	{ 0, 0 }
 };

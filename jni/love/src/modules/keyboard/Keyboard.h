@@ -247,6 +247,9 @@ public:
 
 	virtual ~Keyboard() {}
 
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_KEYBOARD; }
+
 	/**
 	 * Sets whether repeat keypress events should be sent if a key is held down.
 	 * Does not affect text input events.
@@ -273,9 +276,21 @@ public:
 	virtual void setTextInput(bool enable) = 0;
 
 	/**
+	 * Sets whether text input events should be received, and sets the
+	 * rectangle used for on-screen keyboards.
+	 **/
+	virtual void setTextInput(bool enable, int x, int y, int w, int h) = 0;
+
+	/**
 	 * Gets whether text input events are enabled.
 	 **/
 	virtual bool hasTextInput() const = 0;
+
+	/**
+	 * Gets whether the system can display an on-screen keyboard when text input
+	 * events are enabled.
+	 **/
+	virtual bool hasScreenKeyboard() const = 0;
 
 	static bool getConstant(const char *in, Key &out);
 	static bool getConstant(Key in, const char  *&out);

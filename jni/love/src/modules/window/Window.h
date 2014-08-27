@@ -49,7 +49,8 @@ public:
 		SETTING_FULLSCREEN,
 		SETTING_FULLSCREEN_TYPE,
 		SETTING_VSYNC,
-		SETTING_FSAA,
+		SETTING_FSAA, // For backward-compatibility. TODO: remove!
+		SETTING_MSAA,
 		SETTING_RESIZABLE,
 		SETTING_MIN_WIDTH,
 		SETTING_MIN_HEIGHT,
@@ -68,13 +69,38 @@ public:
 		FULLSCREEN_TYPE_MAX_ENUM
 	};
 
+	enum MessageBoxType
+	{
+		MESSAGEBOX_ERROR,
+		MESSAGEBOX_WARNING,
+		MESSAGEBOX_INFO,
+		MESSAGEBOX_MAX_ENUM
+	};
+
 	struct WindowSize
 	{
 		int width;
 		int height;
 	};
 
+	struct MessageBoxData
+	{
+		MessageBoxType type;
+
+		std::string title;
+		std::string message;
+
+		std::vector<std::string> buttons;
+		int enterButtonIndex;
+		int escapeButtonIndex;
+
+		bool attachToWindow;
+	};
+
 	virtual ~Window();
+
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_WINDOW; }
 
 	virtual bool setWindow(int width = 800, int height = 600, WindowSettings *settings = nullptr) = 0;
 	virtual void getWindow(int &width, int &height, WindowSettings &settings) = 0;
@@ -85,6 +111,8 @@ public:
 	virtual bool onWindowResize(int width, int height) = 0;
 
 	virtual int getDisplayCount() const = 0;
+
+	virtual const char *getDisplayName(int displayindex) const = 0;
 
 	virtual std::vector<WindowSize> getFullscreenSizes(int displayindex) const = 0;
 
@@ -100,6 +128,8 @@ public:
 
 	virtual bool setIcon(love::image::ImageData *imgd) = 0;
 	virtual love::image::ImageData *getIcon() = 0;
+
+	virtual void minimize() = 0;
 
 	// default no-op implementation
 	virtual void swapBuffers();
@@ -117,7 +147,12 @@ public:
 
 	virtual double getPixelScale() const = 0;
 
+	virtual bool isTouchScreen(int displayindex) const = 0;
+
 	virtual const void *getHandle() const = 0;
+
+	virtual bool showMessageBox(MessageBoxType type, const std::string &title, const std::string &message, bool attachtowindow) = 0;
+	virtual int showMessageBox(const MessageBoxData &data) = 0;
 
 	//virtual static Window *createSingleton() = 0;
 	//virtual static Window *getSingleton() = 0;
@@ -128,6 +163,9 @@ public:
 
 	static bool getConstant(const char *in, FullscreenType &out);
 	static bool getConstant(FullscreenType in, const char *&out);
+
+	static bool getConstant(const char *in, MessageBoxType &out);
+	static bool getConstant(MessageBoxType in, const char *&out);
 
 protected:
 
@@ -141,6 +179,9 @@ private:
 	static StringMap<FullscreenType, FULLSCREEN_TYPE_MAX_ENUM>::Entry fullscreenTypeEntries[];
 	static StringMap<FullscreenType, FULLSCREEN_TYPE_MAX_ENUM> fullscreenTypes;
 
+	static StringMap<MessageBoxType, MESSAGEBOX_MAX_ENUM>::Entry messageBoxTypeEntries[];
+	static StringMap<MessageBoxType, MESSAGEBOX_MAX_ENUM> messageBoxTypes;
+
 }; // Window
 
 struct WindowSettings
@@ -150,7 +191,7 @@ struct WindowSettings
 	bool fullscreen; // = false
 	Window::FullscreenType fstype; // = FULLSCREEN_TYPE_NORMAL
 	bool vsync; // = true
-	int fsaa; // = 0
+	int msaa; // = 0
 	bool resizable; // = false
 	int minwidth; // = 1
 	int minheight; // = 1

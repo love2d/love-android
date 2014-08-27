@@ -40,7 +40,7 @@ int w_GearJoint_setRatio(lua_State *L)
 {
 	GearJoint *t = luax_checkgearjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setRatio(arg1);)
+	luax_catchexcept(L, [&](){ t->setRatio(arg1); });
 	return 0;
 }
 
@@ -61,6 +61,8 @@ static const luaL_Reg functions[] =
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
 	{ "getCollideConnected", w_Joint_getCollideConnected },
+	{ "setUserData", w_Joint_setUserData },
+	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
 	{ 0, 0 }
 };

@@ -51,6 +51,9 @@ public:
 
 	virtual ~Mouse() {}
 
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_MOUSE; }
+
 	virtual Cursor *newCursor(love::image::ImageData *data, int hotx, int hoty) = 0;
 	virtual Cursor *getSystemCursor(Cursor::SystemCursor cursortype) = 0;
 
@@ -58,6 +61,8 @@ public:
 	virtual void setCursor() = 0;
 
 	virtual Cursor *getCursor() const = 0;
+
+	virtual bool hasCursor() const = 0;
 
 	virtual int getX() const = 0;
 	virtual int getY() const = 0;

@@ -20,6 +20,8 @@
 
 #include "DevilHandler.h"
 
+#ifndef LOVE_NO_DEVIL
+
 // LOVE
 #include "common/Exception.h"
 #include "common/math.h"
@@ -226,3 +228,5 @@ DevilHandler::EncodedImage DevilHandler::encode(const DecodedImage &img, ImageDa
 } // magpie
 } // image
 } // love
+
+#endif // LOVE_NO_DEVIL

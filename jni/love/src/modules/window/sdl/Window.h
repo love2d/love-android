@@ -51,6 +51,8 @@ public:
 
 	int getDisplayCount() const;
 
+	const char *getDisplayName(int displayindex) const;
+
 	std::vector<WindowSize> getFullscreenSizes(int displayindex) const;
 
 	int getWidth() const;
@@ -65,6 +67,8 @@ public:
 
 	bool setIcon(love::image::ImageData *imgd);
 	love::image::ImageData *getIcon();
+
+	void minimize();
 
 	void swapBuffers();
 
@@ -81,7 +85,12 @@ public:
 
 	double getPixelScale() const;
 
+	bool isTouchScreen(int displayindex) const;
+
 	const void *getHandle() const;
+
+	bool showMessageBox(MessageBoxType type, const std::string &title, const std::string &message, bool attachtowindow);
+	int showMessageBox(const MessageBoxData &data);
 
 	static love::window::Window *createSingleton();
 	static love::window::Window *getSingleton();
@@ -90,14 +99,13 @@ public:
 
 private:
 
-	bool setContext(int fsaa, bool vsync, bool sRGB);
-	void setWindowGLAttributes(int fsaa, bool sRGB) const;
+	bool setContext(int msaa, bool vsync, bool sRGB);
+	void setWindowGLAttributes(int msaa, bool sRGB) const;
 
 	// Update the saved window settings based on the window's actual state.
 	void updateSettings(const WindowSettings &newsettings);
 
-	// Shows a warning/error message box.
-	void displayError(const std::string &title, const std::string &text) const;
+	SDL_MessageBoxFlags convertMessageBoxType(MessageBoxType type) const;
 
 	std::string windowTitle;
 
@@ -108,7 +116,7 @@ private:
 		int width;
 		int height;
 		WindowSettings settings;
-		love::image::ImageData *icon;
+		Object::StrongRef<love::image::ImageData> icon;
 
 	} curMode;
 

@@ -49,6 +49,9 @@ public:
 
 	virtual ~Touch() {}
 
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_TOUCH; }
+
 	/**
 	 * Gets the number of current touch presses.
 	 **/

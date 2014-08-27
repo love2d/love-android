@@ -53,6 +53,8 @@ public:
 
 	love::mouse::Cursor *getCursor() const;
 
+	bool hasCursor() const;
+
 	int getX() const;
 	int getY() const;
 	void getPosition(int &x, int &y) const;
@@ -67,7 +69,7 @@ public:
 
 private:
 
-	love::mouse::Cursor *curCursor;
+	Object::StrongRef<love::mouse::Cursor> curCursor;
 
 	std::map<Cursor::SystemCursor, Cursor *> systemCursors;
 

@@ -37,14 +37,11 @@ LuaThread::LuaThread(const std::string &name, love::Data *code)
 	, args(0)
 	, nargs(0)
 {
-	code->retain();
 	threadName = name;
 }
 
 LuaThread::~LuaThread()
 {
-	code->release();
-
 	// No args should still exist at this point,
 	// but you never know.
 	for (int i = 0; i < nargs; ++i)
@@ -107,11 +104,11 @@ void LuaThread::onError()
 	if (error.empty())
 		return;
 
-	event::Event *event = (event::Event *) Module::findInstance("love.event.");
+	event::Event *event = Module::getInstance<event::Event>(Module::M_EVENT);
 	if (!event)
 		return;
 
-	std::vector<Variant *> vargs;
+	std::vector<StrongRef<Variant>> vargs;
 
 	Proxy p;
 	p.flags = THREAD_THREAD_T;
@@ -122,9 +119,8 @@ void LuaThread::onError()
 
 	event::Message *msg = new event::Message("threaderror", vargs);
 
-	for (auto it = vargs.begin(); it != vargs.end(); ++it)
-			(*it)->release();
-
+	for (const StrongRef<Variant> &v : vargs)
+		v->release();
 
 	event->push(msg);
 	msg->release();

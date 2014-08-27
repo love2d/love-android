@@ -49,9 +49,10 @@ int w_ParticleSystem_clone(lua_State *L)
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
 
 	ParticleSystem *clone = nullptr;
-	EXCEPT_GUARD(clone = t->clone();)
+	luax_catchexcept(L, [&](){ clone = t->clone(); });
 
 	luax_pushtype(L, "ParticleSystem", GRAPHICS_PARTICLE_SYSTEM_T, clone);
+	clone->release();
 	return 1;
 }
 
@@ -67,7 +68,6 @@ int w_ParticleSystem_getTexture(lua_State *L)
 {
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
 	Texture *tex = t->getTexture();
-	tex->retain();
 
 	// FIXME: big hack right here.
 	if (typeid(*tex) == typeid(Image))
@@ -75,10 +75,7 @@ int w_ParticleSystem_getTexture(lua_State *L)
 	else if (typeid(*tex) == typeid(Canvas))
 		luax_pushtype(L, "Canvas", GRAPHICS_CANVAS_T, tex);
 	else
-	{
-		tex->release();
 		return luaL_error(L, "Unable to determine texture type.");
-	}
 
 	return 1;
 }
@@ -90,7 +87,7 @@ int w_ParticleSystem_setBufferSize(lua_State *L)
 	if (arg1 < 1.0 || arg1 > ParticleSystem::MAX_PARTICLES)
 		return luaL_error(L, "Invalid buffer size");
 
-	EXCEPT_GUARD(t->setBufferSize((uint32) arg1);)
+	luax_catchexcept(L, [&](){ t->setBufferSize((uint32) arg1); });
 	return 0;
 }
 
@@ -128,7 +125,7 @@ int w_ParticleSystem_setEmissionRate(lua_State *L)
 {
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
 	float arg1 = (float) luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setEmissionRate(arg1);)
+	luax_catchexcept(L, [&](){ t->setEmissionRate(arg1); });
 	return 0;
 }
 
@@ -569,6 +566,52 @@ int w_ParticleSystem_getColors(lua_State *L)
 	return colors.size();
 }
 
+int w_ParticleSystem_setQuads(lua_State *L)
+{
+	ParticleSystem *t = luax_checkparticlesystem(L, 1);
+	std::vector<Quad *> quads;
+
+	if (lua_istable(L, 2))
+	{
+		for (size_t i = 1; i <= lua_objlen(L, 2); i++)
+		{
+			lua_rawgeti(L, 2, i);
+
+			Quad *q = luax_checktype<Quad>(L, -1, "Quad", GRAPHICS_QUAD_T);
+			quads.push_back(q);
+
+			lua_pop(L, 1);
+		}
+	}
+	else
+	{
+		for (int i = 2; i <= lua_gettop(L); i++)
+		{
+			Quad *q = luax_checktype<Quad>(L, i, "Quad", GRAPHICS_QUAD_T);
+			quads.push_back(q);
+		}
+	}
+
+	t->setQuads(quads);
+	return 0;
+}
+
+int w_ParticleSystem_getQuads(lua_State *L)
+{
+	ParticleSystem *t = luax_checkparticlesystem(L, 1);
+	const std::vector<Quad *> quads = t->getQuads();
+
+	lua_createtable(L, (int) quads.size(), 0);
+
+	for (size_t i = 0; i < quads.size(); i++)
+	{
+		luax_pushtype(L, "Quad", GRAPHICS_QUAD_T, quads[i]);
+		lua_rawseti(L, -2, i + 1);
+	}
+
+	return 1;
+}
+
 int w_ParticleSystem_setRelativeRotation(lua_State *L)
 {
 	ParticleSystem *t = luax_checkparticlesystem(L, 1);
@@ -699,6 +742,8 @@ static const luaL_Reg functions[] =
 	{ "getSpinVariation", w_ParticleSystem_getSpinVariation },
 	{ "setColors", w_ParticleSystem_setColors },
 	{ "getColors", w_ParticleSystem_getColors },
+	{ "setQuads", w_ParticleSystem_setQuads },
+	{ "getQuads", w_ParticleSystem_getQuads },
 	{ "setOffset", w_ParticleSystem_setOffset },
 	{ "getOffset", w_ParticleSystem_getOffset },
 	{ "setRelativeRotation", w_ParticleSystem_setRelativeRotation },

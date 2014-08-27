@@ -49,7 +49,7 @@ int w_randomNormal(lua_State *L)
 
 int w_setRandomSeed(lua_State *L)
 {
-	EXCEPT_GUARD(Math::instance.setRandomSeed(luax_checkrandomseed(L, 1));)
+	luax_catchexcept(L, [&](){ Math::instance.setRandomSeed(luax_checkrandomseed(L, 1)); });
 	return 0;
 }
 
@@ -63,7 +63,7 @@ int w_getRandomSeed(lua_State *L)
 
 int w_setRandomState(lua_State *L)
 {
-	EXCEPT_GUARD(Math::instance.setRandomState(luax_checkstring(L, 1));)
+	luax_catchexcept(L, [&](){ Math::instance.setRandomState(luax_checkstring(L, 1)); });
 	return 0;
 }
 
@@ -101,6 +101,7 @@ int w_newRandomGenerator(lua_State *L)
 	}
 
 	luax_pushtype(L, "RandomGenerator", MATH_RANDOM_GENERATOR_T, t);
+	t->release();
 	return 1;
 }
 
@@ -139,6 +140,7 @@ int w_newBezierCurve(lua_State *L)
 
 	BezierCurve *curve = Math::instance.newBezierCurve(points);
 	luax_pushtype(L, "BezierCurve", MATH_BEZIER_CURVE_T, curve);
+	curve->release();
 	return 1;
 }
 
@@ -180,12 +182,12 @@ int w_triangulate(lua_State *L)
 
 	std::vector<Triangle> triangles;
 
-	EXCEPT_GUARD(
+	luax_catchexcept(L, [&]() {
 		if (vertices.size() == 3)
 			triangles.push_back(Triangle(vertices[0], vertices[1], vertices[2]));
 		else
 			triangles = Math::instance.triangulate(vertices);
-	)
+	});
 
 	lua_createtable(L, triangles.size(), 0);
 	for (size_t i = 0; i < triangles.size(); ++i)

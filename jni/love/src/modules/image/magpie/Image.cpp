@@ -23,6 +23,9 @@
 #include "ImageData.h"
 #include "CompressedData.h"
 
+#include "PNGHandler.h"
+#include "STBHandler.h"
+#include "JPEGHandler.h"
 #include "DevilHandler.h"
 
 #include "ddsHandler.h"
@@ -39,7 +42,16 @@ namespace magpie
 
 Image::Image()
 {
+	formatHandlers.push_back(new PNGHandler);
+	formatHandlers.push_back(new STBHandler);
+
+#ifdef LOVE_TURBO_JPEG
+	formatHandlers.push_back(new JPEGHandler);
+#endif
+
+#ifndef LOVE_NO_DEVIL
 	formatHandlers.push_back(new DevilHandler);
+#endif
 
 	compressedFormatHandlers.push_back(new DDSHandler);
 	compressedFormatHandlers.push_back(new PVRHandler);

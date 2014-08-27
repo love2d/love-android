@@ -29,17 +29,17 @@ namespace love
 namespace keyboard
 {
 
-static Keyboard *instance = nullptr;
+#define instance() (Module::getInstance<Keyboard>(Module::M_KEYBOARD))
 
 int w_setKeyRepeat(lua_State *L)
 {
-	instance->setKeyRepeat(luax_toboolean(L, 1));
+	instance()->setKeyRepeat(luax_toboolean(L, 1));
 	return 0;
 }
 
 int w_hasKeyRepeat(lua_State *L)
 {
-	luax_pushboolean(L, instance->hasKeyRepeat());
+	luax_pushboolean(L, instance()->hasKeyRepeat());
 	return 1;
 }
 
@@ -57,20 +57,38 @@ int w_isDown(lua_State *L)
 	}
 	keylist[counter] = Keyboard::KEY_MAX_ENUM;
 
-	luax_pushboolean(L, instance->isDown(keylist));
+	luax_pushboolean(L, instance()->isDown(keylist));
 	delete[] keylist;
 	return 1;
 }
 
 int w_setTextInput(lua_State *L)
 {
-	instance->setTextInput(luax_toboolean(L, 1));
+	bool enable = luax_toboolean(L, 1);
+
+	if (lua_gettop(L) <= 1)
+		instance()->setTextInput(enable);
+	else
+	{
+		int x = (int) luaL_checkinteger(L, 2);
+		int y = (int) luaL_checkinteger(L, 3);
+		int w = (int) luaL_checkinteger(L, 4);
+		int h = (int) luaL_checkinteger(L, 5);
+		instance()->setTextInput(enable, x, y, w, h);
+	}
+	
 	return 0;
 }
 
 int w_hasTextInput(lua_State *L)
 {
-	luax_pushboolean(L, instance->hasTextInput());
+	luax_pushboolean(L, instance()->hasTextInput());
+	return 1;
+}
+
+int w_hasScreenKeyboard(lua_State *L)
+{
+	luax_pushboolean(L, instance()->hasScreenKeyboard());
 	return 1;
 }
 
@@ -81,15 +99,17 @@ static const luaL_Reg functions[] =
 	{ "hasKeyRepeat", w_hasKeyRepeat },
 	{ "setTextInput", w_setTextInput },
 	{ "hasTextInput", w_hasTextInput },
+	{ "hasScreenKeyboard", w_hasScreenKeyboard },
 	{ "isDown", w_isDown },
 	{ 0, 0 }
 };
 
 extern "C" int luaopen_love_keyboard(lua_State *L)
 {
+	Keyboard *instance = instance();
 	if (instance == nullptr)
 	{
-		EXCEPT_GUARD(instance = new love::keyboard::sdl::Keyboard();)
+		luax_catchexcept(L, [&](){ instance = new love::keyboard::sdl::Keyboard(); });
 	}
 	else
 		instance->retain();

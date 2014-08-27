@@ -122,7 +122,7 @@ int w_PrismaticJoint_setUpperLimit(lua_State *L)
 {
 	PrismaticJoint *t = luax_checkprismaticjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setUpperLimit(arg1);)
+	luax_catchexcept(L, [&](){ t->setUpperLimit(arg1); });
 	return 0;
 }
 
@@ -130,7 +130,7 @@ int w_PrismaticJoint_setLowerLimit(lua_State *L)
 {
 	PrismaticJoint *t = luax_checkprismaticjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
-	EXCEPT_GUARD(t->setLowerLimit(arg1);)
+	luax_catchexcept(L, [&](){ t->setLowerLimit(arg1); });
 	return 0;
 }
 
@@ -139,7 +139,7 @@ int w_PrismaticJoint_setLimits(lua_State *L)
 	PrismaticJoint *t = luax_checkprismaticjoint(L, 1);
 	float arg1 = (float)luaL_checknumber(L, 2);
 	float arg2 = (float)luaL_checknumber(L, 3);
-	EXCEPT_GUARD(t->setLimits(arg1, arg2);)
+	luax_catchexcept(L, [&](){ t->setLimits(arg1, arg2); });
 	return 0;
 }
 
@@ -189,6 +189,8 @@ static const luaL_Reg functions[] =
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
 	{ "getCollideConnected", w_Joint_getCollideConnected },
+	{ "setUserData", w_Joint_setUserData },
+	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
 	{ 0, 0 }
 };

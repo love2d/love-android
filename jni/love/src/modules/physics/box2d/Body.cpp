@@ -41,7 +41,6 @@ Body::Body(World *world, b2Vec2 p, Body::Type type)
 {
 	udata = new bodyudata();
 	udata->ref = nullptr;
-	world->retain();
 	b2BodyDef def;
 	def.position = Physics::scaleDown(p);
 	def.userData = (void *) udata;
@@ -57,8 +56,7 @@ Body::Body(b2Body *b)
 	, udata(nullptr)
 {
 	udata = (bodyudata *) b->GetUserData();
-	world = (World *)Memoizer::find(b->GetWorld());
-	world->retain();
+	world.set((World *) Memoizer::find(b->GetWorld()));
 	// Box2D body holds a reference to the love Body.
 	this->retain();
 	Memoizer::add(body, this);
@@ -69,7 +67,6 @@ Body::~Body()
 	if (udata != nullptr)
 		delete udata->ref;
 	delete udata;
-	world->release();
 }
 
 float Body::getX()
@@ -420,7 +417,7 @@ bool Body::isFixedRotation() const
 
 World *Body::getWorld() const
 {
-	return world;
+	return world.get();
 }
 
 int Body::getFixtureList(lua_State *L) const
@@ -435,12 +432,36 @@ int Body::getFixtureList(lua_State *L) const
 		Fixture *fixture = (Fixture *)Memoizer::find(f);
 		if (!fixture)
 			throw love::Exception("A fixture has escaped Memoizer!");
-		fixture->retain();
 		luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, fixture);
 		lua_rawseti(L, -2, i);
 		i++;
 	}
 	while ((f = f->GetNext()));
+	return 1;
+}
+
+int Body::getContactList(lua_State *L) const
+{
+	lua_newtable(L);
+	const b2ContactEdge *ce = body->GetContactList();
+	int i = 1;
+	do
+	{
+		if (!ce)
+			break;
+
+		Contact *contact = (Contact *) Memoizer::find(ce->contact);
+		if (!contact)
+			contact = new Contact(ce->contact);
+		else
+			contact->retain();
+		
+		luax_pushtype(L, "Contact", PHYSICS_CONTACT_T, contact);
+		contact->release();
+		lua_rawseti(L, -2, i);
+		i++;
+	}
+	while ((ce = ce->next));
 	return 1;
 }
 

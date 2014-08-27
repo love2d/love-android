@@ -36,6 +36,9 @@ public:
 
 	virtual ~JoystickModule() {}
 
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_JOYSTICK; }
+
 	/**
 	 * Adds a connected Joystick device and opens it for use.
 	 * Returns NULL if the Joystick could not be added.
@@ -84,6 +87,20 @@ public:
 	 * specified joystick product GUID.
 	 **/
 	virtual Joystick::JoystickInput getGamepadMapping(const std::string &pguid, Joystick::GamepadInput gpinput) = 0;
+
+	/**
+	 * Loads a newline-separated list of virtual Gamepad mapping strings for
+	 * multiple joysticks at a time. The mapping strings must have been
+	 * generated with saveGamepadMappings, via Steam, or some other tool which
+	 * generates SDL GameController mappings.
+	 **/
+	virtual void loadGamepadMappings(const std::string &mappings) = 0;
+
+	/**
+	 * Gets a newline-separated list of virtual Gamepad mapping strings for
+	 * all used or modified Joysticks which are identified as Gamepads.
+	 **/
+	virtual std::string saveGamepadMappings() = 0;
 
 }; // JoystickModule
 

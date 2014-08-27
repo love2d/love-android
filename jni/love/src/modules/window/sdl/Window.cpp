@@ -55,9 +55,6 @@ Window::Window()
 
 Window::~Window()
 {
-	if (curMode.icon)
-		curMode.icon->release();
-
 	if (window)
 		SDL_DestroyWindow(window);
 
@@ -105,11 +102,20 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		else
 		{
 			sdlflags |= SDL_WINDOW_FULLSCREEN;
+			SDL_DisplayMode mode = {0, width, height, 0, 0};
 
 			// Fullscreen window creation will bug out if no mode can be used.
-			SDL_DisplayMode mode = {0, width, height, 0, 0};
-			if (SDL_GetClosestDisplayMode(f.display, &mode, &mode) == 0)
-				return false;
+			if (SDL_GetClosestDisplayMode(f.display, &mode, &mode) == nullptr)
+			{
+				// GetClosestDisplayMode will fail if we request a size larger
+				// than the largest available display mode, so we'll try to use
+				// the largest (first) mode in that case.
+				if (SDL_GetDisplayMode(f.display, 0, &mode) < 0)
+					return false;
+			}
+
+			width = mode.w;
+			height = mode.h;
 		}
 	}
 
@@ -125,7 +131,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		sdlflags |= SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 
-	graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+	graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 	if (gfx != nullptr)
 		gfx->unSetMode();
 
@@ -146,7 +152,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		wflags &= testflags;
 
 		if (sdlflags != wflags || width != curMode.width || height != curMode.height
-			|| f.display != curdisplay || f.fsaa != curMode.settings.fsaa)
+			|| f.display != curdisplay || f.msaa != curMode.settings.msaa)
 		{
 			SDL_DestroyWindow(window);
 			window = 0;
@@ -165,31 +171,31 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		created = false;
 
 		// In Windows and Linux, some GL attributes are set on window creation.
-		setWindowGLAttributes(f.fsaa, f.sRGB);
+		setWindowGLAttributes(f.msaa, f.sRGB);
 
 		const char *title = windowTitle.c_str();
 		int pos = f.centered ? centeredpos : uncenteredpos;
 
 		window = SDL_CreateWindow(title, pos, pos, width, height, sdlflags);
 
-		if (!window && f.fsaa > 0)
+		if (!window && f.msaa > 0)
 		{
-			// FSAA might have caused the failure, disable it and try again.
+			// MSAA might have caused the failure, disable it and try again.
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
 
 			window = SDL_CreateWindow(title, pos, pos, width, height, sdlflags);
-			f.fsaa = 0;
+			f.msaa = 0;
 		}
 
 		// Make sure the window keeps any previously set icon.
-		if (window && curMode.icon)
-			setIcon(curMode.icon);
+		if (window && curMode.icon.get())
+			setIcon(curMode.icon.get());
 	}
 
 	if (!window)
 	{
-		displayError("Could not create window", SDL_GetError());
+		showMessageBox(MESSAGEBOX_ERROR, "Could not create window", SDL_GetError(), false);
 		return false;
 	}
 
@@ -201,7 +207,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	SDL_RaiseWindow(window);
 
-	if (!setContext(f.fsaa, f.vsync, f.sRGB))
+	if (!setContext(f.msaa, f.vsync, f.sRGB))
 	{
 		created = false;
 		return false;
@@ -222,7 +228,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 #endif
 
 		if (!gfx->setMode(width, height, curMode.settings.sRGB))
-			displayError("Could not set graphics mode", "Unsupported OpenGL version?");
+			showMessageBox(MESSAGEBOX_ERROR, "Could not set graphics mode", "Unsupported OpenGL version?", true);
 	}
 
 	// Make sure the mouse keeps its previous grab setting.
@@ -242,9 +248,9 @@ bool Window::onWindowResize(int width, int height)
 	return true;
 }
 
-bool Window::setContext(int fsaa, bool vsync, bool sRGB)
+bool Window::setContext(int msaa, bool vsync, bool sRGB)
 {
-	// We would normally only need to recreate the context if FSAA changes or
+	// We would normally only need to recreate the context if MSAA changes or
 	// SDL_GL_MakeCurrent is unsuccessful, but in Windows MakeCurrent can
 	// sometimes claim success but the context will actually be trashed.
 	if (context)
@@ -254,13 +260,13 @@ bool Window::setContext(int fsaa, bool vsync, bool sRGB)
 	}
 
 	// Make sure the proper attributes are set.
-	setWindowGLAttributes(fsaa, sRGB);
+	setWindowGLAttributes(msaa, sRGB);
 
 	context = SDL_GL_CreateContext(window);
 
-	if (!context && fsaa > 0)
+	if (!context && msaa > 0)
 	{
-		// FSAA might have caused the failure, disable it and try again.
+		// MSAA might have caused the failure, disable it and try again.
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
 		context = SDL_GL_CreateContext(window);
@@ -283,33 +289,33 @@ bool Window::setContext(int fsaa, bool vsync, bool sRGB)
 
 	if (!context)
 	{
-		displayError("Could not create OpenGL context", SDL_GetError());
+		showMessageBox(MESSAGEBOX_ERROR, "Could not create OpenGL context", SDL_GetError(), true);
 		return false;
 	}
 
 	// Set vertical synchronization.
 	SDL_GL_SetSwapInterval(vsync ? 1 : 0);
 
-	// Verify FSAA setting.
+	// Verify MSAA setting.
 	int buffers;
 	int samples;
 	SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &buffers);
 	SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &samples);
 
 	// Don't fail because of this, but issue a warning.
-	if ((!buffers && fsaa) || (samples != fsaa))
+	if ((!buffers && msaa) || (samples != msaa))
 	{
-		std::cerr << "Warning, FSAA setting failed! (Result: buffers: " << buffers << ", samples: " << samples << ")" << std::endl;
-		fsaa = (buffers > 0) ? samples : 0;
+		std::cerr << "Warning, MSAA setting failed! (Result: buffers: " << buffers << ", samples: " << samples << ")" << std::endl;
+		msaa = (buffers > 0) ? samples : 0;
 	}
 
-	curMode.settings.fsaa = fsaa;
+	curMode.settings.msaa = msaa;
 	curMode.settings.vsync = SDL_GL_GetSwapInterval() != 0;
 
 	return true;
 }
 
-void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
+void Window::setWindowGLAttributes(int msaa, bool /* sRGB */) const
 {
 	// Set GL window attributes.
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -320,9 +326,9 @@ void Window::setWindowGLAttributes(int fsaa, bool /* sRGB */) const
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
 	SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
 
-	// FSAA.
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, (fsaa > 0) ? 1 : 0);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, (fsaa > 0) ? fsaa : 0);
+	// MSAA.
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, (msaa > 0) ? 1 : 0);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, (msaa > 0) ? msaa : 0);
 
 	/* FIXME: Enable this code but make sure to try to re-create the window and
 	 * context with this disabled, if creation fails with it enabled.
@@ -436,16 +442,6 @@ void Window::updateSettings(const WindowSettings &newsettings)
 	curMode.settings.sRGB = newsettings.sRGB;
 }
 
-void Window::displayError(const std::string &title, const std::string &text) const
-{
-	std::cerr << title << ": " << text << std::endl;
-
-	if (!window)
-		return;
-
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), text.c_str(), window);
-}
-
 void Window::getWindow(int &width, int &height, WindowSettings &settings)
 {
 	// The window might have been modified (moved, resized, etc.) by the user.
@@ -491,7 +487,7 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 		updateSettings(newsettings);
 
 		// Update the viewport size now instead of waiting for event polling.
-		graphics::Graphics *gfx = (graphics::Graphics *) Module::findInstance("love.graphics.");
+		graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 		if (gfx != nullptr)
 		{
 			int width = curMode.width;
@@ -519,6 +515,16 @@ bool Window::setFullscreen(bool fullscreen)
 int Window::getDisplayCount() const
 {
 	return SDL_GetNumVideoDisplays();
+}
+
+const char *Window::getDisplayName(int displayindex) const
+{
+	const char *name = SDL_GetDisplayName(displayindex);
+
+	if (name == nullptr)
+		throw love::Exception("Invalid display index: %d", displayindex + 1);
+
+	return name;
 }
 
 typedef Window::WindowSize WindowSize;
@@ -604,10 +610,7 @@ bool Window::setIcon(love::image::ImageData *imgd)
 	if (!imgd)
 		return false;
 
-	imgd->retain();
-	if (curMode.icon)
-		curMode.icon->release();
-	curMode.icon = imgd;
+	curMode.icon.set(imgd);
 
 	if (!window)
 		return false;
@@ -648,7 +651,13 @@ bool Window::setIcon(love::image::ImageData *imgd)
 
 love::image::ImageData *Window::getIcon()
 {
-	return curMode.icon;
+	return curMode.icon.get();
+}
+
+void Window::minimize()
+{
+	if (window != nullptr)
+		SDL_MinimizeWindow(window);
 }
 
 void Window::swapBuffers()
@@ -719,9 +728,80 @@ double Window::getPixelScale() const
 	return scale;
 }
 
+bool Window::isTouchScreen(int displayindex) const
+{
+#if defined(LOVE_ANDROID) || defined(LOVE_IOS)
+	// Display 0 is always a touch screen on Android and iOS.
+	return displayindex == 0;
+#else
+	// TODO: implement for Windows and Linux.
+	LOVE_UNUSED(displayindex);
+	return false;
+#endif
+}
+
 const void *Window::getHandle() const
 {
 	return window;
+}
+
+SDL_MessageBoxFlags Window::convertMessageBoxType(MessageBoxType type) const
+{
+	switch (type)
+	{
+	case MESSAGEBOX_ERROR:
+		return SDL_MESSAGEBOX_ERROR;
+	case MESSAGEBOX_WARNING:
+		return SDL_MESSAGEBOX_WARNING;
+	case MESSAGEBOX_INFO:
+	default:
+		return SDL_MESSAGEBOX_INFORMATION;
+	}
+}
+
+bool Window::showMessageBox(MessageBoxType type, const std::string &title, const std::string &message, bool attachtowindow)
+{
+	SDL_MessageBoxFlags flags = convertMessageBoxType(type);
+	SDL_Window *sdlwindow = attachtowindow ? window : nullptr;
+
+	return SDL_ShowSimpleMessageBox(flags, title.c_str(), message.c_str(), sdlwindow) >= 0;
+}
+
+int Window::showMessageBox(const MessageBoxData &data)
+{
+	SDL_MessageBoxData sdldata = {};
+
+	sdldata.flags = convertMessageBoxType(data.type);
+	sdldata.title = data.title.c_str();
+	sdldata.message = data.message.c_str();
+	sdldata.window = data.attachToWindow ? window : nullptr;
+
+	sdldata.numbuttons = (int) data.buttons.size();
+
+	std::vector<SDL_MessageBoxButtonData> sdlbuttons;
+
+	for (size_t i = 0; i < data.buttons.size(); i++)
+	{
+		SDL_MessageBoxButtonData sdlbutton = {};
+
+		sdlbutton.buttonid = (int) i;
+		sdlbutton.text = data.buttons[i].c_str();
+
+		if ((int) i == data.enterButtonIndex)
+			sdlbutton.flags |= SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+
+		if ((int) i == data.escapeButtonIndex)
+			sdlbutton.flags |= SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+
+		sdlbuttons.push_back(sdlbutton);
+	}
+
+	sdldata.buttons = &sdlbuttons[0];
+
+	int pressedbutton = -2;
+	SDL_ShowMessageBox(&sdldata, &pressedbutton);
+
+	return pressedbutton;
 }
 
 love::window::Window *Window::createSingleton()

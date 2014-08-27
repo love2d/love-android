@@ -109,6 +109,16 @@ bool Graphics::getConstant(SystemLimit in, const char *&out)
 	return systemLimits.find(in, out);
 }
 
+bool Graphics::getConstant(const char *in, StackType &out)
+{
+	return stackTypes.find(in, out);
+}
+
+bool Graphics::getConstant(StackType in, const char *&out)
+{
+	return stackTypes.find(in, out);
+}
+
 StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM>::Entry Graphics::drawModeEntries[] =
 {
 	{ "line", Graphics::DRAW_LINE },
@@ -178,7 +188,6 @@ StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM>::Entry Graphics::suppor
 	{ "bc5", Graphics::SUPPORT_BC5 },
 	{ "etc1", Graphics::SUPPORT_ETC1 },
 	{ "pvrtc1", Graphics::SUPPORT_PVRTC1 },
-	{ "instancing", Graphics::SUPPORT_INSTANCING },
 	{ "srgb", Graphics::SUPPORT_SRGB },
 };
 
@@ -190,9 +199,18 @@ StringMap<Graphics::SystemLimit, Graphics::LIMIT_MAX_ENUM>::Entry Graphics::syst
 	{"texturesize", Graphics::LIMIT_TEXTURE_SIZE},
 	{"multicanvas", Graphics::LIMIT_MULTI_CANVAS},
 	{"canvasfsaa", Graphics::LIMIT_CANVAS_FSAA},
+	{"canvasmsaa", Graphics::LIMIT_CANVAS_MSAA},
 };
 
 StringMap<Graphics::SystemLimit, Graphics::LIMIT_MAX_ENUM> Graphics::systemLimits(Graphics::systemLimitEntries, sizeof(Graphics::systemLimitEntries));
+
+StringMap<Graphics::StackType, Graphics::STACK_MAX_ENUM>::Entry Graphics::stackTypeEntries[] =
+{
+	{"all", Graphics::STACK_ALL},
+	{"transform", Graphics::STACK_TRANSFORM},
+};
+
+StringMap<Graphics::StackType, Graphics::STACK_MAX_ENUM> Graphics::stackTypes(Graphics::stackTypeEntries, sizeof(Graphics::stackTypeEntries));
 
 } // graphics
 } // love

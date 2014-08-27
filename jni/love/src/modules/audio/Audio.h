@@ -51,7 +51,7 @@ public:
 	 */
 	enum DistanceModel
 	{
-		DISTANCE_NONE = 1,
+		DISTANCE_NONE,
 		DISTANCE_INVERSE,
 		DISTANCE_INVERSE_CLAMPED,
 		DISTANCE_LINEAR,
@@ -64,10 +64,10 @@ public:
 	static bool getConstant(const char *in, DistanceModel &out);
 	static bool getConstant(DistanceModel in, const char  *&out);
 
-	/**
-	 * Destructor.
-	 **/
 	virtual ~Audio() {}
+
+	// Implements Module.
+	virtual ModuleType getModuleType() const { return M_AUDIO; }
 
 	virtual Source *newSource(love::sound::Decoder *decoder) = 0;
 	virtual Source *newSource(love::sound::SoundData *soundData) = 0;
