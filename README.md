@@ -31,6 +31,15 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.9.1b:
+
+* added love.system.vibrate(seconds)
+* print statements are now redirected to logcat. Output is prefixed with "[LOVE] "
+* removed DevIL, libpng, libjpeg, libmng, and libtiff
+* pngs are loaded using lodepng and jpegs using libturbo-jpeg
+* repeatedly fixed a bug which caused Release builds to crash
+* update to latest mobile-common branch
+
 0.9.1a:
 
 * using latest SDL\_androidgl.c (fixes some random performance issues)
