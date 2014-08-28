@@ -890,7 +890,7 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 
 	{
 		VertexBuffer::Bind ibo_bind(*ibo->getVertexBuffer());
-		glDrawElements(GL_TRIANGLES, ibo->getIndexCount(pCount), ibo->getType(), ibo->getPointer(0));
+		gl.drawElements(GL_TRIANGLES, ibo->getIndexCount(pCount), ibo->getType(), ibo->getPointer(0));
 	}
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);

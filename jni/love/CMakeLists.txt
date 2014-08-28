@@ -185,6 +185,12 @@ set(LOVE_SRC_MODULE_FILESYSTEM_ROOT
 	src/modules/filesystem/File.h
 	src/modules/filesystem/FileData.cpp
 	src/modules/filesystem/FileData.h
+	src/modules/filesystem/wrap_File.cpp
+	src/modules/filesystem/wrap_File.h
+	src/modules/filesystem/wrap_FileData.cpp
+	src/modules/filesystem/wrap_FileData.h
+	src/modules/filesystem/wrap_Filesystem.cpp
+	src/modules/filesystem/wrap_Filesystem.h
 )
 
 set(LOVE_SRC_MODULE_FILESYSTEM_PHYSFS
@@ -192,12 +198,6 @@ set(LOVE_SRC_MODULE_FILESYSTEM_PHYSFS
 	src/modules/filesystem/physfs/File.h
 	src/modules/filesystem/physfs/Filesystem.cpp
 	src/modules/filesystem/physfs/Filesystem.h
-	src/modules/filesystem/physfs/wrap_File.cpp
-	src/modules/filesystem/physfs/wrap_File.h
-	src/modules/filesystem/physfs/wrap_FileData.cpp
-	src/modules/filesystem/physfs/wrap_FileData.h
-	src/modules/filesystem/physfs/wrap_Filesystem.cpp
-	src/modules/filesystem/physfs/wrap_Filesystem.h
 )
 
 set(LOVE_SRC_MODULE_FILESYSTEM
@@ -337,15 +337,29 @@ set(LOVE_SRC_MODULE_IMAGE_ROOT
 set(LOVE_SRC_MODULE_IMAGE_MAGPIE
 	src/modules/image/magpie/CompressedData.cpp
 	src/modules/image/magpie/CompressedData.h
+	src/modules/image/magpie/CompressedFormatHandler.h
 	src/modules/image/magpie/ddsHandler.cpp
 	src/modules/image/magpie/ddsHandler.h
 	src/modules/image/magpie/DevilHandler.cpp
 	src/modules/image/magpie/DevilHandler.h
+	src/modules/image/magpie/FormatHandler.cpp
 	src/modules/image/magpie/FormatHandler.h
 	src/modules/image/magpie/Image.cpp
 	src/modules/image/magpie/Image.h
 	src/modules/image/magpie/ImageData.cpp
 	src/modules/image/magpie/ImageData.h
+	src/modules/image/magpie/JPEGHandler.cpp
+	src/modules/image/magpie/JPEGHandler.h
+	src/modules/image/magpie/KTXHandler.cpp
+	src/modules/image/magpie/KTXHandler.h
+	src/modules/image/magpie/PKMHandler.cpp
+	src/modules/image/magpie/PKMHandler.h
+	src/modules/image/magpie/PVRHandler.cpp
+	src/modules/image/magpie/PVRHandler.h
+	src/modules/image/magpie/PNGHandler.cpp
+	src/modules/image/magpie/PNGHandler.h
+	src/modules/image/magpie/STBHandler.cpp
+	src/modules/image/magpie/STBHandler.h
 )
 
 set(LOVE_SRC_MODULE_IMAGE
@@ -364,6 +378,10 @@ set(LOVE_SRC_MODULE_JOYSTICK_ROOT
 	src/modules/joystick/Joystick.cpp
 	src/modules/joystick/Joystick.h
 	src/modules/joystick/JoystickModule.h
+	src/modules/joystick/wrap_Joystick.cpp
+	src/modules/joystick/wrap_Joystick.h
+	src/modules/joystick/wrap_JoystickModule.cpp
+	src/modules/joystick/wrap_JoystickModule.h
 )
 
 set(LOVE_SRC_MODULE_JOYSTICK_SDL
@@ -371,10 +389,6 @@ set(LOVE_SRC_MODULE_JOYSTICK_SDL
 	src/modules/joystick/sdl/Joystick.h
 	src/modules/joystick/sdl/JoystickModule.cpp
 	src/modules/joystick/sdl/JoystickModule.h
-	src/modules/joystick/sdl/wrap_Joystick.cpp
-	src/modules/joystick/sdl/wrap_Joystick.h
-	src/modules/joystick/sdl/wrap_JoystickModule.cpp
-	src/modules/joystick/sdl/wrap_JoystickModule.h
 )
 
 set(LOVE_SRC_MODULE_JOYSTICK
@@ -712,6 +726,29 @@ source_group("modules\\timer" FILES ${LOVE_SRC_MODULE_TIMER_ROOT})
 source_group("modules\\timer\\sdl" FILES ${LOVE_SRC_MODULE_TIMER_SDL})
 
 #
+# love.touch
+#
+
+set(LOVE_SRC_MODULE_TOUCH_ROOT
+	src/modules/touch/Touch.h
+	src/modules/touch/wrap_Touch.cpp
+	src/modules/touch/wrap_Touch.h
+)
+
+set(LOVE_SRC_MODULE_TOUCH_SDL
+	src/modules/touch/sdl/Touch.cpp
+	src/modules/touch/sdl/Touch.h
+)
+
+set(LOVE_SRC_MODULE_TOUCH
+	${LOVE_SRC_MODULE_TOUCH_ROOT}
+	${LOVE_SRC_MODULE_TOUCH_SDL}
+)
+
+source_group("modules\\touch" FILES ${LOVE_SRC_MODULE_TOUCH_ROOT})
+source_group("modules\\touch\\sdl" FILES ${LOVE_SRC_MODULE_TOUCH_SDL})
+
+#
 # love.window
 #
 
@@ -928,6 +965,17 @@ target_link_libraries(love_3p_enet ${MEGA_LUA})
 target_include_directories(love_3p_enet PUBLIC src/libraries/enet/libenet/include)
 
 #
+# LodePNG
+#
+
+set(LOVE_SRC_3P_LODEPNG
+	src/libraries/lodepng/lodepng.cpp
+	src/libraries/lodepng/lodepng.h
+)
+
+add_library(love_3p_lodepng ${LOVE_SRC_3P_LODEPNG})
+
+#
 # luasocket
 #
 
@@ -1001,6 +1049,16 @@ set(LOVE_SRC_3P_NOISE1234
 add_library(love_3p_noise1234 ${LOVE_SRC_3P_NOISE1234})
 
 #
+# stb_image
+#
+
+set(LOVE_SRC_3P_STB
+	src/libraries/stb/stb_image.h
+)
+
+add_library(love_3p_stb ${LOVE_SRC_3P_STB})
+
+#
 # utf8
 #
 
@@ -1041,8 +1099,10 @@ set(LOVE_3P
 	love_3p_box2d
 	love_3p_ddsparse
 	love_3p_enet
+	love_3p_lodepng
 	love_3p_luasocket
 	love_3p_noise1234
+	love_3p_stb
 	love_3p_wuff
 )
 
@@ -1070,6 +1130,7 @@ set(LOVE_LIB_SRC
 	${LOVE_SRC_MODULE_SYSTEM}
 	${LOVE_SRC_MODULE_THREAD}
 	${LOVE_SRC_MODULE_TIMER}
+	#{LOVE_SRC_MODULE_TOUCH}
 	${LOVE_SRC_MODULE_WINDOW}
 )
 
@@ -1118,8 +1179,8 @@ if(MSVC)
 	)
 
 	set(LOVE_RC
-		platform/msvc2010/love.rc
-		platform/msvc2010/love.ico
+		extra/windows/love.rc
+		extra/windows/love.ico
 	)
 endif()
 

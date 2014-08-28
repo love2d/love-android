@@ -147,6 +147,12 @@ public:
 		OpenGL &gl;
 	};
 
+	struct Stats
+	{
+		size_t textureMemory;
+		int    drawCalls;
+	} stats;
+
 	OpenGL();
 	virtual ~OpenGL() {}
 
@@ -174,13 +180,17 @@ public:
 	void prepareDraw();
 
 	/**
-	 * glDrawArraysInstanced with a pseudo-instancing fallback.
+	 * glDraw* functions which increment the draw-call counter by themselves.
 	 **/
-	void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount);
+	void drawArrays(GLenum mode, GLint first, GLsizei count);
+	void drawElements(GLenum mode, GLsizei count, GLenum type, const void *indices);
+	void drawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void* indices, GLint basevertex);
 
 	/**
-	 * glDrawElementsInstanced with a pseudo-instancing fallback.
+	 * glDrawArraysInstanced and glDrawElementsInstanced with pseudo-instancing
+	 * fallbacks. They also increment the draw-call counter (once per call).
 	 **/
+	void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount);
 	void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount);
 
 	/**
@@ -319,11 +329,6 @@ public:
 	void setTextureWrap(const graphics::Texture::Wrap &w);
 
 	/**
-	 * Returns the texture wrap mode for the currently bound texture.
-	 **/
-	graphics::Texture::Wrap getTextureWrap();
-
-	/**
 	 * Returns the maximum supported width or height of a texture.
 	 **/
 	int getMaxTextureSize() const;
@@ -332,6 +337,8 @@ public:
 	 * Returns the maximum supported number of simultaneous render targets.
 	 **/
 	int getMaxRenderTargets() const;
+
+	void updateTextureMemorySize(size_t oldsize, size_t newsize);
 
 	/**
 	 * Get the GPU vendor of this OpenGL context.

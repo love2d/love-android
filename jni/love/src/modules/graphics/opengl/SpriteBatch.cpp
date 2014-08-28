@@ -294,7 +294,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), array_buf->getPointer(texel_offset));
 
 	gl.prepareDraw();
-	glDrawElements(GL_TRIANGLES, element_buf->getIndexCount(next), element_buf->getType(), element_buf->getPointer(0));
+	gl.drawElements(GL_TRIANGLES, element_buf->getIndexCount(next), element_buf->getType(), element_buf->getPointer(0));
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);

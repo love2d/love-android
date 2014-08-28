@@ -31,6 +31,8 @@ namespace graphics
 namespace opengl
 {
 
+int Image::imageCount = 0;
+
 float Image::maxMipmapSharpness = 0.0f;
 
 Texture::FilterMode Image::defaultMipmapFilter = Texture::FILTER_NONE;
@@ -47,10 +49,13 @@ Image::Image(love::image::ImageData *data, Format format)
 	, compressed(false)
 	, format(format)
 	, usingDefaultTexture(false)
+	, textureMemorySize(0)
 {
 	width = data->getWidth();
 	height = data->getHeight();
 	preload();
+
+	++imageCount;
 }
 
 Image::Image(love::image::CompressedData *cdata, Format format)
@@ -64,15 +69,20 @@ Image::Image(love::image::CompressedData *cdata, Format format)
 	, compressed(true)
 	, format(format)
 	, usingDefaultTexture(false)
+	, textureMemorySize(0)
 {
 	width = cdata->getWidth(0);
 	height = cdata->getHeight(0);
 	preload();
+
+	++imageCount;
 }
 
 Image::~Image()
 {
 	unload();
+
+	--imageCount;
 }
 
 love::image::ImageData *Image::getImageData() const
@@ -155,8 +165,11 @@ void Image::uploadCompressedMipmaps()
 		      "compressed image does not have all required levels.");
 	}
 
+	size_t totalsize = cdata->getSize(0);
+
 	for (int i = 1; i < count; i++)
 	{
+		totalsize += cdata->getSize(i);
 		glCompressedTexImage2D(GL_TEXTURE_2D,
 		                       i,
 		                       getCompressedFormat(cdata->getFormat()),
@@ -166,6 +179,10 @@ void Image::uploadCompressedMipmaps()
 		                       GLsizei(cdata->getSize(i)),
 		                       cdata->getData(i));
 	}
+
+	size_t prevmemsize = textureMemorySize;
+	textureMemorySize = totalsize;
+	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
 }
 
 void Image::createMipmaps()
@@ -220,6 +237,10 @@ void Image::createMipmaps()
 		                data->getData());
 		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
 	}
+
+	size_t prevmemsize = textureMemorySize;
+	textureMemorySize = paddedWidth * paddedHeight * 4 * 1.3333;
+	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
 }
 
 void Image::checkMipmapsCreated()
@@ -403,6 +424,13 @@ bool Image::loadVolatile()
 	if (glerr != GL_NO_ERROR)
 		throw love::Exception("Cannot create image (error code 0x%x)", glerr);
 
+	if (isCompressed())
+		textureMemorySize = cdata->getSize(0);
+	else
+		textureMemorySize = paddedWidth * paddedHeight * 4;
+
+	gl.updateTextureMemorySize(0, textureMemorySize);
+
 	usingDefaultTexture = false;
 	mipmapsCreated = false;
 	checkMipmapsCreated();
@@ -478,6 +506,9 @@ void Image::unloadVolatile()
 	{
 		gl.deleteTexture(texture);
 		texture = 0;
+
+		gl.updateTextureMemorySize(textureMemorySize, 0);
+		textureMemorySize = 0;
 	}
 }
 
@@ -553,7 +584,7 @@ void Image::drawv(const Matrix &t, const Vertex *v)
 	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *)&v[0].x);
 	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *)&v[0].s);
 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	gl.drawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);

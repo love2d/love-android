@@ -1299,8 +1299,7 @@ do
 #define number float
 #define Image sampler2D
 #define extern uniform
-#define Texel texture2D
-#define love_Canvases gl_FragData]]
+#define Texel texture2D]]
 
 	GLSLES.SYNTAX = GLSL.SYNTAX
 
@@ -1383,12 +1382,14 @@ void main() {
 #define PIXEL
 
 #define VaryingTexCoord gl_TexCoord[0]
-#define VaryingColor gl_Color]],
+#define VaryingColor gl_Color
+
+#define love_Canvases gl_FragData]],
 
 		FOOTER = [[
 void main() {
 	// fix crashing issue in OSX when _tex0_ is unused within effect()
-	float dummy = texture2D(_tex0_, vec2(.5)).r;
+	float dummy = Texel(_tex0_, vec2(.5)).r;
 
 	// See Shader::checkSetScreenParams in Shader.cpp.
 	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenSize.z) + love_ScreenSize.w);
@@ -1399,7 +1400,7 @@ void main() {
 		FOOTER_MULTI_CANVAS = [[
 void main() {
 	// fix crashing issue in OSX when _tex0_ is unused within effect()
-	float dummy = texture2D(_tex0_, vec2(.5)).r;
+	float dummy = Texel(_tex0_, vec2(.5)).r;
 
 	// See Shader::checkSetScreenParams in Shader.cpp.
 	vec2 pixelcoord = vec2(gl_FragCoord.x, (gl_FragCoord.y * love_ScreenSize.z) + love_ScreenSize.w);
@@ -1415,7 +1416,9 @@ void main() {
 precision mediump float;
 
 varying mediump vec4 VaryingTexCoord;
-varying lowp vec4 VaryingColor;]],
+varying lowp vec4 VaryingColor;
+
+#define love_Canvases gl_FragData;]],
 
 		FOOTER = GLSL.PIXEL.FOOTER,
 		FOOTER_MULTI_CANVAS = GLSL.PIXEL.FOOTER_MULTI_CANVAS,

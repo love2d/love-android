@@ -442,6 +442,10 @@ void Graphics::present()
 
 	// Restore the currently active canvas, if there is one.
 	setCanvas(canvases);
+
+	// Reset the per-frame stat counts.
+	gl.stats.drawCalls = 0;
+	Canvas::switchCount = 0;
 }
 
 int Graphics::getWidth() const
@@ -1049,7 +1053,7 @@ void Graphics::point(float x, float y)
 	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, coord);
 
-	glDrawArrays(GL_POINTS, 0, 1);
+	gl.drawArrays(GL_POINTS, 0, 1);
 
 	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 }
@@ -1170,7 +1174,7 @@ void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, 
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
 
-		glDrawArrays(GL_TRIANGLE_FAN, 0, points + 2);
+		gl.drawArrays(GL_TRIANGLE_FAN, 0, points + 2);
 
 		gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	}
@@ -1198,7 +1202,7 @@ void Graphics::polygon(DrawMode mode, const float *coords, size_t count)
 		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
 		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
 
-		glDrawArrays(GL_TRIANGLE_FAN, 0, count / 2);
+		gl.drawArrays(GL_TRIANGLE_FAN, 0, count / 2);
 
 		gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	}
@@ -1300,6 +1304,20 @@ Graphics::RendererInfo Graphics::getRendererInfo() const
 		throw love::Exception("Cannot retrieve renderer device information.");
 
 	return info;
+}
+
+Graphics::Stats Graphics::getStats() const
+{
+	Stats stats;
+
+	stats.drawCalls = gl.stats.drawCalls;
+	stats.canvasSwitches = Canvas::switchCount;
+	stats.canvases = Canvas::canvasCount;
+	stats.images = Image::imageCount;
+	stats.fonts = Font::fontCount;
+	stats.textureMemory = gl.stats.textureMemory;
+
+	return stats;
 }
 
 double Graphics::getSystemLimit(SystemLimit limittype) const

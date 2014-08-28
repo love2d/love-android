@@ -41,7 +41,8 @@ namespace opengl
 {
 
 OpenGL::OpenGL()
-	: contextInitialized(false)
+	: stats()
+	, contextInitialized(false)
 	, maxAnisotropy(1.0f)
 	, maxTextureSize(0)
 	, maxRenderTargets(0)
@@ -360,6 +361,24 @@ void OpenGL::prepareDraw()
 	}
 }
 
+void OpenGL::drawArrays(GLenum mode, GLint first, GLsizei count)
+{
+	glDrawArrays(mode, first, count);
+	++stats.drawCalls;
+}
+
+void OpenGL::drawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
+{
+	glDrawElements(mode, count, type, indices);
+	++stats.drawCalls;
+}
+
+void OpenGL::drawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+{
+	glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+	++stats.drawCalls;
+}
+
 void OpenGL::drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount)
 {
 	Shader *shader = Shader::current;
@@ -384,6 +403,8 @@ void OpenGL::drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsize
 		if (shaderHasID)
 			state.lastPseudoInstanceID = primcount - 1;
 	}
+
+	++stats.drawCalls;
 }
 
 void OpenGL::drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount)
@@ -410,6 +431,8 @@ void OpenGL::drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, cons
 		if (shaderHasID)
 			state.lastPseudoInstanceID = primcount - 1;
 	}
+
+	++stats.drawCalls;
 }
 
 void OpenGL::setColor(const Color &c)
@@ -648,11 +671,10 @@ void OpenGL::deleteTexture(GLuint texture)
 {
 	// glDeleteTextures binds texture 0 to all texture units the deleted texture
 	// was bound to before deletion.
-	std::vector<GLuint>::iterator it;
-	for (it = state.textureUnits.begin(); it != state.textureUnits.end(); ++it)
+	for (GLuint &texid : state.textureUnits)
 	{
-		if (*it == texture)
-			*it = 0;
+		if (texid == texture)
+			texid = 0;
 	}
 
 	glDeleteTextures(1, &texture);
@@ -789,40 +811,6 @@ void OpenGL::setTextureWrap(const graphics::Texture::Wrap &w)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gt);
 }
 
-Texture::Wrap OpenGL::getTextureWrap()
-{
-	GLint gs, gt;
-
-	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, &gs);
-	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, &gt);
-
-	Texture::Wrap w;
-
-	switch (gs)
-	{
-	case GL_CLAMP_TO_EDGE:
-		w.s = Texture::WRAP_CLAMP;
-		break;
-	case GL_REPEAT:
-	default:
-		w.s = Texture::WRAP_REPEAT;
-		break;
-	}
-
-	switch (gt)
-	{
-	case GL_CLAMP_TO_EDGE:
-		w.t = Texture::WRAP_CLAMP;
-		break;
-	case GL_REPEAT:
-	default:
-		w.t = Texture::WRAP_REPEAT;
-		break;
-	}
-
-	return w;
-}
-
 int OpenGL::getMaxTextureSize() const
 {
 	return maxTextureSize;
@@ -831,6 +819,12 @@ int OpenGL::getMaxTextureSize() const
 int OpenGL::getMaxRenderTargets() const
 {
 	return maxRenderTargets;
+}
+
+void OpenGL::updateTextureMemorySize(size_t oldsize, size_t newsize)
+{
+	int64 memsize = (int64) stats.textureMemory + ((int64 )newsize -  (int64) oldsize);
+	stats.textureMemory = (size_t) std::max(memsize, (int64) 0);
 }
 
 OpenGL::Vendor OpenGL::getVendor() const

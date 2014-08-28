@@ -147,6 +147,8 @@ public:
 	static bool getConstant(const char *in, Format &out);
 	static bool getConstant(Format in, const char *&out);
 
+	static int imageCount;
+
 private:
 
 	void uploadDefaultTexture();
@@ -182,6 +184,8 @@ private:
 	// True if the image wasn't able to be properly created and it had to fall
 	// back to a default texture.
 	bool usingDefaultTexture;
+
+	size_t textureMemorySize;
 
 	void preload();
 

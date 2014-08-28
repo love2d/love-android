@@ -1,24 +1,127 @@
-LOVE 0.9.1 [Baby Inspector]
+LOVE 0.9.2 [Baby Inspector]
 ---------------------------
 
   Released: N/A
 
+  * Added Shader:getExternVariable.
+  * Added several new canvas texture formats.
+  * Added love.graphics.getCanvasFormats.
+  * Added love.graphics.getCompressedImageFormats.
+  * Added ParticleSystem:setQuads.
+  * Added SpriteBatch:flush.
+  * Added love.graphics.getStats.
+  * Added optional duration argument to Joystick:setVibration.
+  * Added love.joystick.loadGamepadMappings and love.joystick.saveGamepadMappings.
+  * Added Joint:setUserData and Joint:getUserData.
+  * Added Contact:getFixtures and Body:getContactList.
+  * Added Body:getWorld.
+  * Added love.window.getDisplayName.
+  * Added love.window.minimize.
+  * Added love.window.showMessageBox.
+  * Added love.filesystem.isSymlink, love.filesystem.setSymlinksEnabled, and love.filesystem.areSymlinksEnabled.
+  * Added 'refreshrate' field to the table returned by love.window.getMode.
+
+  * Deprecated SpriteBatch:bind and SpriteBatch:unbind.
+  * Deprecated all uses of the name 'FSAA' in favor of 'MSAA'.
+  * Deprecated the 'hdrcanvas' graphics feature enum in favor of getCanvasFormats.
+  * Deprecated the 'dxt' and 'bc5' graphics feature enums in favor of getCompressedImageFormats.
+
+  * Fixed love.filesystem.setIdentity breaking in some situations when called multiple times.
+  * Fixed love.system.openURL sometimes blocking indefinitely on Linux.
+  * Fixed shader:getWarnings returning unnecessary information.
+  * Fixed a potential crash when Shader objects are garbage collected.
+  * Fixed love.graphics.newMesh(vertexcount, ...) causing the Mesh to do instanced rendering.
+  * Fixed Mesh:getVertexMap.
+  * Fixed Image:refresh generating mipmaps multiple times if mipmap filtering is enabled.
+  * Fixed Mesh:setDrawRange when the Mesh has a vertex map set.
+  * Fixed internal detection of the 'position' and 'effect' shader functions.
+  * Fixed Texture memory leak when Meshes are garbage collected.
+  * Fixed the default line join mode to be 'miter' instead of an undefined value.
+  * Fixed the default error handler text size when highdpi mode is enabled on a Retina monitor.
+  * Fixed love.window.setMode to fall back to the largest available mode if a width or height greater than the largest supported is specified and fullscreen=true.
+  * Fixed the state of wireframe mode when love.window.setMode is called.
+  * Fixed Canvas:getPixel to error if the coordinates are not within the Canvas' size.
+  * Fixed detection of compressed textures to work regardless of the file's extension.
+
+  * Renamed all cases of FSAA to MSAA. The FSAA names still exist for backward-compatibility.
+
+  * Updated the Lua wrapper code for modules to avoid crashes when the module's instance is created, deleted, and recreated.
+  * Updated internal code for handling garbage collection of love objects to be more efficient.
+  * Updated the paths returned by love.filesystem.getSaveDirectory and friends to strip double-slashes from the string.
+  * Updated the error message when love.filesystem.write or File:open fails because the directory doesn't exist.
+  * Updated the error message when love.math.setRandomseed(0) is attempted.
+  * Updated love.physics.newChainShape to error if the number of arguments is invalid.
+  * Updated love-created threads to use names visible in external debuggers.
+  * Updated SpriteBatch:unbind to use less VRAM if the SpriteBatch has the static usage hint.
+  * Updated love.graphics.newImage, love.image.newImageData, etc. to leave less Lua-owned memory around.
+  * Updated love.graphics.push to accept different stack types to push. Current types are "transform" and "all".
+
+LOVE 0.9.1 [Baby Inspector]
+---------------------------
+
+  Released: 2014-04-01
+
   * Added Source:clone.
+  * Added blend mode "screen".
   * Added ParticleSystem:clone.
-  * Added Mesh:setWireframe and Mesh:isWireframe for debugging.
+  * Added ParticleSystem:moveTo, has smoother emitter movement compared to setPosition.
+  * Added ParticleSystem:setRelativeRotation.
+  * Added love.graphics.setWireframe for debugging.
+  * Added Mesh:setDrawRange and Mesh:getDrawRange.
+  * Added CircleShape:getPoint and CircleShape:setPoint.
+  * Added Mesh/SpriteBatch/ParticleSystem:setTexture, accepts Canvases and Images.
+  * Added high-dpi window support for Retina displays in OS X, via the 'highdpi' window flag.
+  * Added love.window.getPixelScale.
+  * Added love.graphics.getSystemLimit.
+  * Added antialiasing support to Canvases.
+  * Added Canvas:getFSAA.
+  * Added 'love_ScreenSize' built-in variable in shaders.
+  * Added love.getVersion.
+  * Added support for gamma-correct rendering.
+  * Added love.graphics.isSupported("srgb").
+  * Added love.math.gammaToLinear and love.math.linearToGamma.
+  * Added RandomGenerator:getState and RandomGenerator:setState.
+  * Added Body:setUserData and Body:getUserData.
+  * Added some missing obscure key constants.
+  * Added optional callback function argument to love.filesystem.getDirectoryItems.
+  * Added love.system.openURL.
+
+  * Deprecated Mesh/SpriteBatch/ParticleSystem:setImage.
+  * Deprecated love.graphics.getMaxImageSize and love.graphics.getMaxPointSize.
 
   * Fixed love.graphics.scale with negative values causing incorrect line widths.
   * Fixed Joystick:isDown using 0-based button index arguments.
   * Fixed Source:setPitch to error when infinity or NaN is given.
   * Fixed love.graphics.setCanvas() to restore the proper viewport and scissor rectangles.
   * Fixed TrueType font glyphs which request a monochrome bitmap pixel mode.
+  * Fixed love.graphics.reset causing crashes when called in between love.graphics.push/pop.
+  * Fixed tab characters ("\t") to display properly with love.graphics.print.
+  * Fixed love.graphics.isCreated to return false when love.window.setMode fails completely.
+  * Fixed love.window.setMode to not destroy OpenGL resources before checking whether a fullsceren size is supported.
+  * Fixed World:getBodyList and World:getJointList causing hard crashes.
+  * Fixed loading BC4 compressed textures.
+  * Fixed SoundData objects being initialized with garbage values.
+  * Fixed 8-bit SoundData samples when used in love.audio Sources.
 
-  * Updated the error text for LÖVE’s module searchers when require fails.
+  * Updated the error text for love.filesystem’s module searchers when require fails.
+  * Updated the love.filesystem module searchers to be tried after package.preload instead of before.
+  * Updated love.graphics.newParticleSystem, newSpriteBatch, and newMesh to accept Canvases.
+  * Updated Canvas drawing code, texture coordinates are no longer flipped vertically.
+  * Updated Canvas:renderTo to work properly if a Canvas is currently active.
+  * Updated ParticleSystem:setEmissionRate to accept non-integer numbers.
+  * Updated Source:play to return a boolean indicating success.
+  * Updated t.console in conf.lua to create the console before modules are loaded in Windows.
+  * Updated Mesh vertex maps (index buffers) to use less space in VRAM.
+  * Updated love.graphics.newMesh and Mesh:setVertices to default the UV parameters to 0,0.
+  * Updated Fixture:set/getUserData to work in Coroutines.
+  * Updated fullscreen-desktop and resizable window modes in OS X to use Mac OS 10.7's fullscreen Spaces.
+  * Updated love.filesystem's C library loader to look in paths added via love.filesystem.mount, in Fused mode.
+  * Updated the default love.run code to make initial love.math.random calls more random.
 
 LOVE 0.9.0 [Baby Inspector]
 ---------------------------
 
-	Released: 2013-12-13
+  Released: 2013-12-13
 
   * Added better multiplayer networking support via ENet.
   * Added --fused command line argument, to simulate fusing.
@@ -236,7 +339,7 @@ LOVE 0.9.0 [Baby Inspector]
 LOVE 0.8.0 [Rubber Piggy]
 -------------------------
 
-	Released: 2012-04-02
+  Released: 2012-04-02
 
   * Added release error screen.
   * Added alpha to love.graphics.setBackgroundColor.
@@ -327,7 +430,7 @@ LOVE 0.8.0 [Rubber Piggy]
 LOVE 0.7.2 [Game Slave]
 -----------------------
 
-	Released: 2011-05-04
+  Released: 2011-05-04
 
   * Added Framebuffer:get/setWrap.
   * Added love.event.clear.
@@ -353,7 +456,7 @@ LOVE 0.7.2 [Game Slave]
 LOVE 0.7.1 [Game Slave]
 -----------------------
 
-	Released: 2011-02-14
+  Released: 2011-02-14
 
   * Added source:isPaused()
   * Added error when initial window can't be created.
@@ -389,7 +492,7 @@ LOVE 0.7.1 [Game Slave]
 LOVE 0.7.0 [Game Slave]
 -----------------------
 
-	Released: 2010-12-05
+  Released: 2010-12-05
 
   * Added love.thread.
   * Added love.font.
@@ -445,7 +548,7 @@ LOVE 0.7.0 [Game Slave]
 LOVE 0.6.2 [Jiggly Juice]
 -------------------------
 
-	Released: 2010-03-06
+  Released: 2010-03-06
 
   * Fixed a bug causing ImageFonts to cut off some pixels.
   * Fixed a bug where filled rectangles were too small.
@@ -459,7 +562,7 @@ LOVE 0.6.2 [Jiggly Juice]
 LOVE 0.6.1 [Jiggly Juice]
 -------------------------
 
-	Released: 2010-02-07
+  Released: 2010-02-07
 
   * Added Shape:setGroupIndex and getGroupIndex.
   * Added Body:setFixedRotation and Body:getFixedRotation.
@@ -484,7 +587,7 @@ LOVE 0.6.1 [Jiggly Juice]
 LOVE 0.6.0 [Jiggly Juice]
 -------------------------
 
-	Released: 2009-12-24
+  Released: 2009-12-24
 
   * Lost track of 0.6.0 changes a long while ago. Don't trust the list below.
 
@@ -521,7 +624,7 @@ LOVE 0.6.0 [Jiggly Juice]
 LOVE 0.5.0 [Salted Nuts]
 ------------------------
 
-	Released: 2009-01-02
+  Released: 2009-01-02
 
   * Added love.joystick.
   * Added network support via LuaSocket.
@@ -558,7 +661,7 @@ LOVE 0.5.0 [Salted Nuts]
 LOVE 0.4.0 [Taco Beam]
 ----------------------
 
-	Released: 2008-08-29
+  Released: 2008-08-29
 
   * Added love.physics. (YES!)
   * Added love.audio.setMode().
@@ -572,7 +675,7 @@ LOVE 0.4.0 [Taco Beam]
 LOVE 0.3.2 [Lemony Fresh]
 -------------------------
 
-	Released: 2008-07-04
+  Released: 2008-07-04
 
   * Added love.graphics.rectangle()
   * Added love.graphics.setLineWidth()
@@ -591,7 +694,7 @@ LOVE 0.3.2 [Lemony Fresh]
 LOVE 0.3.1 [Space Meat]
 -----------------------
 
-	Released: 2008-06-21
+  Released: 2008-06-21
 
   * Fixed segfault related to graphics.
   * Fixed wait-forever bug related to audio.
@@ -602,7 +705,7 @@ LOVE 0.3.1 [Space Meat]
 LOVE 0.3.0 [Mutant Vermin]
 --------------------------
 
-	Released: 2008-06-17
+  Released: 2008-06-17
 
   * Added ParticleSystem.
   * Added visual error reporting.
@@ -622,7 +725,7 @@ LOVE 0.3.0 [Mutant Vermin]
 LOVE 0.2.1 [Impending Doom]
 ---------------------------
 
-	Released: 2008-03-29
+  Released: 2008-03-29
 
   * Added many functions in love.filesystem.
   * Added a dedicated save-folder for each game.
@@ -658,7 +761,7 @@ LOVE 0.2.1 [Impending Doom]
 LOVE 0.2.0 [Mini-Moose]
 -----------------------
 
-	Released: 2008-02-06
+  Released: 2008-02-06
 
   * Added ImageFont
   * Added Animation
@@ -679,7 +782,7 @@ LOVE 0.1.1 [Santa-Power]
 ------------------------
 
 	Initial release!
-	Released: 2008-01-13
+  Released: 2008-01-13
 
  * Image loading and rendering.
  * Sound loading and playing.

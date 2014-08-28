@@ -37,6 +37,8 @@ namespace graphics
 namespace opengl
 {
 
+int Font::fontCount = 0;
+
 const int Font::TEXTURE_WIDTHS[]  = {128, 256, 256, 512, 512, 1024, 1024};
 const int Font::TEXTURE_HEIGHTS[] = {128, 128, 256, 256, 512, 512,  1024};
 
@@ -48,6 +50,7 @@ Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	, mSpacing(1)
 	, filter(filter)
 	, useSpacesAsTab(false)
+	, textureMemorySize(0)
 {
 	this->filter.mipmap = Texture::FILTER_NONE;
 
@@ -90,12 +93,16 @@ Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
 	}
 
 	delete gd;
+
+	++fontCount;
 }
 
 Font::~Font()
 {
 	delete indexBuffer;
 	unloadVolatile();
+
+	--fontCount;
 }
 
 bool Font::initializeTexture(GLenum format)
@@ -173,6 +180,11 @@ void Font::createTexture()
 					&emptyData[0]);
 
 	setFilter(filter);
+
+	size_t prevmemsize = textureMemorySize;
+
+	textureMemorySize += emptyData.size();
+	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
 }
 
 Font::Glyph *Font::addGlyph(uint32 glyph)
@@ -414,14 +426,14 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 		{
 			// Optimization: setting a base vertex is faster than redoing the
 			// setVertexAttribArray calls before each draw.
-			glDrawElementsBaseVertex(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset, it->startvertex);
+			gl.drawElementsBaseVertex(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset, it->startvertex);
 		}
 		else
 		{
 			gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].x);
 			gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].s);
 
-			glDrawElements(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset);
+			gl.drawElements(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset);
 		}
 	}
 
@@ -598,6 +610,9 @@ void Font::unloadVolatile()
 		iter++;
 	}
 	textures.clear();
+
+	gl.updateTextureMemorySize(textureMemorySize, 0);
+	textureMemorySize = 0;
 }
 
 int Font::getAscent() const

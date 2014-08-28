@@ -21,9 +21,6 @@
 // LOVE
 #include "ddsHandler.h"
 
-// C++
-#include <algorithm>
-
 namespace love
 {
 namespace image
@@ -33,12 +30,6 @@ namespace magpie
 
 bool DDSHandler::canParse(const filesystem::FileData *data)
 {
-	std::string ext = data->getExtension();
-	std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-
-	if (ext.compare("dds") != 0)
-		return false;
-
 	return dds::isCompressedDDS(data->getData(), data->getSize());
 }
 

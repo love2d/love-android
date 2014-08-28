@@ -371,9 +371,9 @@ void Polyline::draw()
 	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, vertices);
 
 	if (use_quad_indices)
-		glDrawElements(draw_mode, (vertex_count / 4) * 6, GL_UNSIGNED_SHORT, indices);
+		gl.drawElements(draw_mode, (vertex_count / 4) * 6, GL_UNSIGNED_SHORT, indices);
 	else
-		glDrawArrays(draw_mode, 0, vertex_count);
+		gl.drawArrays(draw_mode, 0, vertex_count);
 
 	if (overdraw)
 	{
@@ -388,9 +388,9 @@ void Polyline::draw()
 		gl.setVertexAttribArray(OpenGL::ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, 0, colors);
 
 		if (use_quad_indices)
-			glDrawElements(draw_mode, (overdraw_vertex_count / 4) * 6, GL_UNSIGNED_SHORT, indices);
+			gl.drawElements(draw_mode, (overdraw_vertex_count / 4) * 6, GL_UNSIGNED_SHORT, indices);
 		else
-			glDrawArrays(draw_mode, 0, overdraw_vertex_count);
+			gl.drawArrays(draw_mode, 0, overdraw_vertex_count);
 
 		gl.disableVertexAttribArray(OpenGL::ATTRIB_COLOR);
 		gl.setColor(c);
