@@ -44,6 +44,7 @@ namespace sdl
 // we want them in pixel coordinates (may be different with high-DPI enabled.)
 static void windowToPixelCoords(int *x, int *y)
 {
+#ifndef LOVE_ANDROID
 	double scale = 1.0;
 
 	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
@@ -55,6 +56,7 @@ static void windowToPixelCoords(int *x, int *y)
 
 	if (y != nullptr)
 		*y = int(double(*y) * scale);
+#endif
 }
 
 // SDL's event watch callbacks trigger when the event is actually posted inside
