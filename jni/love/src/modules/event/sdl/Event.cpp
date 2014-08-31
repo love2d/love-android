@@ -507,14 +507,14 @@ Message *Event::convertWindowEvent(const SDL_Event &e) const
 #ifdef LOVE_ANDROID
 		case SDL_WINDOWEVENT_MINIMIZED:
 		{
-			audio::Audio *audio = (audio::Audio *) Module::getInstance("love.audio.");
+			audio::Audio *audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
 			if (audio)
 				audio->pause();
 		}
 		break;
 		case SDL_WINDOWEVENT_RESTORED:
 		{
-			audio::Audio *audio = (audio::Audio *) Module::getInstance("love.audio.");
+			audio::Audio *audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
 			if (audio)
 				audio->resume();
 		}
