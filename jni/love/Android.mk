@@ -6,7 +6,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE    := liblove
 LOCAL_CFLAGS    := -fexceptions -g -Dlinux -Dunix \
 	-DHAVE_GCC_DESTRUCTOR=1 -DOPT_GENERIC -DREAL_IS_FLOAT \
-	-DGL_GLEXT_PROTOTYPES -DLOVE_TURBO_JPEG -DLOVE_NO_DEVIL
+	-DGL_GLEXT_PROTOTYPES -DLOVE_TURBO_JPEG -DLOVE_NO_DEVIL \
+	-DAL_ALEXT_PROTOTYPES
 
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS} 
 
@@ -21,8 +22,8 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../libjpeg-turbo-1.3.1/ \
 	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff \
-	${LOCAL_PATH}/../openal-soft-android/include \
-	${LOCAL_PATH}/../openal-soft-android/OpenAL32/Include \
+	${LOCAL_PATH}/../openal-soft-1.16.0/include \
+	${LOCAL_PATH}/../openal-soft-1.16.0/OpenAL32/Include \
 	${LOCAL_PATH}/../freetype2-android/include \
 	${LOCAL_PATH}/../freetype2-android/src \
 	${LOCAL_PATH}/../physfs-2.1.0/src \
