@@ -192,6 +192,9 @@ void Audio::pause(love::audio::Source *source)
 void Audio::pause()
 {
 	pool->pause();
+#ifdef LOVE_ANDROID
+	alcDevicePauseSOFT (device);
+#endif
 }
 
 void Audio::resume(love::audio::Source *source)
@@ -201,6 +204,9 @@ void Audio::resume(love::audio::Source *source)
 
 void Audio::resume()
 {
+#ifdef LOVE_ANDROID
+	alcDeviceResumeSOFT(device);
+#endif
 	pool->resume();
 }
 
