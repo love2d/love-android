@@ -108,9 +108,9 @@ WIN_SetWindowPositionInternal(_THIS, SDL_Window * window, UINT flags)
     x = window->x + rect.left;
     y = window->y + rect.top;
 
-    data->expected_resize = TRUE;
-    SetWindowPos(hwnd, top, x, y, w, h, flags);
-    data->expected_resize = FALSE;
+    data->expected_resize = SDL_TRUE;
+    SetWindowPos( hwnd, top, x, y, w, h, flags );
+    data->expected_resize = SDL_FALSE;
 }
 
 static int
@@ -343,15 +343,16 @@ WIN_CreateWindowFrom(_THIS, SDL_Window * window, const void *data)
     {
         const char *hint = SDL_GetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT);
         if (hint) {
-            // This hint is a pointer (in string form) of the address of
-            // the window to share a pixel format with
+            /* This hint is a pointer (in string form) of the address of
+               the window to share a pixel format with
+            */
             SDL_Window *otherWindow = NULL;
             SDL_sscanf(hint, "%p", (void**)&otherWindow);
 
-            // Do some error checking on the pointer
+            /* Do some error checking on the pointer */
             if (otherWindow != NULL && otherWindow->magic == &_this->window_magic)
             {
-                // If the otherWindow has SDL_WINDOW_OPENGL set, set it for the new window as well
+                /* If the otherWindow has SDL_WINDOW_OPENGL set, set it for the new window as well */
                 if (otherWindow->flags & SDL_WINDOW_OPENGL)
                 {
                     window->flags |= SDL_WINDOW_OPENGL;
@@ -469,9 +470,9 @@ WIN_MaximizeWindow(_THIS, SDL_Window * window)
 {
     SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
     HWND hwnd = data->hwnd;
-    data->expected_resize = TRUE;
+    data->expected_resize = SDL_TRUE;
     ShowWindow(hwnd, SW_MAXIMIZE);
-    data->expected_resize = FALSE;
+    data->expected_resize = SDL_FALSE;
 }
 
 void
@@ -484,7 +485,8 @@ WIN_MinimizeWindow(_THIS, SDL_Window * window)
 void
 WIN_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)
 {
-    HWND hwnd = ((SDL_WindowData *) window->driverdata)->hwnd;
+    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    HWND hwnd = data->hwnd;
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
 
     if (bordered) {
@@ -495,8 +497,10 @@ WIN_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)
         style |= STYLE_BORDERLESS;
     }
 
-    SetWindowLong(hwnd, GWL_STYLE, style);
-    WIN_SetWindowPositionInternal(_this, window, SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_NOREPOSITION | SWP_NOZORDER |SWP_NOACTIVATE | SWP_NOSENDCHANGING);
+    data->in_border_change = SDL_TRUE;
+    SetWindowLong( hwnd, GWL_STYLE, style );
+    WIN_SetWindowPositionInternal(_this, window, SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
+    data->in_border_change = SDL_FALSE;
 }
 
 void
@@ -504,9 +508,9 @@ WIN_RestoreWindow(_THIS, SDL_Window * window)
 {
     SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
     HWND hwnd = data->hwnd;
-    data->expected_resize = TRUE;
+    data->expected_resize = SDL_TRUE;
     ShowWindow(hwnd, SW_RESTORE);
-    data->expected_resize = FALSE;
+    data->expected_resize = SDL_FALSE;
 }
 
 void
@@ -552,9 +556,9 @@ WIN_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display, 
         y = window->windowed.y + rect.top;
     }
     SetWindowLong(hwnd, GWL_STYLE, style);
-    data->expected_resize = TRUE;
+    data->expected_resize = SDL_TRUE;
     SetWindowPos(hwnd, top, x, y, w, h, SWP_NOCOPYBITS | SWP_NOACTIVATE);
-    data->expected_resize = FALSE;
+    data->expected_resize = SDL_FALSE;
 }
 
 int
@@ -633,6 +637,7 @@ WIN_DestroyWindow(_THIS, SDL_Window * window)
         }
         SDL_free(data);
     }
+    window->driverdata = NULL;
 }
 
 SDL_bool
@@ -745,9 +750,7 @@ WIN_UpdateClipCursor(SDL_Window *window)
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
     SDL_Mouse *mouse = SDL_GetMouse();
 
-    /* Don't clip the cursor while we're in the modal resize or move loop */
-    if (data->in_title_click || data->in_modal_loop) {
-        ClipCursor(NULL);
+    if (data->focus_click_pending) {
         return;
     }
 
@@ -779,6 +782,12 @@ WIN_UpdateClipCursor(SDL_Window *window)
     } else {
         ClipCursor(NULL);
     }
+}
+
+int
+WIN_SetWindowHitTest(SDL_Window *window, SDL_bool enabled)
+{
+    return 0;  /* just succeed, the real work is done elsewhere. */
 }
 
 #endif /* SDL_VIDEO_DRIVER_WINDOWS */

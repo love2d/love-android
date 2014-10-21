@@ -375,7 +375,7 @@ int
 X11_InitModes(_THIS)
 {
     SDL_VideoData *data = (SDL_VideoData *) _this->driverdata;
-    int screen, screencount;
+    int snum, screen, screencount;
 #if SDL_VIDEO_DRIVER_X11_XINERAMA
     int xinerama_major, xinerama_minor;
     int use_xinerama = 0;
@@ -423,7 +423,7 @@ X11_InitModes(_THIS)
     }
 #endif /* SDL_VIDEO_DRIVER_X11_XVIDMODE */
 
-    for (screen = 0; screen < screencount; ++screen) {
+    for (snum = 0; snum < screencount; ++snum) {
         XVisualInfo vinfo;
         SDL_VideoDisplay display;
         SDL_DisplayData *displaydata;
@@ -432,6 +432,15 @@ X11_InitModes(_THIS)
         XPixmapFormatValues *pixmapFormats;
         char display_name[128];
         int i, n;
+
+        /* Re-order screens to always put default screen first */
+        if (snum == 0) {
+            screen = DefaultScreen(data->display);
+        } else if (snum == DefaultScreen(data->display)) {
+            screen = 0;
+        } else {
+            screen = snum;
+        }
 
 #if SDL_VIDEO_DRIVER_X11_XINERAMA
         if (xinerama) {
@@ -674,7 +683,6 @@ X11_GetDisplayModes(_THIS, SDL_VideoDisplay * sdl_display)
     int screen_w;
     int screen_h;
     SDL_DisplayMode mode;
-    SDL_DisplayModeData *modedata;
 
     /* Unfortunately X11 requires the window to be created with the correct
      * visual and depth ahead of time, but the SDL API allows you to create
@@ -692,6 +700,7 @@ X11_GetDisplayModes(_THIS, SDL_VideoDisplay * sdl_display)
     if (data->use_xinerama) {
         if (data->use_vidmode && !data->xinerama_info.x_org && !data->xinerama_info.y_org &&
            (screen_w > data->xinerama_info.width || screen_h > data->xinerama_info.height)) {
+            SDL_DisplayModeData *modedata;
             /* Add the full (both screens combined) xinerama mode only on the display that starts at 0,0
              * if we're using vidmode.
              */
@@ -707,6 +716,7 @@ X11_GetDisplayModes(_THIS, SDL_VideoDisplay * sdl_display)
         }
         else if (!data->use_xrandr)
         {
+            SDL_DisplayModeData *modedata;
             /* Add the current mode of each monitor otherwise if we can't get them from xrandr */
             mode.w = data->xinerama_info.width;
             mode.h = data->xinerama_info.height;
@@ -759,6 +769,7 @@ X11_GetDisplayModes(_THIS, SDL_VideoDisplay * sdl_display)
     if (data->use_vidmode &&
         X11_XF86VidModeGetAllModeLines(display, data->vidmode_screen, &nmodes, &modes)) {
         int i;
+        SDL_DisplayModeData *modedata;
 
 #ifdef X11MODES_DEBUG
         printf("VidMode modes: (unsorted)\n");
@@ -787,6 +798,7 @@ X11_GetDisplayModes(_THIS, SDL_VideoDisplay * sdl_display)
 #endif /* SDL_VIDEO_DRIVER_X11_XVIDMODE */
 
     if (!data->use_xrandr && !data->use_vidmode) {
+        SDL_DisplayModeData *modedata;
         /* Add the desktop mode */
         mode = sdl_display->desktop_mode;
         modedata = (SDL_DisplayModeData *) SDL_calloc(1, sizeof(SDL_DisplayModeData));

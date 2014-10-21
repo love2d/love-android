@@ -10,6 +10,8 @@ LIBS	= @LIBS@
 TARGETS = \
 	checkkeys$(EXE) \
 	loopwave$(EXE) \
+	loopwavequeue$(EXE) \
+	testatomic$(EXE) \
 	testaudioinfo$(EXE) \
 	testautomation$(EXE) \
 	testdraw2$(EXE) \
@@ -23,6 +25,7 @@ TARGETS = \
 	testgles$(EXE) \
 	testgles2$(EXE) \
 	testhaptic$(EXE) \
+	testhittesting$(EXE) \
 	testrumble$(EXE) \
 	testhotplug$(EXE) \
 	testthread$(EXE) \
@@ -69,6 +72,9 @@ checkkeys$(EXE): $(srcdir)/checkkeys.c
 loopwave$(EXE): $(srcdir)/loopwave.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
+loopwavequeue$(EXE): $(srcdir)/loopwavequeue.c
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
 testresample$(EXE): $(srcdir)/testresample.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
@@ -92,7 +98,8 @@ testautomation$(EXE): $(srcdir)/testautomation.c \
 		      $(srcdir)/testautomation_surface.c \
 		      $(srcdir)/testautomation_syswm.c \
 		      $(srcdir)/testautomation_timer.c \
-		      $(srcdir)/testautomation_video.c
+		      $(srcdir)/testautomation_video.c \
+		      $(srcdir)/testautomation_hints.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) 
 
 testmultiaudio$(EXE): $(srcdir)/testmultiaudio.c
@@ -105,6 +112,9 @@ testintersections$(EXE): $(srcdir)/testintersections.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 testrelative$(EXE): $(srcdir)/testrelative.c
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+testhittesting$(EXE): $(srcdir)/testhittesting.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 testdraw2$(EXE): $(srcdir)/testdraw2.c

@@ -306,6 +306,7 @@ static void InitEventQueue(SDL_EventQueue *queue)
 #ifdef TEST_SPINLOCK_FIFO
     queue->lock = 0;
     SDL_AtomicSet(&queue->rwcount, 0);
+    SDL_AtomicSet(&queue->watcher, 0);
 #endif
     queue->active = SDL_TRUE;
 }
@@ -699,7 +700,7 @@ static void RunFIFOTest(SDL_bool lock_free)
         }
         len = SDL_strlen(textBuffer);
         SDL_snprintf(textBuffer + len, sizeof(textBuffer) - len, " }\n");
-		SDL_Log(textBuffer);
+		SDL_Log("%s", textBuffer);
     }
     SDL_Log("Readers read %d total events\n", grand_total);
 }

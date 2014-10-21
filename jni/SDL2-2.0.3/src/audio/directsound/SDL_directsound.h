@@ -23,7 +23,7 @@
 #ifndef _SDL_directsound_h
 #define _SDL_directsound_h
 
-#include "directx.h"
+#include "../../core/windows/SDL_directx.h"
 
 #include "../SDL_sysaudio.h"
 

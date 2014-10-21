@@ -59,7 +59,7 @@ typedef enum
     /* Application events */
     SDL_QUIT           = 0x100, /**< User-requested quit */
 
-    /* These application events have special meaning on iOS, see README-ios.txt for details */
+    /* These application events have special meaning on iOS, see README-ios.md for details */
     SDL_APP_TERMINATING,        /**< The application is being terminated by the OS
                                      Called on iOS in applicationWillTerminate()
                                      Called on Android in onDestroy()
@@ -135,7 +135,8 @@ typedef enum
     SDL_DROPFILE        = 0x1000, /**< The system requests a file open */
 
     /* Render events */
-    SDL_RENDER_TARGETS_RESET = 0x2000, /**< The render targets have been reset */
+    SDL_RENDER_TARGETS_RESET = 0x2000, /**< The render targets have been reset and their contents need to be updated */
+    SDL_RENDER_DEVICE_RESET, /**< The device has been reset and all textures need to be recreated */
 
     /** Events ::SDL_USEREVENT through ::SDL_LASTEVENT are for your use,
      *  and should be allocated with SDL_RegisterEvents()
@@ -583,6 +584,9 @@ extern DECLSPEC SDL_bool SDLCALL SDL_HasEvents(Uint32 minType, Uint32 maxType);
 
 /**
  *  This function clears events from the event queue
+ *  This function only affects currently queued events. If you want to make
+ *  sure that all pending OS events are flushed, you can call SDL_PumpEvents()
+ *  on the main thread immediately before the flush call.
  */
 extern DECLSPEC void SDLCALL SDL_FlushEvent(Uint32 type);
 extern DECLSPEC void SDLCALL SDL_FlushEvents(Uint32 minType, Uint32 maxType);

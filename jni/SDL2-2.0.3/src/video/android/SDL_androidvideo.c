@@ -76,6 +76,12 @@ Android_Available(void)
 }
 
 static void
+Android_SuspendScreenSaver(_THIS)
+{
+    Android_JNI_SuspendScreenSaver(_this->suspend_screensaver);
+}
+
+static void
 Android_DeleteDevice(SDL_VideoDevice * device)
 {
     SDL_free(device);
@@ -111,6 +117,7 @@ Android_CreateDevice(int devindex)
     device->CreateWindow = Android_CreateWindow;
     device->SetWindowTitle = Android_SetWindowTitle;
     device->DestroyWindow = Android_DestroyWindow;
+    device->GetWindowWMInfo = Android_GetWindowWMInfo;
 
     device->free = Android_DeleteDevice;
 
@@ -124,6 +131,9 @@ Android_CreateDevice(int devindex)
     device->GL_GetSwapInterval = Android_GLES_GetSwapInterval;
     device->GL_SwapWindow = Android_GLES_SwapWindow;
     device->GL_DeleteContext = Android_GLES_DeleteContext;
+
+    /* Screensaver */
+    device->SuspendScreenSaver = Android_SuspendScreenSaver;
 
     /* Text input */
     device->StartTextInput = Android_StartTextInput;

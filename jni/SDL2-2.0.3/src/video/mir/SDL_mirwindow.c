@@ -84,7 +84,8 @@ MIR_CreateWindow(_THIS, SDL_Window* window)
         .width = window->w,
         .height = window->h,
         .pixel_format = mir_pixel_format_invalid,
-        .buffer_usage = mir_buffer_usage_hardware
+        .buffer_usage = mir_buffer_usage_hardware,
+        .output_id = mir_display_output_id_invalid
     };
 
     MirEventDelegate delegate = {
@@ -98,6 +99,9 @@ MIR_CreateWindow(_THIS, SDL_Window* window)
 
     mir_data = _this->driverdata;
     window->driverdata = mir_window;
+
+    if (mir_data->software)
+        surfaceparm.buffer_usage = mir_buffer_usage_software;
 
     if (window->x == SDL_WINDOWPOS_UNDEFINED)
         window->x = 0;
@@ -145,14 +149,13 @@ MIR_DestroyWindow(_THIS, SDL_Window* window)
     MIR_Data* mir_data = _this->driverdata;
     MIR_Window* mir_window = window->driverdata;
 
-    window->driverdata = NULL;
-
     if (mir_data) {
         SDL_EGL_DestroySurface(_this, mir_window->egl_surface);
         MIR_mir_surface_release_sync(mir_window->surface);
 
         SDL_free(mir_window);
     }
+    window->driverdata = NULL;
 }
 
 SDL_bool

@@ -59,7 +59,7 @@ extern DECLSPEC IDirect3DDevice9* SDLCALL SDL_RenderGetD3D9Device(SDL_Renderer *
    These can be passed to EnumAdapters and EnumOutputs respectively to get the objects
    required to create a DX10 or DX11 device and swap chain.
  */
-extern DECLSPEC void SDLCALL SDL_DXGIGetOutputInfo( int displayIndex, int *adapterIndex, int *outputIndex );
+extern DECLSPEC SDL_bool SDLCALL SDL_DXGIGetOutputInfo( int displayIndex, int *adapterIndex, int *outputIndex );
 
 #endif /* __WIN32__ */
 
@@ -178,7 +178,6 @@ extern DECLSPEC const wchar_t * SDLCALL SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path
 extern DECLSPEC const char * SDLCALL SDL_WinRTGetFSPathUTF8(SDL_WinRT_Path pathType);
 
 #endif /* __WINRT__ */
-
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

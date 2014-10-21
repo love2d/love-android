@@ -77,6 +77,10 @@ typedef unsigned int uintptr_t;
 #endif
 
 /* Useful headers */
+#define HAVE_DXGI_H 1
+#if WINAPI_FAMILY != WINAPI_FAMILY_PHONE_APP
+#define HAVE_XINPUT_H 1
+#endif
 #define HAVE_LIBC 1
 #define HAVE_STDIO_H 1
 #define STDC_HEADERS 1
@@ -136,6 +140,9 @@ typedef unsigned int uintptr_t;
 #define HAVE_SIN 1
 #define HAVE_SINF 1
 #define HAVE_SQRT 1
+#define HAVE_SQRTF 1
+#define HAVE_TAN 1
+#define HAVE_TANF 1
 #define HAVE__FSEEKI64 1
 
 /* Enable various audio drivers */
@@ -144,13 +151,12 @@ typedef unsigned int uintptr_t;
 #define SDL_AUDIO_DRIVER_DUMMY	1
 
 /* Enable various input drivers */
-// TODO, WinRT: Get haptic support working
-#define SDL_HAPTIC_DISABLED	1
-
 #if WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP
 #define SDL_JOYSTICK_DISABLED 1
+#define SDL_HAPTIC_DISABLED	1
 #else
 #define SDL_JOYSTICK_XINPUT 1
+#define SDL_HAPTIC_XINPUT   1
 #endif
 
 /* Enable various shared object loading systems */

@@ -109,9 +109,9 @@ WatchJoystick(SDL_Joystick * joystick)
     SDL_Rect dst;
     int s, _s;
     Uint8 alpha=200, alpha_step = -1;
-    Uint32 alpha_ticks;
+    Uint32 alpha_ticks = 0;
     char mapping[4096], temp[4096];
-    MappingStep *step;
+    MappingStep *step, *prev_step;
     MappingStep steps[] = {
         {342, 132,  0.0,  MARKER_BUTTON, "x", -1, -1, -1, -1, ""},
         {387, 167,  0.0,  MARKER_BUTTON, "a", -1, -1, -1, -1, ""},
@@ -251,6 +251,9 @@ WatchJoystick(SDL_Joystick * joystick)
                     
                     break;
                 case SDL_JOYHATMOTION:
+                        if (event.jhat.value == SDL_HAT_CENTERED) {
+                            break;  /* ignore centering, we're probably just coming back to the center from the previous item we set. */
+                        }
                         for (_s = 0; _s < s; _s++) {
                             if (steps[_s].hat == event.jhat.hat && steps[_s].hat_value == event.jhat.value) {
                                 break;
@@ -293,8 +296,8 @@ WatchJoystick(SDL_Joystick * joystick)
                     if (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_AC_BACK) {
                         /* Undo! */
                         if (s > 0) {
-                            SDL_strlcpy(mapping, step->mapping, SDL_arraysize(step->mapping));
-                            s--;
+                            prev_step = &steps[--s];
+                            SDL_strlcpy(mapping, prev_step->mapping, SDL_arraysize(prev_step->mapping));
                             next = SDL_TRUE;
                         }
                         break;
@@ -373,7 +376,7 @@ main(int argc, char *argv[])
         }
     }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     if (SDL_NumJoysticks() > 0) {
 #else
     if (argv[1]) {
@@ -382,7 +385,7 @@ main(int argc, char *argv[])
         SDL_bool keepGoing = SDL_TRUE;
         SDL_Event event;
         int device;
-#ifdef ANDROID
+#ifdef __ANDROID__
         device = 0;
 #else
         device = atoi(argv[1]);

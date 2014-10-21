@@ -82,14 +82,14 @@ SDL_RenderDriver SW_RenderDriver = {
      SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE,
      8,
      {
-      SDL_PIXELFORMAT_RGB555,
-      SDL_PIXELFORMAT_RGB565,
+      SDL_PIXELFORMAT_ARGB8888,
+      SDL_PIXELFORMAT_ABGR8888,
+      SDL_PIXELFORMAT_RGBA8888,
+      SDL_PIXELFORMAT_BGRA8888,
       SDL_PIXELFORMAT_RGB888,
       SDL_PIXELFORMAT_BGR888,
-      SDL_PIXELFORMAT_ARGB8888,
-      SDL_PIXELFORMAT_RGBA8888,
-      SDL_PIXELFORMAT_ABGR8888,
-      SDL_PIXELFORMAT_BGRA8888
+      SDL_PIXELFORMAT_RGB565,
+      SDL_PIXELFORMAT_RGB555
      },
      0,
      0}
@@ -146,6 +146,7 @@ SW_CreateRendererForSurface(SDL_Surface * surface)
         return NULL;
     }
     data->surface = surface;
+    data->window = surface;
 
     renderer->WindowEvent = SW_WindowEvent;
     renderer->GetOutputSize = SW_GetOutputSize;
@@ -347,11 +348,9 @@ SW_UpdateClipRect(SDL_Renderer * renderer)
 {
     SW_RenderData *data = (SW_RenderData *) renderer->driverdata;
     SDL_Surface *surface = data->surface;
-    const SDL_Rect *rect = &renderer->clip_rect;
-
     if (surface) {
-        if (!SDL_RectEmpty(rect)) {
-            SDL_SetClipRect(surface, rect);
+        if (renderer->clipping_enabled) {
+            SDL_SetClipRect(surface, &renderer->clip_rect);
         } else {
             SDL_SetClipRect(surface, NULL);
         }

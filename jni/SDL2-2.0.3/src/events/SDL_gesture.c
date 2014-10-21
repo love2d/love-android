@@ -27,13 +27,9 @@
 #include "SDL_events_c.h"
 #include "SDL_gesture_c.h"
 
-#if !defined(__PSP__)
-#include <memory.h>
-#endif
-
-#include <string.h>
+/*
 #include <stdio.h>
-#include <math.h>
+*/
 
 /* TODO: Replace with malloc */
 
@@ -137,7 +133,7 @@ int SDL_SaveAllDollarTemplates(SDL_RWops *dst)
     for (i = 0; i < SDL_numGestureTouches; i++) {
         SDL_GestureTouch* touch = &SDL_gestureTouch[i];
         for (j = 0; j < touch->numDollarTemplates; j++) {
-            rtrn += SaveTemplate(&touch->dollarTemplate[i], dst);
+            rtrn += SaveTemplate(&touch->dollarTemplate[j], dst);
         }
     }
     return rtrn;
@@ -149,8 +145,8 @@ int SDL_SaveDollarTemplate(SDL_GestureID gestureId, SDL_RWops *dst)
     for (i = 0; i < SDL_numGestureTouches; i++) {
         SDL_GestureTouch* touch = &SDL_gestureTouch[i];
         for (j = 0; j < touch->numDollarTemplates; j++) {
-            if (touch->dollarTemplate[i].hash == gestureId) {
-                return SaveTemplate(&touch->dollarTemplate[i], dst);
+            if (touch->dollarTemplate[j].hash == gestureId) {
+                return SaveTemplate(&touch->dollarTemplate[j], dst);
             }
         }
     }
@@ -454,8 +450,8 @@ static int SDL_SendGestureDollar(SDL_GestureTouch* touch,
     SDL_Event event;
     event.dgesture.type = SDL_DOLLARGESTURE;
     event.dgesture.touchId = touch->id;
-    event.mgesture.x = touch->centroid.x;
-    event.mgesture.y = touch->centroid.y;
+    event.dgesture.x = touch->centroid.x;
+    event.dgesture.y = touch->centroid.y;
     event.dgesture.gestureId = gestureId;
     event.dgesture.error = error;
     /* A finger came up to trigger this event. */
@@ -477,7 +473,6 @@ static int SDL_SendDollarRecord(SDL_GestureTouch* touch,SDL_GestureID gestureId)
 void SDL_GestureProcessEvent(SDL_Event* event)
 {
     float x,y;
-    SDL_FloatPoint path[DOLLARNPOINTS];
     int index;
     int i;
     float pathDx, pathDy;
@@ -501,6 +496,8 @@ void SDL_GestureProcessEvent(SDL_Event* event)
 
         /* Finger Up */
         if (event->type == SDL_FINGERUP) {
+            SDL_FloatPoint path[DOLLARNPOINTS];
+
             inTouch->numDownFingers--;
 
 #ifdef ENABLE_DOLLAR

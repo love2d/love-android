@@ -601,6 +601,36 @@ macro(CheckDirectFB)
 endmacro(CheckDirectFB)
 
 # Requires:
+# - n/a
+macro(CheckVivante)
+  if(VIDEO_VIVANTE)
+    check_c_source_compiles("
+        #include <gc_vdk.h>
+        int main(int argc, char** argv) {}" HAVE_VIDEO_VIVANTE_VDK)
+    check_c_source_compiles("
+        #define LINUX
+        #define EGL_API_FB
+        #include <EGL/eglvivante.h>
+        int main(int argc, char** argv) {}" HAVE_VIDEO_VIVANTE_EGL_FB)
+    if(HAVE_VIDEO_VIVANTE_VDK OR HAVE_VIDEO_VIVANTE_EGL_FB)
+      set(HAVE_VIDEO_VIVANTE TRUE)
+      set(HAVE_SDL_VIDEO TRUE)
+
+      file(GLOB VIVANTE_SOURCES ${SDL2_SOURCE_DIR}/src/video/vivante/*.c)
+      set(SOURCE_FILES ${SOURCE_FILES} ${VIVANTE_SOURCES})
+      set(SDL_VIDEO_DRIVER_VIVANTE 1)
+      if(HAVE_VIDEO_VIVANTE_VDK)
+        set(SDL_VIDEO_DRIVER_VIVANTE_VDK 1)
+        list(APPEND EXTRA_LIBS VDK VIVANTE)
+      else()
+        set(SDL_CFLAGS "${SDL_CFLAGS} -DLINUX -DEGL_API_FB")
+        list(APPEND EXTRA_LIBS EGL)
+      endif(HAVE_VIDEO_VIVANTE_VDK)
+    endif(HAVE_VIDEO_VIVANTE_VDK OR HAVE_VIDEO_VIVANTE_EGL_FB)
+  endif(VIDEO_VIVANTE)
+endmacro(CheckVivante)
+
+# Requires:
 # - nada
 macro(CheckOpenGLX11)
   if(VIDEO_OPENGL)
@@ -624,6 +654,7 @@ endmacro(CheckOpenGLX11)
 macro(CheckOpenGLESX11)
   if(VIDEO_OPENGLES)
     check_c_source_compiles("
+        #define EGL_API_FB
         #include <EGL/egl.h>
         int main (int argc, char** argv) {}" HAVE_VIDEO_OPENGL_EGL)
     if(HAVE_VIDEO_OPENGL_EGL)
@@ -752,13 +783,6 @@ macro(CheckPTHREAD)
               }" HAVE_SEM_TIMEDWAIT)
         endif(HAVE_PTHREADS_SEM)
       endif(PTHREADS_SEM)
-
-      check_c_source_compiles("
-          #include <pthread.h>
-          int main(int argc, char** argv) {
-              pthread_spin_trylock(NULL);
-              return 0;
-          }" HAVE_PTHREAD_SPINLOCK)
 
       check_c_source_compiles("
           #include <pthread.h>
@@ -924,3 +948,32 @@ macro(CheckUSBHID)
     set(CMAKE_REQUIRED_FLAGS)
   endif(HAVE_USBHID)
 endmacro(CheckUSBHID)
+
+# Requires:
+# - n/a
+macro(CheckRPI)
+  if(VIDEO_RPI)
+    set(VIDEO_RPI_INCLUDE_DIRS "/opt/vc/include" "/opt/vc/include/interface/vcos/pthreads" "/opt/vc/include/interface/vmcs_host/linux/" )
+    set(VIDEO_RPI_LIBRARY_DIRS "/opt/vc/lib" )
+    set(VIDEO_RPI_LIBS bcm_host )
+    listtostr(VIDEO_RPI_INCLUDE_DIRS VIDEO_RPI_INCLUDE_FLAGS "-I")
+    listtostr(VIDEO_RPI_LIBRARY_DIRS VIDEO_RPI_LIBRARY_FLAGS "-L")
+
+    set(CMAKE_REQUIRED_FLAGS "${VIDEO_RPI_INCLUDE_FLAGS} ${VIDEO_RPI_LIBRARY_FLAGS}")
+    set(CMAKE_REQUIRED_LIBRARIES "${VIDEO_RPI_LIBS}")
+    check_c_source_compiles("
+        #include <bcm_host.h>
+        int main(int argc, char **argv) {}" HAVE_VIDEO_RPI)
+    set(CMAKE_REQUIRED_FLAGS)
+    set(CMAKE_REQUIRED_LIBRARIES)
+
+    if(SDL_VIDEO AND HAVE_VIDEO_RPI)
+      set(HAVE_SDL_VIDEO TRUE)
+      set(SDL_VIDEO_DRIVER_RPI 1)
+      file(GLOB VIDEO_RPI_SOURCES ${SDL2_SOURCE_DIR}/src/video/raspberry/*.c)
+      set(SOURCE_FILES ${SOURCE_FILES} ${VIDEO_RPI_SOURCES})
+      list(APPEND EXTRA_LIBS ${VIDEO_RPI_LIBS})
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VIDEO_RPI_INCLUDE_FLAGS} ${VIDEO_RPI_LIBRARY_FLAGS}")
+    endif(SDL_VIDEO AND HAVE_VIDEO_RPI)
+  endif(VIDEO_RPI)
+endmacro(CheckRPI)

@@ -22,13 +22,6 @@
 
 #if SDL_VIDEO_DRIVER_COCOA
 
-#if defined(__APPLE__) && defined(__POWERPC__) && !defined(__APPLE_ALTIVEC__)
-#include <altivec.h>
-#undef bool
-#undef vector
-#undef pixel
-#endif
-
 #include "SDL_events.h"
 #include "SDL_timer.h"
 #include "SDL_messagebox.h"
@@ -86,10 +79,9 @@
 /* Display a Cocoa message box */
 int
 Cocoa_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)
+{ @autoreleasepool
 {
     Cocoa_RegisterApp();
-
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSAlert* alert = [[[NSAlert alloc] init] autorelease];
 
@@ -125,20 +117,15 @@ Cocoa_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)
 
     int returnValue = 0;
     NSInteger clicked = presenter->clicked;
-    if (clicked >= NSAlertFirstButtonReturn)
-    {
+    if (clicked >= NSAlertFirstButtonReturn) {
         clicked -= NSAlertFirstButtonReturn;
         *buttonid = buttons[clicked].buttonid;
+    } else {
+        returnValue = SDL_SetError("Did not get a valid `clicked button' id: %ld", (long)clicked);
     }
-    else
-    {
-        returnValue = SDL_SetError("Did not get a valid `clicked button' id: %d", clicked);
-    }
-
-    [pool release];
 
     return returnValue;
-}
+}}
 
 #endif /* SDL_VIDEO_DRIVER_COCOA */
 

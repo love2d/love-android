@@ -91,10 +91,10 @@ void _uikit_keyboard_init() ;
             CGPoint locationInView = [self touchLocation:touch shouldNormalize:NO];
 
             /* send moved event */
-            SDL_SendMouseMotion(NULL, SDL_TOUCH_MOUSEID, 0, locationInView.x, locationInView.y);
+            SDL_SendMouseMotion(self->viewcontroller.window, SDL_TOUCH_MOUSEID, 0, locationInView.x, locationInView.y);
 
             /* send mouse down event */
-            SDL_SendMouseButton(NULL, SDL_TOUCH_MOUSEID, SDL_PRESSED, SDL_BUTTON_LEFT);
+            SDL_SendMouseButton(self->viewcontroller.window, SDL_TOUCH_MOUSEID, SDL_PRESSED, SDL_BUTTON_LEFT);
 
             leftFingerDown = touch;
         }
@@ -130,7 +130,7 @@ void _uikit_keyboard_init() ;
     while(touch) {
         if (touch == leftFingerDown) {
             /* send mouse up */
-            SDL_SendMouseButton(NULL, SDL_TOUCH_MOUSEID, SDL_RELEASED, SDL_BUTTON_LEFT);
+            SDL_SendMouseButton(self->viewcontroller.window, SDL_TOUCH_MOUSEID, SDL_RELEASED, SDL_BUTTON_LEFT);
             leftFingerDown = nil;
         }
 
@@ -173,7 +173,7 @@ void _uikit_keyboard_init() ;
             CGPoint locationInView = [self touchLocation:touch shouldNormalize:NO];
 
             /* send moved event */
-            SDL_SendMouseMotion(NULL, SDL_TOUCH_MOUSEID, 0, locationInView.x, locationInView.y);
+            SDL_SendMouseMotion(self->viewcontroller.window, SDL_TOUCH_MOUSEID, 0, locationInView.x, locationInView.y);
         }
 
         CGPoint locationInView = [self touchLocation:touch shouldNormalize:YES];
@@ -372,6 +372,7 @@ void _uikit_keyboard_update() {
     int height = view.keyboardHeight;
     int offsetx = 0;
     int offsety = 0;
+    float scale = [UIScreen mainScreen].scale;
     if (height) {
         int sw,sh;
         SDL_GetWindowSize(window,&sw,&sh);
@@ -392,11 +393,10 @@ void _uikit_keyboard_update() {
     if (ui_orient == UIInterfaceOrientationPortraitUpsideDown) {
         offsety = -offsety;
     }
-    if ([[UIScreen mainScreen] respondsToSelector:@selector(displayLinkWithTarget:selector:)]) {
-        float scale = [UIScreen mainScreen].scale;
-        offsetx /= scale;
-        offsety /= scale;
-    }
+
+    offsetx /= scale;
+    offsety /= scale;
+
     view.frame = CGRectMake(offsetx,offsety,view.frame.size.width,view.frame.size.height);
 }
 
@@ -424,9 +424,7 @@ void _uikit_keyboard_init() {
                         if (ui_orient == UIInterfaceOrientationLandscapeRight || ui_orient == UIInterfaceOrientationLandscapeLeft) {
                             height = keyboardSize.width;
                         }
-                        if ([[UIScreen mainScreen] respondsToSelector:@selector(displayLinkWithTarget:selector:)]) {
-                            height *= [UIScreen mainScreen].scale;
-                        }
+                        height *= [UIScreen mainScreen].scale;
                         _uikit_keyboard_set_height(height);
                     }
      ];

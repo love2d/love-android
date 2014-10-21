@@ -285,42 +285,39 @@ GLES_CreateRenderer(SDL_Window * window, Uint32 flags)
     SDL_Renderer *renderer;
     GLES_RenderData *data;
     GLint value;
-    Uint32 windowFlags;
+    Uint32 window_flags;
     int profile_mask, major, minor;
+    SDL_bool changed_window = SDL_FALSE;
 
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile_mask);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
 
-    windowFlags = SDL_GetWindowFlags(window);
-    if (!(windowFlags & SDL_WINDOW_OPENGL) ||
+    window_flags = SDL_GetWindowFlags(window);
+    if (!(window_flags & SDL_WINDOW_OPENGL) ||
         profile_mask != SDL_GL_CONTEXT_PROFILE_ES || major != RENDERER_CONTEXT_MAJOR || minor != RENDERER_CONTEXT_MINOR) {
 
+        changed_window = SDL_TRUE;
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, RENDERER_CONTEXT_MAJOR);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, RENDERER_CONTEXT_MINOR);
 
-        if (SDL_RecreateWindow(window, windowFlags | SDL_WINDOW_OPENGL) < 0) {
-            /* Uh oh, better try to put it back... */
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile_mask);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
-            SDL_RecreateWindow(window, windowFlags);
-            return NULL;
+        if (SDL_RecreateWindow(window, window_flags | SDL_WINDOW_OPENGL) < 0) {
+            goto error;
         }
     }
 
     renderer = (SDL_Renderer *) SDL_calloc(1, sizeof(*renderer));
     if (!renderer) {
         SDL_OutOfMemory();
-        return NULL;
+        goto error;
     }
 
     data = (GLES_RenderData *) SDL_calloc(1, sizeof(*data));
     if (!data) {
         GLES_DestroyRenderer(renderer);
         SDL_OutOfMemory();
-        return NULL;
+        goto error;
     }
 
     renderer->WindowEvent = GLES_WindowEvent;
@@ -351,16 +348,16 @@ GLES_CreateRenderer(SDL_Window * window, Uint32 flags)
     data->context = SDL_GL_CreateContext(window);
     if (!data->context) {
         GLES_DestroyRenderer(renderer);
-        return NULL;
+        goto error;
     }
     if (SDL_GL_MakeCurrent(window, data->context) < 0) {
         GLES_DestroyRenderer(renderer);
-        return NULL;
+        goto error;
     }
 
     if (GLES_LoadFunctions(data) < 0) {
         GLES_DestroyRenderer(renderer);
-        return NULL;
+        goto error;
     }
 
     if (flags & SDL_RENDERER_PRESENTVSYNC) {
@@ -411,6 +408,16 @@ GLES_CreateRenderer(SDL_Window * window, Uint32 flags)
     GLES_ResetState(renderer);
 
     return renderer;
+
+error:
+    if (changed_window) {
+        /* Uh oh, better try to put it back... */
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile_mask);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+        SDL_RecreateWindow(window, window_flags);
+    }
+    return NULL;
 }
 
 static void
@@ -684,14 +691,14 @@ static int
 GLES_UpdateClipRect(SDL_Renderer * renderer)
 {
     GLES_RenderData *data = (GLES_RenderData *) renderer->driverdata;
-    const SDL_Rect *rect = &renderer->clip_rect;
 
     if (SDL_CurrentContext != data->context) {
         /* We'll update the clip rect after we rebind the context */
         return 0;
     }
 
-    if (!SDL_RectEmpty(rect)) {
+    if (renderer->clipping_enabled) {
+        const SDL_Rect *rect = &renderer->clip_rect;
         data->glEnable(GL_SCISSOR_TEST);
         data->glScissor(rect->x, renderer->viewport.h - rect->y - rect->h, rect->w, rect->h);
     } else {
@@ -807,12 +814,24 @@ GLES_RenderDrawPoints(SDL_Renderer * renderer, const SDL_FPoint * points,
                       int count)
 {
     GLES_RenderData *data = (GLES_RenderData *) renderer->driverdata;
+    GLfloat *vertices;
+    int idx;
 
     GLES_SetDrawingState(renderer);
 
-    data->glVertexPointer(2, GL_FLOAT, 0, points);
-    data->glDrawArrays(GL_POINTS, 0, count);
+    /* Emit the specified vertices as points */
+    vertices = SDL_stack_alloc(GLfloat, count * 2);
+    for (idx = 0; idx < count; ++idx) {
+        GLfloat x = points[idx].x + 0.5f;
+        GLfloat y = points[idx].y + 0.5f;
 
+        vertices[idx * 2] = x;
+        vertices[(idx * 2) + 1] = y;
+    }
+
+    data->glVertexPointer(2, GL_FLOAT, 0, vertices);
+    data->glDrawArrays(GL_POINTS, 0, count);
+    SDL_stack_free(vertices);
     return 0;
 }
 
@@ -821,10 +840,22 @@ GLES_RenderDrawLines(SDL_Renderer * renderer, const SDL_FPoint * points,
                      int count)
 {
     GLES_RenderData *data = (GLES_RenderData *) renderer->driverdata;
+    GLfloat *vertices;
+    int idx;
 
     GLES_SetDrawingState(renderer);
 
-    data->glVertexPointer(2, GL_FLOAT, 0, points);
+    /* Emit a line strip including the specified vertices */
+    vertices = SDL_stack_alloc(GLfloat, count * 2);
+    for (idx = 0; idx < count; ++idx) {
+        GLfloat x = points[idx].x + 0.5f;
+        GLfloat y = points[idx].y + 0.5f;
+
+        vertices[idx * 2] = x;
+        vertices[(idx * 2) + 1] = y;
+    }
+
+    data->glVertexPointer(2, GL_FLOAT, 0, vertices);
     if (count > 2 &&
         points[0].x == points[count-1].x && points[0].y == points[count-1].y) {
         /* GL_LINE_LOOP takes care of the final segment */
@@ -835,6 +866,7 @@ GLES_RenderDrawLines(SDL_Renderer * renderer, const SDL_FPoint * points,
         /* We need to close the endpoint of the line */
         data->glDrawArrays(GL_POINTS, count-1, 1);
     }
+    SDL_stack_free(vertices);
 
     return 0;
 }

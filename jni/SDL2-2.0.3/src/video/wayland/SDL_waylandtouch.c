@@ -25,8 +25,8 @@
 
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
 
-#include "SDL_waylandtouch.h"
 #include "SDL_log.h"
+#include "SDL_waylandtouch.h"
 #include "../../events/SDL_touch_c.h"
 
 struct SDL_WaylandTouch {
@@ -236,13 +236,16 @@ WL_EXPORT const struct wl_interface qt_extended_surface_interface = {
 void
 Wayland_touch_create(SDL_VideoData *data, uint32_t id)
 {
+    struct SDL_WaylandTouch *touch;
+
     if (data->touch) {
         Wayland_touch_destroy(data);
     }
 
-    data->touch = malloc(sizeof(struct SDL_WaylandTouch));
+    /* !!! FIXME: check for failure, call SDL_OutOfMemory() */
+    data->touch = SDL_malloc(sizeof(struct SDL_WaylandTouch));
 
-    struct SDL_WaylandTouch *touch = data->touch;
+    touch = data->touch;
     touch->touch_extension = wl_registry_bind(data->registry, id, &qt_touch_extension_interface, 1);
     qt_touch_extension_add_listener(touch->touch_extension, &touch_listener, data);
 }
@@ -256,7 +259,7 @@ Wayland_touch_destroy(SDL_VideoData *data)
             qt_touch_extension_destroy(touch->touch_extension);
         }
 
-        free(data->touch);
+        SDL_free(data->touch);
         data->touch = NULL;
     }
 }

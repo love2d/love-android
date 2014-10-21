@@ -37,9 +37,10 @@ typedef struct
     WNDPROC wndproc;
     SDL_bool created;
     WPARAM mouse_button_flags;
-    BOOL expected_resize;
+    SDL_bool expected_resize;
+    SDL_bool in_border_change;
     SDL_bool in_title_click;
-    SDL_bool in_modal_loop;
+	SDL_bool focus_click_pending;
     struct SDL_VideoData *videodata;
 #if SDL_VIDEO_OPENGL_EGL  
     EGLSurface egl_surface;
@@ -68,6 +69,7 @@ extern SDL_bool WIN_GetWindowWMInfo(_THIS, SDL_Window * window,
                                     struct SDL_SysWMinfo *info);
 extern void WIN_OnWindowEnter(_THIS, SDL_Window * window);
 extern void WIN_UpdateClipCursor(SDL_Window *window);
+extern int WIN_SetWindowHitTest(SDL_Window *window, SDL_bool enabled);
 
 #endif /* _SDL_windowswindow_h */
 
