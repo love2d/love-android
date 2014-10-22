@@ -56,6 +56,20 @@ public class GameActivity extends SDLActivity {
       getWindowManager().getDefaultDisplay().getMetrics(metrics);
     }
 
+    @Override
+    protected void onDestroy() {
+			Log.d("GameActivity", "Cancelling vibration");
+			vibrator.cancel();
+			super.onDestroy();
+		}
+
+		@Override
+    protected void onPause() {
+			Log.d("GameActivity", "Cancelling vibration");
+			vibrator.cancel();
+			super.onPause();
+		}
+
     public static String getGamePath() {
       Log.d ("GameActivity", "called getGamePath(), game path = " + gamePath);
         return gamePath;
@@ -66,7 +80,6 @@ public class GameActivity extends SDLActivity {
     }
 
     public static void vibrate (double seconds) {
-      Log.d ("GameActivity", "vibrating for " + seconds + " seconds");
       vibrator.vibrate((long) (seconds * 1000.));
     }
 
