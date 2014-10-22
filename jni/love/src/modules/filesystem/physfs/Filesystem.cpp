@@ -327,12 +327,16 @@ bool Filesystem::setSource(const char *source)
 		SDL_Log ("Error creating storage directories!");
 	}
 
+	std::string game_path = std::string(love::android::getSelectedGameFile());
+	if (game_path == "")
+		game_path = "/sdcard/lovegame/";
+
 	if (!androidMountSelectedGame() && !androidMountAssetGame()) {
-		SDL_RWops *sdcard_main = SDL_RWFromFile("/sdcard/lovegame/main.lua", "rb");
+		SDL_RWops *sdcard_main = SDL_RWFromFile(std::string(game_path + "main.lua").c_str(), "rb");
 
 		if (sdcard_main) {
-			SDL_Log ("using game from /sdcard/lovegame");
-			new_search_path = "/sdcard/lovegame";
+			SDL_Log ("using game from %s", game_path.c_str());
+			new_search_path = game_path;
 			sdcard_main->close(sdcard_main);
 
 			if (!PHYSFS_addToSearchPath(new_search_path.c_str(), 1)) {
