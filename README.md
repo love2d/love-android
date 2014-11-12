@@ -11,7 +11,7 @@ Quick Start:
 
 Install the Android NDK and the Android SDK with SDK API 12 and run
 
-    ndk-build
+    ndk-build -j4
 
 and after that
 
@@ -99,7 +99,34 @@ License:
 
 This project contains code from multiple projects using various licenses.
 Please look into the folders of jni/<projectname>/ for the respective
-licenses.
+licenses. A possibly incomplete overview of dependent and included
+libraries and licenses is the following:
 
-As for the other code and build system files, these are published under the
-zlib license (same as LÖVE).
+* FreeType2 (FreeType Project License)
+* libjpeg-turbo (custom license)
+* libmodplug (public domain)
+* libogg (BSD License)
+* libvorbis (BSD License)
+* LuaJIT (MIT License)
+* mpg123 (LGPL 2.1 License)
+* openal-soft (LGPL 2 License)
+* physfs (zlib License)
+* SDL2 (zlib License)
+
+This project also includes LÖVE, which itself is licensed under the zlib
+license but includes the following libraries that are subject to other
+licenses:
+
+* modified Box2D (original Box2D license is zlib)
+* ddsparse (MIT License)
+* enet (MIT License)
+* glad (MIT License)
+* lodepng (zlib License)
+* luasocket (MIT License)
+* SimplexNoise1234 (public domain)
+* stb_image (public domain)
+* utf8 (Boost License)
+* wuff (public domain)
+
+As for the other code, modifications to LÖVE, and build system files are
+are published under the zlib license (same as LÖVE).
