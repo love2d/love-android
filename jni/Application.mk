@@ -5,5 +5,6 @@ APP_STL := gnustl_shared
 APP_ABI := armeabi armeabi-v7a
 APP_CPPFLAGS := -frtti
 APP_LDFLAGS := -llog -landroid -lz
+APP_PLATFORM := 10
 
 # APP_OPTIM := debug
