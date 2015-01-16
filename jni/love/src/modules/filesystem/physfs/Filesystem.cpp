@@ -32,10 +32,6 @@
 #include <string>
 
 #ifdef LOVE_ANDROID
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <errno.h>
 #include "common/android.h"
 #endif
 
@@ -59,113 +55,6 @@ namespace
 	{
 		return input.substr(getDriveDelim(input)+1);
 	}
-
-#ifdef LOVE_ANDROID
-	void androidDeleteAssetGameMemory (void *ptr) {
-		SDL_Log ("freeing memory for in-memory game.love");
-		char *game_love_data = static_cast<char*>(ptr);
-		delete[] game_love_data;
-	}
-
-	bool androidMountGame (const char *filename) {
-		SDL_Log ("Trying to mount %s", filename);
-    SDL_RWops *asset_game_file = SDL_RWFromFile(filename, "rb");
-		if (!asset_game_file) {
-			SDL_Log ("Could not find %s", filename);
-			return false;
-		}
-
-		Sint64 file_size = asset_game_file->size(asset_game_file);
-
-		if (file_size == 0) {
-			SDL_Log ("Could not find valid %s. File has zero size.", filename);
-			return false;
-		}
-
-		char *game_love_data = new char[file_size];
-
-		if (!game_love_data) {
-			SDL_Log ("Could not allocate memory for in-memory game archive");
-			return false;
-		}
-
-		size_t bytes_copied = asset_game_file->read(asset_game_file, game_love_data, sizeof(char), (size_t) file_size);
-
-		if (bytes_copied != file_size) {
-			SDL_Log ("Only copied %d of %d bytes into in-memory game archive!", bytes_copied, file_size);
-			delete[] game_love_data;
-			return false;
-		}
-
-		SDL_Log ("Copied %d of %d bytes into in-memory game archive", bytes_copied, file_size);
-
-		bool result = false;
-		if (PHYSFS_mountMemory (game_love_data, file_size, androidDeleteAssetGameMemory, "archive.zip", "/", 0)) {
-			result = true;
-			SDL_Log ("Mounting of in-memory game archive successful!");
-		} else {
-			SDL_Log ("Mounting of in-memory game archive failed!");
-		}
-
-		return result;
-	}
-
-	bool androidMountAssetGame () {
-		return androidMountGame ("game.love");
-	}
-
-	bool androidMountSelectedGame () {
-		return androidMountGame (love::android::getSelectedGameFile());
-	}
-
-	bool androidDirectoryExists(const char* path) {
-		SDL_Log ("Checking directory exists for %s", path);
-		struct stat s;
-		int err = stat(path, &s);
-		if (err == -1) {
-			if (errno == ENOENT)
-				return false;
-			else {
-				SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror (errno));
-				return false;
-			}
-		} else if(S_ISDIR(s.st_mode)) {
-			SDL_Log ("Directory %s exists!", path);
-			return true;
-		}
-		return false;
-	}
-
-	bool androidMkdir (const char* path) {
-		int err = mkdir (path, 0770);
-		if (err == -1) {
-			SDL_Log ("Error: Could not create directory %s", path);
-		    return false;
-		}
-
-		return true;
-	}
-
-	bool androidCreateStorageDirectories () {
-	    std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
-
-	    std::string save_directory = internal_storage_path + "/save";
-	    if (!androidDirectoryExists (save_directory.c_str())) {
-	    	if (!androidMkdir(save_directory.c_str()))
-	    		return false;
-	    }
-
-	    std::string game_directory = internal_storage_path + "/game";
-   	    if (!androidDirectoryExists (game_directory.c_str())) {
-	    	if (!androidMkdir(game_directory.c_str()))
-	    		return false;
-   	    }
-
-   	    SDL_Log ("Creating storage directories successful!");
-
-		return true;
-	}
-#endif
 
 	std::string normalize(const std::string &input)
 	{
@@ -268,14 +157,14 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 
 	save_path_full = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/save/") + save_identity;
 
-	if (androidDirectoryExists (save_path_full.c_str())) {
+	if (love::android::directoryExists (save_path_full.c_str())) {
 		SDL_Log ("dir exists");
 	} else {
 		SDL_Log ("does not exist");
 	}
 
-	if (!androidDirectoryExists (save_path_full.c_str())) {
-		if (!androidMkdir (save_path_full.c_str())) {
+	if (!love::android::directoryExists (save_path_full.c_str())) {
+		if (!love::android::mkdir (save_path_full.c_str())) {
 			SDL_Log ("Error: Could not create save directory %s!", save_path_full.c_str());
 		} else {
 			SDL_Log ("Save directory %s successfuly created!", save_path_full.c_str());
@@ -323,15 +212,40 @@ bool Filesystem::setSource(const char *source)
 	std::string new_search_path = source;
 
 #ifdef LOVE_ANDROID
-	if (!androidCreateStorageDirectories ()) {
+	if (!love::android::createStorageDirectories ()) {
 		SDL_Log ("Error creating storage directories!");
 	}
 
-	std::string game_path = std::string(love::android::getSelectedGameFile());
-	if (game_path == "")
-		game_path = "/sdcard/lovegame/";
+	char* game_archive_ptr = NULL;
+	size_t game_archive_size = 0;
+	bool archive_loaded = false;
 
-	if (!androidMountSelectedGame() && !androidMountAssetGame()) {
+	// try to load the game that was sent to LÖVE via a Intent
+	archive_loaded = love::android::loadGameArchiveToMemory (love::android::getSelectedGameFile(), &game_archive_ptr, &game_archive_size);
+
+	if (!archive_loaded) {
+		// try to load the game in the assets/ folder
+		archive_loaded = love::android::loadGameArchiveToMemory ("game.love", &game_archive_ptr, &game_archive_size);
+	}
+
+	if (archive_loaded) {
+		if (PHYSFS_mountMemory (game_archive_ptr, game_archive_size, love::android::freeGameArchiveMemory, "archive.zip", "/", 0)) {
+			SDL_Log ("Mounting of in-memory game archive successful!");
+		} else {
+			SDL_Log ("Mounting of in-memory game archive failed!");
+			love::android::freeGameArchiveMemory (game_archive_ptr);
+			return false;
+		}
+	} else {
+		// try to load the game in the directory that was sent to LÖVE via an
+		// Intent ...
+		std::string game_path = std::string(love::android::getSelectedGameFile());
+
+		if (game_path == "") {
+			// ... or fall back to the game at /sdcard/lovegame
+			game_path = "/sdcard/lovegame/";
+		}
+
 		SDL_RWops *sdcard_main = SDL_RWFromFile(std::string(game_path + "main.lua").c_str(), "rb");
 
 		if (sdcard_main) {

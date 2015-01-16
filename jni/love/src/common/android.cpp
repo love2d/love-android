@@ -25,6 +25,11 @@
 #include "SDL.h"
 #include "jni.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+
 namespace love
 {
 namespace android
@@ -100,6 +105,101 @@ void vibrate (double seconds)
 	env->CallStaticVoidMethod(activity, vibrate_method, seconds);
 
 	env->DeleteLocalRef (activity);
+}
+
+/*
+ * Helper functions for the filesystem module
+ */
+void freeGameArchiveMemory (void *ptr) {
+	SDL_Log ("Freeing memory for in-memory LÖVE archive 0x%x", (int) ptr);
+	char *game_love_data = static_cast<char*>(ptr);
+	delete[] game_love_data;
+}
+
+bool loadGameArchiveToMemory (const char* filename, char **ptr, size_t *size) {
+	SDL_Log ("Trying to mount %s", filename);
+	SDL_RWops *asset_game_file = SDL_RWFromFile(filename, "rb");
+	if (!asset_game_file) {
+		SDL_Log ("Could not find %s", filename);
+		return false;
+	}
+
+	Sint64 file_size = asset_game_file->size(asset_game_file);
+
+	if (file_size <= 0) {
+		SDL_Log ("Could not load game from %s. File has invalid file size: %d.", filename, (int) file_size);
+		return false;
+	}
+
+	(*ptr) = new char[file_size];
+	SDL_Log ("Allocated memory for in-memory LÖVE archive at: 0x%x", (int) (*ptr));
+
+	if (!(*ptr)) {
+		SDL_Log ("Could not allocate memory for in-memory game archive");
+		return false;
+	}
+
+	size_t bytes_copied = asset_game_file->read(asset_game_file, (void*) (*ptr), sizeof(char), (size_t) file_size);
+
+	if (bytes_copied != file_size) {
+		SDL_Log ("Only copied %d of %d bytes into in-memory game archive!", (unsigned int) bytes_copied, (unsigned int) file_size);
+		delete[] (*ptr);
+		return false;
+	}
+
+	SDL_Log ("Copied %d of %d bytes into in-memory game archive", (unsigned int) bytes_copied, (unsigned int) file_size);
+
+	*size = (size_t) file_size;
+
+	return true;
+}
+
+bool directoryExists(const char* path) {
+	SDL_Log ("Checking directory exists for %s", path);
+	struct stat s;
+	int err = stat(path, &s);
+	if (err == -1) {
+		if (errno == ENOENT)
+			return false;
+		else {
+			SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror (errno));
+			return false;
+		}
+	} else if(S_ISDIR(s.st_mode)) {
+		SDL_Log ("Directory %s exists!", path);
+		return true;
+	}
+	return false;
+}
+
+bool mkdir (const char* path) {
+	int err = ::mkdir (path, 0770);
+	if (err == -1) {
+		SDL_Log ("Error: Could not create directory %s", path);
+			return false;
+	}
+
+	return true;
+}
+
+bool createStorageDirectories () {
+	std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
+
+	std::string save_directory = internal_storage_path + "/save";
+	if (!directoryExists (save_directory.c_str())) {
+		if (!mkdir(save_directory.c_str()))
+			return false;
+	}
+
+	std::string game_directory = internal_storage_path + "/game";
+	if (!directoryExists (game_directory.c_str())) {
+		if (!mkdir(game_directory.c_str()))
+			return false;
+	}
+
+	SDL_Log ("Creating storage directories successful!");
+
+	return true;
 }
 
 } // android

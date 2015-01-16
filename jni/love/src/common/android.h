@@ -47,6 +47,19 @@ bool openURL (const std::string &url);
 
 void vibrate (double seconds);
 
+/*
+ * Helper functions for the filesystem module
+ */
+void freeGameArchiveMemory (void *ptr);
+
+bool loadGameArchiveToMemory (const char* filename, char **ptr, size_t *size);
+
+bool directoryExists(const char* path);
+
+bool mkdir (const char* path);
+
+bool createStorageDirectories ();
+
 } // android
 } // love
 
