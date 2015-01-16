@@ -141,10 +141,32 @@ static int l_print_sdl_log (lua_State *L) {
 	if (nargs == 0)
 		return 0;
 
-	std::string out_string = lua_tostring (L, 1);
-	for (int i = 2; i <= nargs; i++) {
-		out_string += "\t";
-		out_string += lua_tostring (L, i);
+	std::string out_string = "";
+
+	for (int i = 1; i <= nargs; i++) {
+		int type = lua_type (L, i);
+		char pointer_buf[16];
+		switch (type) {
+			case LUA_TNUMBER:
+			case LUA_TSTRING:
+				out_string += lua_tostring (L, i);
+				break;
+			case LUA_TNIL:
+				out_string += "nil";
+				break;
+			case LUA_TBOOLEAN:
+				out_string += lua_toboolean (L, i) ? "true" : "false";
+				break;
+			default:
+				out_string += lua_typename (L, lua_type(L, i));
+				sprintf (pointer_buf, ": 0x%x", (unsigned int) lua_topointer (L, i));
+				out_string += pointer_buf;
+				break;
+		}
+
+		if (i != nargs - 1) {
+			out_string += "\t";
+		}
 	}
 
 	SDL_Log ("[LOVE] %s", out_string.c_str());
