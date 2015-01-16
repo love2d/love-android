@@ -29,6 +29,7 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
+import android.view.*;
 
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
@@ -46,14 +47,14 @@ public class GameActivity extends SDLActivity {
       Uri game = this.getIntent().getData();
       if (game != null) {
         if (game.getScheme().equals ("file")) {
-					// If we were given the path of a main.lua then use its
-					// directory. Otherwise use full path.
-					List<String> path_segments = game.getPathSegments();
-					if (path_segments.get(path_segments.size() - 1).equals("main.lua")) {
-						gamePath = game.getPath().substring(0, game.getPath().length() - "main.lua".length());
-					} else {
-						gamePath = game.getPath();
-					}
+          // If we were given the path of a main.lua then use its
+          // directory. Otherwise use full path.
+          List<String> path_segments = game.getPathSegments();
+          if (path_segments.get(path_segments.size() - 1).equals("main.lua")) {
+            gamePath = game.getPath().substring(0, game.getPath().length() - "main.lua".length());
+          } else {
+            gamePath = game.getPath();
+          }
         } else {
           copyGameToCache (game);
         }
@@ -66,17 +67,31 @@ public class GameActivity extends SDLActivity {
 
     @Override
     protected void onDestroy() {
-			Log.d("GameActivity", "Cancelling vibration");
-			vibrator.cancel();
-			super.onDestroy();
-		}
+      Log.d("GameActivity", "Cancelling vibration");
+      vibrator.cancel();
+      super.onDestroy();
+    }
 
-		@Override
+    @Override
     protected void onPause() {
-			Log.d("GameActivity", "Cancelling vibration");
-			vibrator.cancel();
-			super.onPause();
-		}
+      Log.d("GameActivity", "Cancelling vibration");
+      vibrator.cancel();
+      super.onPause();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+      super.onWindowFocusChanged(hasFocus);
+      if (hasFocus) {
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+      }
+    }
 
     public static String getGamePath() {
       Log.d ("GameActivity", "called getGamePath(), game path = " + gamePath);
