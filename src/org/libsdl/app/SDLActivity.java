@@ -53,8 +53,8 @@ public class SDLActivity extends Activity {
 
     // Load the .so
     static {
-				// SDL2 is linked statically to love, so we do not need to load it
-				// manually
+        // SDL2 is linked statically to love, so we do not need to load it
+        // manually
         //System.loadLibrary("SDL2");
         //System.loadLibrary("SDL2_image");
         //System.loadLibrary("SDL2_mixer");
