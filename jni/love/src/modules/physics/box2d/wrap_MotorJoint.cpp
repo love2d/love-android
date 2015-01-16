@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -124,6 +124,7 @@ static const luaL_Reg functions[] =
 	{ "getCorrectionFactor", w_MotorJoint_getCorrectionFactor },
 	// From Joint.
 	{ "getType", w_Joint_getType },
+	{ "getBodies", w_Joint_getBodies },
 	{ "getAnchors", w_Joint_getAnchors },
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
@@ -131,6 +132,7 @@ static const luaL_Reg functions[] =
 	{ "setUserData", w_Joint_setUserData },
 	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
+	{ "isDestroyed", w_Joint_isDestroyed },
 	{ 0, 0 }
 };
 

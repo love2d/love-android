@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -398,7 +398,10 @@ void luax_rawnewtype(lua_State *L, const char *name, bits flags, love::Object *o
 void luax_pushtype(lua_State *L, const char *name, bits flags, love::Object *object)
 {
 	if (object == nullptr)
+	{
 		lua_pushnil(L);
+		return;
+	}
 
 	// Fetch the registry table of instantiated types.
 	luax_getregistry(L, REGISTRY_TYPES);

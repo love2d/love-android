@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -539,6 +539,15 @@ int w_Body_getFixtureList(lua_State *L)
 	return n;
 }
 
+int w_Body_getJointList(lua_State *L)
+{
+	Body *t = luax_checkbody(L, 1);
+	lua_remove(L, 1);
+	int n = 0;
+	luax_catchexcept(L, [&](){ n = t->getJointList(L); });
+	return n;
+}
+
 int w_Body_getContactList(lua_State *L)
 {
 	Body *t = luax_checkbody(L, 1);
@@ -553,6 +562,13 @@ int w_Body_destroy(lua_State *L)
 	Body *t = luax_checkbody(L, 1);
 	luax_catchexcept(L, [&](){ t->destroy(); });
 	return 0;
+}
+
+int w_Body_isDestroyed(lua_State *L)
+{
+	Body *b = luax_checktype<Body>(L, 1, "Body", PHYSICS_BODY_T);
+	luax_pushboolean(L, b->body == nullptr);
+	return 1;
 }
 
 int w_Body_setUserData(lua_State *L)
@@ -623,8 +639,10 @@ static const luaL_Reg functions[] =
 	{ "isFixedRotation", w_Body_isFixedRotation },
 	{ "getWorld", w_Body_getWorld },
 	{ "getFixtureList", w_Body_getFixtureList },
+	{ "getJointList", w_Body_getJointList },
 	{ "getContactList", w_Body_getContactList },
 	{ "destroy", w_Body_destroy },
+	{ "isDestroyed", w_Body_isDestroyed },
 	{ "setUserData", w_Body_setUserData },
 	{ "getUserData", w_Body_getUserData },
 	{ 0, 0 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -37,17 +37,12 @@ namespace sdl
 static void windowToPixelCoords(int *x, int *y)
 {
 #ifndef LOVE_ANDROID
-	double scale = 1.0;
+	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
 
-	love::window::Window *window = love::window::sdl::Window::getSingleton();
-	if (window != nullptr)
-		scale = window->getPixelScale();
-
-	if (x != nullptr)
-		*x = int(double(*x) * scale);
-
-	if (y != nullptr)
-		*y = int(double(*y) * scale);
+	if (window && x)
+		*x = (int) window->toPixels(*x);
+	if (window && y)
+		*y = (int) window->toPixels(*y);
 #endif
 }
 
@@ -55,17 +50,12 @@ static void windowToPixelCoords(int *x, int *y)
 static void pixelToWindowCoords(int *x, int *y)
 {
 #ifndef LOVE_ANDROID
-	double scale = 1.0;
+	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
 
-	love::window::Window *window = love::window::sdl::Window::getSingleton();
-	if (window != nullptr)
-		scale = window->getPixelScale();
-
-	if (x != nullptr)
-		*x = int(double(*x) / scale);
-
-	if (y != nullptr)
-		*y = int(double(*y) / scale);
+	if (window && x)
+		*x = (int) window->fromPixels(*x);
+	if (window && y)
+		*y = (int) window->fromPixels(*y);
 #endif
 }
 
@@ -131,10 +121,18 @@ bool Mouse::hasCursor() const
 	return SDL_GetDefaultCursor() != nullptr;
 }
 
+static Uint32 GetSDLMouseState(int *x, int *y)
+{
+	// SDL's Linux and Windows video backends don't update the internal mouse
+	// state until the next PumpEvents, if SDL_WarpMouse was called previously.
+	SDL_PumpEvents();
+	return SDL_GetMouseState(x, y);
+}
+
 int Mouse::getX() const
 {
 	int x;
-	SDL_GetMouseState(&x, nullptr);
+	GetSDLMouseState(&x, nullptr);
 	windowToPixelCoords(&x, nullptr);
 
 	return x;
@@ -143,7 +141,7 @@ int Mouse::getX() const
 int Mouse::getY() const
 {
 	int y;
-	SDL_GetMouseState(nullptr, &y);
+	GetSDLMouseState(nullptr, &y);
 	windowToPixelCoords(nullptr, &y);
 
 	return y;
@@ -152,7 +150,7 @@ int Mouse::getY() const
 void Mouse::getPosition(int &x, int &y) const
 {
 	int mx, my;
-	SDL_GetMouseState(&mx, &my);
+	GetSDLMouseState(&mx, &my);
 	windowToPixelCoords(&mx, &my);
 
 	x = mx;

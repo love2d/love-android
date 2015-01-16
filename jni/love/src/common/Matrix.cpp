@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -35,6 +35,11 @@ namespace love
 Matrix::Matrix()
 {
 	setIdentity();
+}
+
+Matrix::Matrix(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+{
+	setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
 }
 
 Matrix::~Matrix()

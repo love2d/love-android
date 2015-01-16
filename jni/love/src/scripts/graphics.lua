@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2014 LOVE Development Team
+Copyright (c) 2006-2015 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -1296,10 +1296,16 @@ do
 	GLSLES.VERSION = "#version 100"
 
 	GLSL.SYNTAX = [[
+#ifndef GL_ES
+#define lowp
+#define mediump
+#define highp
+#endif
 #define number float
 #define Image sampler2D
 #define extern uniform
-#define Texel texture2D]]
+#define Texel texture2D
+#pragma optionNV(strict on)]]
 
 	GLSLES.SYNTAX = GLSL.SYNTAX
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -326,6 +326,20 @@ VertexIndex::VertexIndex(size_t size)
 		throw love::Exception("Invalid size.");
 
 	addSize(size);
+}
+
+VertexIndex::VertexIndex(const VertexIndex &other)
+	: size(other.size)
+{
+	addSize(size);
+}
+
+VertexIndex &VertexIndex::operator = (const VertexIndex &other)
+{
+	addSize(other.size);
+	removeSize(size);
+	size = other.size;
+	return *this;
 }
 
 VertexIndex::~VertexIndex()

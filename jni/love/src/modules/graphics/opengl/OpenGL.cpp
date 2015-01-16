@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -729,86 +729,24 @@ float OpenGL::setTextureFilter(graphics::Texture::Filter &f)
 	return f.anisotropy;
 }
 
-Texture::Filter OpenGL::getTextureFilter()
-{
-	GLint gmin, gmag;
-	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &gmin);
-	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &gmag);
-
-	Texture::Filter f;
-
-	switch (gmin)
-	{
-	case GL_NEAREST:
-		f.min = Texture::FILTER_NEAREST;
-		f.mipmap = Texture::FILTER_NONE;
-		break;
-	case GL_NEAREST_MIPMAP_NEAREST:
-		f.min = f.mipmap = Texture::FILTER_NEAREST;
-		break;
-	case GL_NEAREST_MIPMAP_LINEAR:
-		f.min = Texture::FILTER_NEAREST;
-		f.mipmap = Texture::FILTER_LINEAR;
-		break;
-	case GL_LINEAR_MIPMAP_NEAREST:
-		f.min = Texture::FILTER_LINEAR;
-		f.mipmap = Texture::FILTER_NEAREST;
-		break;
-	case GL_LINEAR_MIPMAP_LINEAR:
-		f.min = f.mipmap = Texture::FILTER_LINEAR;
-		break;
-	case GL_LINEAR:
-	default:
-		f.min = Texture::FILTER_LINEAR;
-		f.mipmap = Texture::FILTER_NONE;
-		break;
-	}
-
-	switch (gmag)
-	{
-	case GL_NEAREST:
-		f.mag = Texture::FILTER_NEAREST;
-		break;
-	case GL_LINEAR:
-	default:
-		f.mag = Texture::FILTER_LINEAR;
-		break;
-	}
-
-	if (GLAD_EXT_texture_filter_anisotropic)
-		glGetTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, &f.anisotropy);
-
-	return f;
-}
-
 void OpenGL::setTextureWrap(const graphics::Texture::Wrap &w)
 {
-	GLint gs, gt;
-
-	switch (w.s)
+	auto glWrapMode = [](Texture::WrapMode wmode) -> GLint
 	{
-	case Texture::WRAP_CLAMP:
-		gs = GL_CLAMP_TO_EDGE;
-		break;
-	case Texture::WRAP_REPEAT:
-	default:
-		gs = GL_REPEAT;
-		break;
-	}
+		switch (wmode)
+		{
+		case Texture::WRAP_CLAMP:
+		default:
+			return GL_CLAMP_TO_EDGE;
+		case Texture::WRAP_REPEAT:
+			return GL_REPEAT;
+		case Texture::WRAP_MIRRORED_REPEAT:
+			return GL_MIRRORED_REPEAT;
+		}
+	};
 
-	switch (w.t)
-	{
-	case Texture::WRAP_CLAMP:
-		gt = GL_CLAMP_TO_EDGE;
-		break;
-	case Texture::WRAP_REPEAT:
-	default:
-		gt = GL_REPEAT;
-		break;
-	}
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gs);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gt);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapMode(w.s));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapMode(w.t));
 }
 
 int OpenGL::getMaxTextureSize() const

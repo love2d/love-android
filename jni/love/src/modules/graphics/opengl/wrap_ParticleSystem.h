@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -63,6 +63,8 @@ int w_ParticleSystem_setRadialAcceleration(lua_State *L);
 int w_ParticleSystem_getRadialAcceleration(lua_State *L);
 int w_ParticleSystem_setTangentialAcceleration(lua_State *L);
 int w_ParticleSystem_getTangentialAcceleration(lua_State *L);
+int w_ParticleSystem_setLinearDamping(lua_State *L);
+int w_ParticleSystem_getLinearDamping(lua_State *L);
 int w_ParticleSystem_setSizes(lua_State *L);
 int w_ParticleSystem_getSizes(lua_State *L);
 int w_ParticleSystem_setSizeVariation(lua_State *L);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,6 @@
 #define LOVE_GRAPHICS_OPENGL_GRAPHICS_H
 
 // STD
-#include <iostream>
 #include <stack>
 #include <vector>
 
@@ -168,7 +167,7 @@ public:
 
 	Canvas *newCanvas(int width, int height, Canvas::Format format = Canvas::FORMAT_NORMAL, int msaa = 0);
 
-	Shader *newShader(const Shader::ShaderSources &sources);
+	Shader *newShader(const Shader::ShaderSource &source);
 
 	Mesh *newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode mode = Mesh::DRAW_MODE_FAN);
 	Mesh *newMesh(int vertexcount, Mesh::DrawMode mode = Mesh::DRAW_MODE_FAN);
@@ -477,6 +476,13 @@ private:
 		bool colorMask[4];
 
 		bool wireframe;
+
+		// Default filter.
+		Texture::Filter defaultFilter;
+
+		// Default mipmap filter and sharpness.
+		Texture::FilterMode defaultMipmapFilter;
+		float defaultMipmapSharpness;
 
 		DisplayState();
 		DisplayState(const DisplayState &other);

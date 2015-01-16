@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -60,6 +60,9 @@ public:
 
 	void getDesktopDimensions(int displayindex, int &width, int &height) const;
 
+	void setPosition(int x, int y, int displayindex);
+	void getPosition(int &x, int &y, int &displayindex);
+
 	bool isCreated() const;
 
 	void setWindowTitle(const std::string &title);
@@ -69,6 +72,7 @@ public:
 	love::image::ImageData *getIcon();
 
 	void minimize();
+	void maximize();
 
 	void swapBuffers();
 
@@ -87,9 +91,14 @@ public:
 
 	bool isTouchScreen(int displayindex) const;
 
+	double toPixels(double x) const;
+	void toPixels(double wx, double wy, double &px, double &py) const;
+	double fromPixels(double x) const;
+	void fromPixels(double px, double py, double &wx, double &wy) const;
+
 	const void *getHandle() const;
 
-	bool showMessageBox(MessageBoxType type, const std::string &title, const std::string &message, bool attachtowindow);
+	bool showMessageBox(const std::string &title, const std::string &message, MessageBoxType type, bool attachtowindow);
 	int showMessageBox(const MessageBoxData &data);
 
 	static love::window::Window *createSingleton();

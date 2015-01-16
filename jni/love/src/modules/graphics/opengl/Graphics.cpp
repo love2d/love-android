@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -35,6 +35,7 @@
 
 // C
 #include <cmath>
+#include <cstdio>
 
 namespace love
 {
@@ -108,6 +109,9 @@ void Graphics::restoreState(const DisplayState &s)
 
 	setColorMask(s.colorMask);
 	setWireframe(s.wireframe);
+
+	setDefaultFilter(s.defaultFilter);
+	setDefaultMipmapFilter(s.defaultMipmapFilter, s.defaultMipmapSharpness);
 }
 
 void Graphics::restoreStateChecked(const DisplayState &s)
@@ -165,6 +169,9 @@ void Graphics::restoreStateChecked(const DisplayState &s)
 
 	if (s.wireframe != cur.wireframe)
 		setWireframe(s.wireframe);
+
+	setDefaultFilter(s.defaultFilter);
+	setDefaultMipmapFilter(s.defaultMipmapFilter, s.defaultMipmapSharpness);
 }
 
 void Graphics::setViewportSize(int width, int height)
@@ -283,7 +290,7 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 
 	// Reload all volatile objects.
 	if (!Volatile::loadAll())
-		std::cerr << "Could not reload all volatile objects." << std::endl;
+		::printf("Could not reload all volatile objects.\n");
 
 	// Restore the graphics state.
 	restoreState(states.back());
@@ -662,9 +669,9 @@ Canvas *Graphics::newCanvas(int width, int height, Canvas::Format format, int ms
 	return nullptr; // never reached
 }
 
-Shader *Graphics::newShader(const Shader::ShaderSources &sources)
+Shader *Graphics::newShader(const Shader::ShaderSource &source)
 {
-	return new Shader(sources);
+	return new Shader(source);
 }
 
 Mesh *Graphics::newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode mode)
@@ -701,6 +708,12 @@ Color Graphics::getBackgroundColor() const
 
 void Graphics::setFont(Font *font)
 {
+	// Hack: the Lua-facing love.graphics.print function will set the current
+	// font if needed, but only on its first call... we want to make sure a nil
+	// font is never accidentally set (e.g. via love.graphics.reset.)
+	if (font == nullptr)
+		return;
+
 	DisplayState &state = states.back();
 	state.font.set(font);
 }
@@ -877,6 +890,7 @@ Graphics::BlendMode Graphics::getBlendMode() const
 void Graphics::setDefaultFilter(const Texture::Filter &f)
 {
 	Texture::setDefaultFilter(f);
+	states.back().defaultFilter = f;
 }
 
 const Texture::Filter &Graphics::getDefaultFilter() const
@@ -888,6 +902,9 @@ void Graphics::setDefaultMipmapFilter(Texture::FilterMode filter, float sharpnes
 {
 	Image::setDefaultMipmapFilter(filter);
 	Image::setDefaultMipmapSharpness(sharpness);
+
+	states.back().defaultMipmapFilter = filter;
+	states.back().defaultMipmapSharpness = sharpness;
 }
 
 void Graphics::getDefaultMipmapFilter(Texture::FilterMode *filter, float *sharpness) const
@@ -1418,11 +1435,6 @@ void Graphics::pop()
 	{
 		DisplayState &newstate = states[states.size() - 2];
 
-		// Hack: the Lua-facing love.graphics.print function will set the current
-		// font if needed, but only on its first call... we always want a font.
-		if (newstate.font.get() == nullptr)
-			newstate.font.set(states.back().font.get());
-
 		restoreStateChecked(newstate);
 
 		// The last two states in the stack should be equal now.
@@ -1473,6 +1485,9 @@ Graphics::DisplayState::DisplayState()
 	, font(nullptr)
 	, shader(nullptr)
 	, wireframe(false)
+	, defaultFilter()
+	, defaultMipmapFilter(Texture::FILTER_NONE)
+	, defaultMipmapSharpness(0.0f)
 {
 	// We should just directly initialize the array in the initializer list, but
 	// that feature of C++11 is broken in Visual Studio 2013...
@@ -1494,6 +1509,9 @@ Graphics::DisplayState::DisplayState(const DisplayState &other)
 	, shader(other.shader)
 	, canvases(other.canvases)
 	, wireframe(other.wireframe)
+	, defaultFilter(other.defaultFilter)
+	, defaultMipmapFilter(other.defaultMipmapFilter)
+	, defaultMipmapSharpness(other.defaultMipmapSharpness)
 {
 	for (int i = 0; i < 4; i++)
 		colorMask[i] = other.colorMask[i];
@@ -1524,6 +1542,10 @@ Graphics::DisplayState &Graphics::DisplayState::operator = (const DisplayState &
 		colorMask[i] = other.colorMask[i];
 
 	wireframe = other.wireframe;
+
+	defaultFilter = other.defaultFilter;
+	defaultMipmapFilter = other.defaultMipmapFilter;
+	defaultMipmapSharpness = other.defaultMipmapSharpness;
 
 	return *this;
 }

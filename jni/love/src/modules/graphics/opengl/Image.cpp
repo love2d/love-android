@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -260,6 +260,7 @@ void Image::checkMipmapsCreated()
 
 void Image::setFilter(const Texture::Filter &f)
 {
+	const Filter oldfilter = filter;
 	filter = f;
 
 	// We don't want filtering or (attempted) mipmaps on the default texture.
@@ -277,7 +278,18 @@ void Image::setFilter(const Texture::Filter &f)
 
 	bind();
 	gl.setTextureFilter(filter);
-	checkMipmapsCreated();
+
+	try
+	{
+		checkMipmapsCreated();
+	}
+	catch (love::Exception &)
+	{
+		// Don't keep the new mipmap filter if we can't create mipmaps.
+		filter = oldfilter;
+		gl.setTextureFilter(filter);
+		throw;
+	}
 }
 
 bool Image::setWrap(const Texture::Wrap &w)
@@ -646,6 +658,17 @@ GLenum Image::getCompressedFormat(image::CompressedData::Format cformat) const
 		return GL_COMPRESSED_RG_RGTC2;
 	case image::CompressedData::FORMAT_BC5s:
 		return GL_COMPRESSED_SIGNED_RG_RGTC2;
+	case image::CompressedData::FORMAT_BC6H:
+		return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+	case image::CompressedData::FORMAT_BC6Hs:
+		return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
+	case image::CompressedData::FORMAT_BC7:
+		if (srgb)
+			return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
+		else
+			return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+	case image::CompressedData::FORMAT_BC7SRGB:
+		return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
 	case image::CompressedData::FORMAT_ETC1:
 		// The ETC2 format can load ETC1 textures.
 		if (GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility)
@@ -703,6 +726,11 @@ bool Image::hasCompressedTextureSupport(image::CompressedData::Format format)
 	case image::CompressedData::FORMAT_BC5:
 	case image::CompressedData::FORMAT_BC5s:
 		return (GLAD_VERSION_3_0 || GLAD_ARB_texture_compression_rgtc || GLAD_EXT_texture_compression_rgtc);
+	case image::CompressedData::FORMAT_BC6H:
+	case image::CompressedData::FORMAT_BC6Hs:
+	case image::CompressedData::FORMAT_BC7:
+	case image::CompressedData::FORMAT_BC7SRGB:
+		return GLAD_VERSION_4_2 || GLAD_ARB_texture_compression_bptc;
 	case image::CompressedData::FORMAT_ETC1:
 		// ETC2 support guarantees ETC1 support as well.
 		return GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility || GLAD_OES_compressed_ETC1_RGB8_texture;
@@ -712,10 +740,8 @@ bool Image::hasCompressedTextureSupport(image::CompressedData::Format format)
 	case image::CompressedData::FORMAT_PVR1_RGBA4:
 		return GLAD_IMG_texture_compression_pvrtc;
 	default:
-		break;
+		return false;
 	}
-
-	return false;
 }
 
 bool Image::hasSRGBSupport()

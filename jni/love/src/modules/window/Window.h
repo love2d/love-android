@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -60,6 +60,8 @@ public:
 		SETTING_HIGHDPI,
 		SETTING_SRGB,
 		SETTING_REFRESHRATE,
+		SETTING_X,
+		SETTING_Y,
 		SETTING_MAX_ENUM
 	};
 
@@ -82,6 +84,11 @@ public:
 	{
 		int width;
 		int height;
+
+		bool operator == (const WindowSize &w) const
+		{
+			return w.width == width && w.height == height;
+		}
 	};
 
 	struct MessageBoxData
@@ -122,6 +129,9 @@ public:
 
 	virtual void getDesktopDimensions(int displayindex, int &width, int &height) const = 0;
 
+	virtual void setPosition(int x, int y, int displayindex) = 0;
+	virtual void getPosition(int &x, int &y, int &displayindex) = 0;
+
 	virtual bool isCreated() const = 0;
 
 	virtual void setWindowTitle(const std::string &title) = 0;
@@ -131,6 +141,7 @@ public:
 	virtual love::image::ImageData *getIcon() = 0;
 
 	virtual void minimize() = 0;
+	virtual void maximize() = 0;
 
 	// default no-op implementation
 	virtual void swapBuffers();
@@ -150,9 +161,14 @@ public:
 
 	virtual bool isTouchScreen(int displayindex) const = 0;
 
+	virtual double toPixels(double x) const = 0;
+	virtual void toPixels(double wx, double wy, double &px, double &py) const = 0;
+	virtual double fromPixels(double x) const = 0;
+	virtual void fromPixels(double px, double py, double &wx, double &wy) const = 0;
+
 	virtual const void *getHandle() const = 0;
 
-	virtual bool showMessageBox(MessageBoxType type, const std::string &title, const std::string &message, bool attachtowindow) = 0;
+	virtual bool showMessageBox(const std::string &title, const std::string &message, MessageBoxType type, bool attachtowindow) = 0;
 	virtual int showMessageBox(const MessageBoxData &data) = 0;
 
 	//virtual static Window *createSingleton() = 0;
@@ -202,6 +218,9 @@ struct WindowSettings
 	bool highdpi; // false
 	bool sRGB; // false
 	double refreshrate; // 0.0
+	bool useposition; // false
+	int x; // 0
+	int y; // 0
 
 }; // WindowSettings
 

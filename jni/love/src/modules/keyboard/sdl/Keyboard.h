@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -26,10 +26,7 @@
 #include "common/EnumMap.h"
 
 // SDL
-#include <SDL.h>
-
-// STL
-#include <map>
+#include <SDL_keyboard.h>
 
 namespace love
 {
@@ -62,8 +59,8 @@ private:
 	// The real implementation is in love::event::sdl::Event::Convert.
 	bool key_repeat;
 
-	static std::map<Key, SDL_Keycode> createKeyMap();
-	static std::map<Key, SDL_Keycode> keys;
+	static const SDL_Keycode *createKeyMap();
+	static const SDL_Keycode *keymap;
 
 }; // Keyboard
 

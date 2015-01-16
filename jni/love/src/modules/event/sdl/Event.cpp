@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -45,17 +45,11 @@ namespace sdl
 static void windowToPixelCoords(int *x, int *y)
 {
 #ifndef LOVE_ANDROID
-	double scale = 1.0;
-
 	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
-	if (window != nullptr)
-		scale = window->getPixelScale();
-
-	if (x != nullptr)
-		*x = int(double(*x) * scale);
-
-	if (y != nullptr)
-		*y = int(double(*y) * scale);
+	if (window && x)
+		*x = (int) window->toPixels(*x);
+	if (window && y)
+		*y = (int) window->toPixels(*y);
 #endif
 }
 
@@ -109,15 +103,11 @@ Event::~Event()
 
 void Event::pump()
 {
-	SDL_PumpEvents();
-
-	static SDL_Event e;
-
-	Message *msg;
+	SDL_Event e;
 
 	while (SDL_PollEvent(&e))
 	{
-		msg = convert(e);
+		Message *msg = convert(e);
 		if (msg)
 		{
 			push(msg);
@@ -128,16 +118,17 @@ void Event::pump()
 
 Message *Event::wait()
 {
-	static SDL_Event e;
-	bool ok = (SDL_WaitEvent(&e) == 1);
-	if (!ok)
-		return NULL;
+	SDL_Event e;
+
+	if (SDL_WaitEvent(&e) != 1)
+		return nullptr;
+
 	return convert(e);
 }
 
 void Event::clear()
 {
-	static SDL_Event e;
+	SDL_Event e;
 
 	while (SDL_PollEvent(&e))
 	{

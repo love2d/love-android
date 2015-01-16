@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2014 LOVE Development Team
+Copyright (c) 2006-2015 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -81,6 +81,8 @@ end
 
 -- Returns the leaf of a full path.
 function love.path.leaf(p)
+	p = love.path.normalslashes(p)
+
 	local a = 1
 	local last = p
 
@@ -315,6 +317,8 @@ function love.init()
 		window = {
 			width = 800,
 			height = 600,
+			x = nil,
+			y = nil,
 			minwidth = 1,
 			minheight = 1,
 			fullscreen = false,
@@ -360,12 +364,11 @@ function love.init()
 
 	-- Yes, conf.lua might not exist, but there are other ways of making
 	-- love.conf appear, so we should check for it anyway.
+	local confok, conferr
 	if love.conf then
-		local ok, err = pcall(love.conf, c)
-		if not ok then
-			print(err)
-			-- continue
-		end
+		confok, conferr = pcall(love.conf, c)
+		-- If love.conf errors, we'll trigger the error after loading modules so
+		-- the error message can be displayed in the window.
 	end
 
 	if love.arg.options.console.set then
@@ -410,6 +413,10 @@ function love.init()
 		love.createhandlers()
 	end
 
+	if not confok and conferr then
+		error(conferr)
+	end
+
 	-- Setup window here.
 	if c.window and c.modules.window then
 		assert(love.window.setMode(c.window.width, c.window.height,
@@ -427,6 +434,8 @@ function love.init()
 			display = c.window.display,
 			highdpi = c.window.highdpi,
 			srgb = c.window.srgb,
+			x = c.window.x,
+			y = c.window.y,
 		}), "Could not set window mode")
 		love.window.setTitle(c.window.title or c.title)
 		if c.window.icon then
@@ -494,10 +503,7 @@ function love.run()
 
 	if love.math then
 		love.math.setRandomSeed(os.time())
-	end
-
-	if love.event then
-		love.event.pump()
+		for i=1,3 do love.math.random() end
 	end
 
 	if love.load then love.load(arg) end
@@ -1449,9 +1455,8 @@ function love.nogame()
 		g_time = g_time + dt / 2
 		local int, frac = math.modf(g_time)
 		update_rain(frac)
-		local scale = love.window.getPixelScale()
-		inspector.x = love.graphics.getWidth() * 0.45 / scale
-		inspector.y = love.graphics.getHeight() * 0.55 / scale
+		inspector.x = love.window.fromPixels(love.graphics.getWidth() * 0.45)
+		inspector.y = love.window.fromPixels(love.graphics.getHeight() * 0.55)
 	end
 
 	local function draw_grid()
@@ -1587,10 +1592,10 @@ function love.errhand(msg)
 	end
 	if love.audio then love.audio.stop() end
 	love.graphics.reset()
-	local font = love.graphics.setNewFont(math.floor(14 * love.window.getPixelScale()))
+	local font = love.graphics.setNewFont(math.floor(love.window.toPixels(14)))
 
 	local sRGB = select(3, love.window.getMode()).srgb
-	if sRGB then
+	if sRGB and love.math then
 		love.graphics.setBackgroundColor(love.math.gammaToLinear(89, 157, 220))
 	else
 		love.graphics.setBackgroundColor(89, 157, 220)
@@ -1621,7 +1626,7 @@ function love.errhand(msg)
 	p = string.gsub(p, "%[string \"(.-)\"%]", "%1")
 
 	local function draw()
-		local pos = 70 * love.window.getPixelScale()
+		local pos = love.window.toPixels(70)
 		love.graphics.clear()
 		love.graphics.printf(p, pos, pos, love.graphics.getWidth() - pos)
 		love.graphics.present()

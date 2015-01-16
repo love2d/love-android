@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -27,6 +27,9 @@
 #include "Fixture.h"
 #include "World.h"
 #include "Physics.h"
+
+// Needed for luax_pushjoint.
+#include "wrap_Joint.h"
 
 namespace love
 {
@@ -437,6 +440,30 @@ int Body::getFixtureList(lua_State *L) const
 		i++;
 	}
 	while ((f = f->GetNext()));
+	return 1;
+}
+
+int Body::getJointList(lua_State *L) const
+{
+	lua_newtable(L);
+	const b2JointEdge *je = body->GetJointList();
+	int i = 1;
+
+	do
+	{
+		if (!je)
+			break;
+
+		Joint *joint = (Joint *) Memoizer::find(je->joint);
+		if (!joint)
+			throw love::Exception("A joint has escaped Memoizer!");
+
+		luax_pushjoint(L, joint);
+		lua_rawseti(L, -2, i);
+		i++;
+	}
+	while ((je = je->next));
+
 	return 1;
 }
 

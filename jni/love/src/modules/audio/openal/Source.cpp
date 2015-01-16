@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -68,7 +68,10 @@ Source::Source(Pool *pool, love::sound::SoundData *soundData)
 	, toLoop(0)
 {
 	ALenum fmt = getFormat(soundData->getChannels(), soundData->getBitDepth());
-	staticBuffer = new StaticDataBuffer(fmt, soundData->getData(), soundData->getSize(), soundData->getSampleRate());
+	staticBuffer.set(new StaticDataBuffer(fmt, soundData->getData(), soundData->getSize(), soundData->getSampleRate()));
+
+	// The buffer has a +2 retain count right now, but we want it to have +1.
+	staticBuffer->release();
 
 	float z[3] = {0, 0, 0};
 

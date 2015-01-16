@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -109,6 +109,16 @@ int w_setMode(lua_State *L)
 	settings.highdpi = luax_boolflag(L, 3, settingName(Window::SETTING_HIGHDPI), false);
 	settings.sRGB = luax_boolflag(L, 3, settingName(Window::SETTING_SRGB), false);
 
+	lua_getfield(L, 3, settingName(Window::SETTING_X));
+	lua_getfield(L, 3, settingName(Window::SETTING_Y));
+	settings.useposition = !(lua_isnoneornil(L, -2) && lua_isnoneornil(L, -1));
+	if (settings.useposition)
+	{
+		settings.x = luaL_optint(L, -2, 0);
+		settings.y = luaL_optint(L, -1, 0);
+	}
+	lua_pop(L, 2);
+
 	// We don't explicitly set the refresh rate, it's "read-only".
 
 	// For backward-compatibility. TODO: remove!
@@ -177,6 +187,12 @@ int w_getMode(lua_State *L)
 
 	lua_pushnumber(L, settings.refreshrate);
 	lua_setfield(L, -2, settingName(Window::SETTING_REFRESHRATE));
+
+	lua_pushinteger(L, settings.x);
+	lua_setfield(L, -2, settingName(Window::SETTING_X));
+
+	lua_pushinteger(L, settings.y);
+	lua_setfield(L, -2, settingName(Window::SETTING_Y));
 
 	return 3;
 }
@@ -279,6 +295,27 @@ int w_getDesktopDimensions(lua_State *L)
 	return 2;
 }
 
+int w_setPosition(lua_State *L)
+{
+	int x = luaL_checkint(L, 1);
+	int y = luaL_checkint(L, 2);
+	int displayindex = luaL_optint(L, 3, 1) - 1;
+	instance()->setPosition(x, y, displayindex);
+	return 0;
+}
+
+int w_getPosition(lua_State *L)
+{
+	int x = 0;
+	int y = 0;
+	int displayindex = 0;
+	instance()->getPosition(x, y, displayindex);
+	lua_pushinteger(L, x);
+	lua_pushinteger(L, y);
+	lua_pushinteger(L, displayindex + 1);
+	return 3;
+}
+
 int w_setIcon(lua_State *L)
 {
 	image::ImageData *i = luax_checktype<image::ImageData>(L, 1, "ImageData", IMAGE_IMAGE_DATA_T);
@@ -340,41 +377,86 @@ int w_isTouchScreen(lua_State *L)
 	return 1;
 }
 
+int w_toPixels(lua_State *L)
+{
+	double wx = luaL_checknumber(L, 1);
+
+	if (lua_isnoneornil(L, 2))
+	{
+		lua_pushnumber(L, instance()->toPixels(wx));
+		return 1;
+	}
+
+	double wy = luaL_checknumber(L, 2);
+	double px = 0.0, py = 0.0;
+
+	instance()->toPixels(wx, wy, px, py);
+
+	lua_pushnumber(L, px);
+	lua_pushnumber(L, py);
+
+	return 2;
+}
+
+int w_fromPixels(lua_State *L)
+{
+	double px = luaL_checknumber(L, 1);
+
+	if (lua_isnoneornil(L, 2))
+	{
+		lua_pushnumber(L, instance()->fromPixels(px));
+		return 1;
+	}
+
+	double py = luaL_checknumber(L, 2);
+	double wx = 0.0, wy = 0.0;
+
+	instance()->fromPixels(px, py, wx, wy);
+
+	lua_pushnumber(L, wx);
+	lua_pushnumber(L, wy);
+
+	return 2;
+}
+
 int w_minimize(lua_State* /*L*/)
 {
 	instance()->minimize();
 	return 0;
 }
 
+int w_maximize(lua_State *)
+{
+	instance()->maximize();
+	return 0;
+}
+
 int w_showMessageBox(lua_State *L)
 {
 	Window::MessageBoxData data = {};
+	data.type = Window::MESSAGEBOX_INFO;
 
-	const char *typestr = luaL_checkstring(L, 1);
-	if (!Window::getConstant(typestr, data.type))
-		return luaL_error(L, "Invalid messagebox type: %s", typestr);
-
-	data.title = luaL_checkstring(L, 2);
-	data.message = luaL_checkstring(L, 3);
+	data.title = luaL_checkstring(L, 1);
+	data.message = luaL_checkstring(L, 2);
 
 	// If we have a table argument, we assume a list of button names, which
 	// means we should use the more complex message box API.
-	if (lua_istable(L, 4))
+	if (lua_istable(L, 3))
 	{
-		size_t numbuttons = lua_objlen(L, 4);
+		size_t numbuttons = lua_objlen(L, 3);
 		if (numbuttons == 0)
 			return luaL_error(L, "Must have at least one messagebox button.");
 
 		// Array of button names.
 		for (size_t i = 0; i < numbuttons; i++)
 		{
-			lua_rawgeti(L, 4, i + 1);
+			lua_rawgeti(L, 3, i + 1);
 			data.buttons.push_back(luax_checkstring(L, -1));
 			lua_pop(L, 1);
 		}
 
 		// Optional table entry specifying the button to use when enter is pressed.
-		lua_getfield(L, 4, "enterbutton");
+		lua_getfield(L, 3, "enterbutton");
 		if (!lua_isnoneornil(L, -1))
 			data.enterButtonIndex = luaL_checkint(L, -1) - 1;
 		else
@@ -382,12 +464,16 @@ int w_showMessageBox(lua_State *L)
 		lua_pop(L, 1);
 
 		// Optional table entry specifying the button to use when esc is pressed.
-		lua_getfield(L, 4, "escapebutton");
+		lua_getfield(L, 3, "escapebutton");
 		if (!lua_isnoneornil(L, -1))
 			data.escapeButtonIndex = luaL_checkint(L, -1) - 1;
 		else
 			data.escapeButtonIndex = (int) data.buttons.size() - 1;
 		lua_pop(L, 1);
+
+		const char *typestr = lua_isnoneornil(L, 4) ? nullptr : luaL_checkstring(L, 4);
+		if (typestr && !Window::getConstant(typestr, data.type))
+			return luaL_error(L, "Invalid messagebox type: %s", typestr);
 
 		data.attachToWindow = luax_optboolean(L, 5, true);
 
@@ -396,10 +482,14 @@ int w_showMessageBox(lua_State *L)
 	}
 	else
 	{
+		const char *typestr = lua_isnoneornil(L, 3) ? nullptr : luaL_checkstring(L, 3);
+		if (typestr && !Window::getConstant(typestr, data.type))
+			return luaL_error(L, "Invalid messagebox type: %s", typestr);
+
 		data.attachToWindow = luax_optboolean(L, 4, true);
 
 		// Display a simple message box.
-		bool success = instance()->showMessageBox(data.type, data.title, data.message, data.attachToWindow);
+		bool success = instance()->showMessageBox(data.title, data.message, data.type, data.attachToWindow);
 		luax_pushboolean(L, success);
 	}
 
@@ -420,6 +510,8 @@ static const luaL_Reg functions[] =
 	{ "getHeight", w_getHeight },
 	{ "getDimensions", w_getDimensions },
 	{ "getDesktopDimensions", w_getDesktopDimensions },
+	{ "setPosition", w_setPosition },
+	{ "getPosition", w_getPosition },
 	{ "setIcon", w_setIcon },
 	{ "getIcon", w_getIcon },
 	{ "setTitle", w_setTitle },
@@ -429,6 +521,8 @@ static const luaL_Reg functions[] =
 	{ "isVisible", w_isVisible },
 	{ "getPixelScale", w_getPixelScale },
 	{ "isTouchScreen", w_isTouchScreen },
+	{ "toPixels", w_toPixels },
+	{ "fromPixels", w_fromPixels },
 	{ "minimize", w_minimize },
 	{ "showMessageBox", w_showMessageBox },
 	{ 0, 0 }

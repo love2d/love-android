@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -40,7 +40,7 @@ public:
 	 * Indicates how many bytes of raw data should be generated at each
 	 * call to Decode.
 	 **/
-	static const int DEFAULT_BUFFER_SIZE = 2048;
+	static const int DEFAULT_BUFFER_SIZE = 16384;
 
 	/**
 	 * Indicates the quality of the sound.

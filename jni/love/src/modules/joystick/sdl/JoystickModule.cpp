@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -489,6 +489,10 @@ void JoystickModule::loadGamepadMappings(const std::string &mappings)
 		if (mapping.empty())
 			continue;
 
+		// Lines starting with "#" are comments.
+		if (mapping[0] == '#')
+			continue;
+
 		// Strip out and compare any "platform:XYZ," in the mapping.
 		size_t pstartpos = mapping.find("platform:");
 		if (pstartpos != std::string::npos)
@@ -499,7 +503,11 @@ void JoystickModule::loadGamepadMappings(const std::string &mappings)
 			std::string platform = mapping.substr(pstartpos, pendpos - pstartpos);
 
 			if (platform.compare(SDL_GetPlatform()) != 0)
+			{
+				// Ignore the mapping but still acknowledge that it is one.
+				success = true;
 				continue;
+			}
 
 			pstartpos -= strlen("platform:");
 			mapping.erase(pstartpos, pendpos - pstartpos + 1);

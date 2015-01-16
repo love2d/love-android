@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -51,12 +51,30 @@ int w_GearJoint_getRatio(lua_State *L)
 	return 1;
 }
 
+int w_GearJoint_getJoints(lua_State *L)
+{
+	GearJoint *t = luax_checkgearjoint(L, 1);
+	Joint *j1 = nullptr;
+	Joint *j2 = nullptr;
+
+	luax_catchexcept(L, [&]() {
+		j1 = t->getJointA();
+		j2 = t->getJointB();
+	});
+
+	luax_pushjoint(L, j1);
+	luax_pushjoint(L, j2);
+	return 2;
+}
+
 static const luaL_Reg functions[] =
 {
 	{ "setRatio", w_GearJoint_setRatio },
 	{ "getRatio", w_GearJoint_getRatio },
+	{ "getJoints", w_GearJoint_getJoints },
 	// From Joint.
 	{ "getType", w_Joint_getType },
+	{ "getBodies", w_Joint_getBodies },
 	{ "getAnchors", w_Joint_getAnchors },
 	{ "getReactionForce", w_Joint_getReactionForce },
 	{ "getReactionTorque", w_Joint_getReactionTorque },
@@ -64,6 +82,7 @@ static const luaL_Reg functions[] =
 	{ "setUserData", w_Joint_setUserData },
 	{ "getUserData", w_Joint_getUserData },
 	{ "destroy", w_Joint_destroy },
+	{ "isDestroyed", w_Joint_isDestroyed },
 	{ 0, 0 }
 };
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -54,6 +54,10 @@ public:
 		FORMAT_BC4s,
 		FORMAT_BC5,
 		FORMAT_BC5s,
+		FORMAT_BC6H,
+		FORMAT_BC6Hs,
+		FORMAT_BC7,
+		FORMAT_BC7SRGB,
 		FORMAT_ETC1,
 		FORMAT_PVR1_RGB2,
 		FORMAT_PVR1_RGB4,

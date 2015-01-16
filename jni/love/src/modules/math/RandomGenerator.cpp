@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -81,11 +81,6 @@ void RandomGenerator::setSeed(RandomGenerator::Seed newseed)
 
 	seed = newseed;
 	rng_state = seed;
-
-	// Xorshift's first couple results after seeding will be similar to results
-	// from very similar seeds, so we immediately discard them here.
-	for (int i = 0; i < 2; i++)
-		rand();
 }
 
 RandomGenerator::Seed RandomGenerator::getSeed() const

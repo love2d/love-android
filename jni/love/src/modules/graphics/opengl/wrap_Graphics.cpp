@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -28,6 +28,7 @@
 
 #include "scripts/graphics.lua.h"
 #include <cassert>
+#include <cstring>
 
 namespace love
 {
@@ -409,6 +410,19 @@ int w_newShader(lua_State *L)
 			lua_call(L, 1, 1);
 			lua_replace(L, i);
 		}
+		else
+		{
+			// Check if the argument looks like a filepath - we want a nicer
+			// error for misspelled filepath arguments.
+			size_t slen = 0;
+			const char *str = lua_tolstring(L, i, &slen);
+			if (slen > 0 && slen < 256 && !strchr(str, '\n'))
+			{
+				const char *ext = strchr(str, '.');
+				if (ext != nullptr && !strchr(ext, ';') && !strchr(ext, ' '))
+					return luaL_error(L, "Could not open file %s. Does not exist.", str);
+			}
+		}
 	}
 
 	bool has_arg1 = lua_isstring(L, 1);
@@ -428,27 +442,21 @@ int w_newShader(lua_State *L)
 	if (lua_pcall(L, 2, 2, 0) != 0)
 		return luaL_error(L, "%s", lua_tostring(L, -1));
 
-	Shader::ShaderSources sources;
+	Shader::ShaderSource source;
 
 	// vertex shader code
 	if (lua_isstring(L, -2))
-	{
-		std::string vertexcode(luaL_checkstring(L, -2));
-		sources[Shader::TYPE_VERTEX] = vertexcode;
-	}
+		source.vertex = luax_checkstring(L, -2);
 	else if (has_arg1 && has_arg2)
 		return luaL_error(L, "Could not parse vertex shader code (missing 'position' function?)");
 
 	// pixel shader code
 	if (lua_isstring(L, -1))
-	{
-		std::string pixelcode(luaL_checkstring(L, -1));
-		sources[Shader::TYPE_PIXEL] = pixelcode;
-	}
+		source.pixel = luax_checkstring(L, -1);
 	else if (has_arg1 && has_arg2)
 		return luaL_error(L, "Could not parse pixel shader code (missing 'effect' function?)");
 
-	if (sources.empty())
+	if (source.vertex.empty() && source.pixel.empty())
 	{
 		// Original args had source code, but effectCodeToGLSL couldn't translate it
 		for (int i = 1; i <= 2; i++)
@@ -461,7 +469,7 @@ int w_newShader(lua_State *L)
 	bool should_error = false;
 	try
 	{
-		Shader *shader = instance()->newShader(sources);
+		Shader *shader = instance()->newShader(source);
 		luax_pushtype(L, "Shader", GRAPHICS_SHADER_T, shader);
 		shader->release();
 	}
@@ -993,9 +1001,9 @@ int w_setDefaultShaderCode(lua_State *L)
 	lua_rawgeti(L, -1, 1);
 	lua_rawgeti(L, -2, 2);
 
-	Shader::ShaderSources openglcode;
-	openglcode[Shader::TYPE_VERTEX] = luax_checkstring(L, -2);
-	openglcode[Shader::TYPE_PIXEL] = luax_checkstring(L, -1);
+	Shader::ShaderSource openglcode;
+	openglcode.vertex = luax_checkstring(L, -2);
+	openglcode.pixel = luax_checkstring(L, -1);
 
 	lua_pop(L, 3);
 
@@ -1003,9 +1011,9 @@ int w_setDefaultShaderCode(lua_State *L)
 	lua_rawgeti(L, -1, 1);
 	lua_rawgeti(L, -2, 2);
 
-	Shader::ShaderSources openglescode;
-	openglescode[Shader::TYPE_VERTEX] = luax_checkstring(L, -2);
-	openglescode[Shader::TYPE_PIXEL] = luax_checkstring(L, -1);
+	Shader::ShaderSource openglescode;
+	openglescode.vertex = luax_checkstring(L, -2);
+	openglescode.pixel = luax_checkstring(L, -1);
 
 	lua_pop(L, 3);
 

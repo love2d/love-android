@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -392,6 +392,11 @@ public:
 	 * @return An array of Fixtures.
 	 **/
 	int getFixtureList(lua_State *L) const;
+
+	/**
+	 * Get an array of all Joints attached to this Body.
+	 **/
+	int getJointList(lua_State *L) const;
 
 	/**
 	 * Get an array of all active Contacts attached to this Body.

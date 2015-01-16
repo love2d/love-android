@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 	lua_pushstring(L, "love");
 	lua_call(L, 1, 1); // leave the returned table on the stack.
 
-	// Add love.__exe = true.
+	// Add love._exe = true.
 	// This indicates that we're running the standalone version of love, and not
 	// the library version.
 	{

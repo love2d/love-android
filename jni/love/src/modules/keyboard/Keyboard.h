@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -242,7 +242,7 @@ public:
 		KEY_EJECT,
 		KEY_SLEEP,
 
-		KEY_MAX_ENUM = 512
+		KEY_MAX_ENUM
 	};
 
 	virtual ~Keyboard() {}
