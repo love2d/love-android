@@ -244,6 +244,10 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 		if (!gfx->setMode(width, height, curMode.settings.sRGB))
 			showMessageBox("Could not set graphics mode", "Unsupported OpenGL version?", MESSAGEBOX_ERROR, true);
+
+#ifdef LOVE_ANDROID
+		love::android::setBorderless(f.borderless);
+#endif
 	}
 
 	// Make sure the mouse keeps its previous grab setting.

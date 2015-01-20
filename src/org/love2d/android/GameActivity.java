@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -36,6 +37,7 @@ public class GameActivity extends SDLActivity {
     private static String gamePath = "";
     private static Context context;
     private static Vibrator vibrator;
+    private static boolean immersiveActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,13 +84,48 @@ public class GameActivity extends SDLActivity {
     @Override
     public void onResume() {
       super.onResume();
-      getWindow().getDecorView().setSystemUiVisibility(
-          View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-          | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-          | View.SYSTEM_UI_FLAG_FULLSCREEN
-          | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+
+      if (immersiveActive) {
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+      }
+    }
+
+    public void setImmersiveMode (boolean immersive_mode) {
+      immersiveActive = immersive_mode;
+
+      final Object lock = new Object();
+      final boolean immersive_enabled = immersive_mode;
+      synchronized (lock) {
+        runOnUiThread (new Runnable() {
+          @Override
+          public void run() {
+            synchronized (lock) {
+              if (immersive_enabled) {
+                getWindow().getDecorView().setSystemUiVisibility(
+                  View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                  | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                  | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                  | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                  | View.SYSTEM_UI_FLAG_FULLSCREEN
+                  | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+              } else {
+                getWindow().getDecorView().setSystemUiVisibility(
+                  View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                  | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                  );
+              }
+
+              lock.notify();
+            }
+          }
+        });
+      };
     }
 
     public static String getGamePath() {

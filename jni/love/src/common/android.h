@@ -32,6 +32,8 @@ namespace love
 namespace android
 {
 
+void setBorderless (bool borderless_active);
+
 /**
  * Gets the scale factor of the window's screen, e.g. on Retina displays this
  * will return 2.0.
