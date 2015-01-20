@@ -32,7 +32,7 @@ namespace love
 namespace android
 {
 
-void setBorderless (bool borderless_active);
+void setImmersive (bool immersive_active);
 
 /**
  * Gets the scale factor of the window's screen, e.g. on Retina displays this

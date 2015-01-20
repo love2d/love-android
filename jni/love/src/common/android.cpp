@@ -35,7 +35,7 @@ namespace love
 namespace android
 {
 
-void setBorderless (bool borderless_active) {
+void setImmersive (bool immersive_active) {
 	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
 
 	jobject activity = (jobject) SDL_AndroidGetActivity();
@@ -43,7 +43,7 @@ void setBorderless (bool borderless_active) {
 	jclass clazz (env->GetObjectClass(activity));
 	jmethodID method_id = env->GetMethodID (clazz, "setImmersiveMode", "(Z)V");
 
-	env->CallVoidMethod (activity, method_id, borderless_active);
+	env->CallVoidMethod (activity, method_id, immersive_active);
 
 	env->DeleteLocalRef (activity);
 	env->DeleteLocalRef (clazz);

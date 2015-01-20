@@ -95,6 +95,11 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	Uint32 sdlflags = SDL_WINDOW_OPENGL;
 
+	// On Android we always must have fullscreen type FULLSCREEN_TYPE_DESKTOP
+#ifdef LOVE_ANDROID
+	f.fstype = FULLSCREEN_TYPE_DESKTOP;
+#endif
+
 	if (f.fullscreen)
 	{
 		if (f.fstype == FULLSCREEN_TYPE_DESKTOP)
@@ -246,7 +251,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 			showMessageBox("Could not set graphics mode", "Unsupported OpenGL version?", MESSAGEBOX_ERROR, true);
 
 #ifdef LOVE_ANDROID
-		love::android::setBorderless(f.borderless);
+		love::android::setImmersive(f.fullscreen);
 #endif
 	}
 
