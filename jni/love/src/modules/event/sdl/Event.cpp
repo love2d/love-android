@@ -42,14 +42,14 @@ namespace sdl
 
 // SDL reports mouse coordinates in the window coordinate system in OS X, but
 // we want them in pixel coordinates (may be different with high-DPI enabled.)
-static void windowToPixelCoords(int *x, int *y)
+static void windowToPixelCoords(double *x, double *y)
 {
 #ifndef LOVE_ANDROID
 	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
 	if (window && x)
-		*x = (int) window->toPixels(*x);
+		*x = window->toPixels(*x);
 	if (window && y)
-		*y = (int) window->toPixels(*y);
+		*y = window->toPixels(*y);
 #endif
 }
 
@@ -201,15 +201,30 @@ Message *Event::convert(const SDL_Event &e) const
 		vargs.push_back(new Variant((double) e.edit.length));
 		msg = new Message("textedit", vargs);
 		break;
+	case SDL_MOUSEMOTION:
+		{
+			double x = (double) e.motion.x;
+			double y = (double) e.motion.y;
+			double xrel = (double) e.motion.xrel;
+			double yrel = (double) e.motion.yrel;
+			windowToPixelCoords(&x, &y);
+			windowToPixelCoords(&xrel, &yrel);
+			vargs.push_back(new Variant(x));
+			vargs.push_back(new Variant(y));
+			vargs.push_back(new Variant(xrel));
+			vargs.push_back(new Variant(yrel));
+			msg = new Message("mousemoved", vargs);
+		}
+		break;
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
 		if (buttons.find(e.button.button, button) && mouse::Mouse::getConstant(button, txt))
 		{
-			int x = e.button.x;
-			int y = e.button.y;
+			double x = (double) e.button.x;
+			double y = (double) e.button.y;
 			windowToPixelCoords(&x, &y);
-			vargs.push_back(new Variant((double) x));
-			vargs.push_back(new Variant((double) y));
+			vargs.push_back(new Variant(x));
+			vargs.push_back(new Variant(y));
 			vargs.push_back(new Variant(txt, strlen(txt)));
 			vargs.push_back(new Variant(e.button.which == SDL_TOUCH_MOUSEID));
 			msg = new Message((e.type == SDL_MOUSEBUTTONDOWN) ?
@@ -225,11 +240,14 @@ Message *Event::convert(const SDL_Event &e) const
 				break;
 
 			int mx, my;
+			double dmx, dmy;
 			SDL_GetMouseState(&mx, &my);
-			windowToPixelCoords(&mx, &my);
+			dmx = (double) mx;
+			dmy = (double) my;
+			windowToPixelCoords(&dmx, &dmy);
 
-			vargs.push_back(new Variant((double) mx));
-			vargs.push_back(new Variant((double) my));
+			vargs.push_back(new Variant(dmx));
+			vargs.push_back(new Variant(dmy));
 			vargs.push_back(new Variant(txt, strlen(txt)));
 			vargs.push_back(new Variant(false));
 			msg = new Message("mousepressed", vargs);

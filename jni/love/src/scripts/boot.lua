@@ -169,6 +169,9 @@ function love.createhandlers()
 		mousepressed = function (x,y,b,t)
 			if love.mousepressed then return love.mousepressed(x,y,b,t) end
 		end,
+		mousemoved = function (x,y,xrel,yrel)
+			if love.mousemoved then return love.mousemoved(x,y,xrel,yrel) end
+		end,
 		mousereleased = function (x,y,b,t)
 			if love.mousereleased then return love.mousereleased(x,y,b,t) end
 		end,
@@ -357,6 +360,13 @@ function love.init()
 		accelerometerjoystick = true, -- Only relevant for Android / iOS.
 	}
 
+	-- Console hack, part 1.
+	local openedconsole = false
+	if love.arg.options.console.set and love._openConsole then
+		love._openConsole()
+		openedconsole = true
+	end
+
 	-- If config file exists, load it and allow it to update config table.
 	if not love.conf and love.filesystem and love.filesystem.isFile("conf.lua") then
 		require("conf")
@@ -371,12 +381,8 @@ function love.init()
 		-- the error message can be displayed in the window.
 	end
 
-	if love.arg.options.console.set then
-		c.console = true
-	end
-
-	-- Console hack
-	if c.console and love._openConsole then
+	-- Console hack, part 2.
+	if c.console and love._openConsole and not openedconsole then
 		love._openConsole()
 	end
 
@@ -521,9 +527,6 @@ function love.run()
 			for n,a,b,c,d,e in love.event.poll() do
 				if n == "quit" then
 					if not love.quit or not love.quit() then
-						if love.audio then
-							love.audio.stop()
-						end
 						return
 					end
 				end
