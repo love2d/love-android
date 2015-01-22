@@ -88,6 +88,7 @@ LOCAL_SRC_FILES := \
   $(wildcard ${LOCAL_PATH}/src/libraries/enet/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/libraries/enet/libenet/*.c) \
   $(wildcard ${LOCAL_PATH}/src/libraries/luasocket/*.cpp) \
+  $(wildcard ${LOCAL_PATH}/src/libraries/luautf8/*.c) \
   $(wildcard ${LOCAL_PATH}/src/libraries/luasocket/libluasocket/*.c) \
   $(wildcard ${LOCAL_PATH}/src/libraries/noise1234/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/libraries/Wuff/*.c) \

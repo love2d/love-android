@@ -18,8 +18,12 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#include "common/version.h"
 #include "modules/love/love.h"
+
+#ifndef LOVE_ANDROID
+#include "common/version.h"
+#endif
+
 #include <SDL.h>
 
 #ifdef LOVE_BUILD_EXE
@@ -195,12 +199,17 @@ int main(int argc, char **argv)
 	argv = hack_argv;
 #endif // LOVE_LEGENDARY_APP_ARGV_HACK
 
+#ifndef LOVE_ANDROID
+	// TODO: LOVE for Android creates a single library instead of executable
+	// and library. Therefore this check is not required, but causes a
+	// duplicate definition of the love::VERSION symbol.
 	if (strcmp(love::VERSION, love_version()) != 0)
 	{
 		printf("Version mismatch detected!\nLOVE binary is version %s\n"
 				"LOVE library is version %s\n", love::VERSION, love_version());
 		return 1;
 	}
+#endif
 
 	// Oh, you just want the version? Okay!
 	if (argc > 1 && strcmp(argv[1], "--version") == 0)
