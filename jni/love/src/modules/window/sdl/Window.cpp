@@ -535,6 +535,10 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 			SDL_GL_GetDrawableSize(window, &width, &height);
 #endif
 
+#ifdef LOVE_ANDROID
+			love::android::setImmersive(fullscreen);
+#endif
+
 			gfx->setViewportSize(width, height);
 		}
 
