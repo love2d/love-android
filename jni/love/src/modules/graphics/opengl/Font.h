@@ -186,7 +186,7 @@ private:
 	Glyph *addGlyph(uint32 glyph);
 	Glyph *findGlyph(uint32 glyph);
 
-	Object::StrongRef<love::font::Rasterizer> rasterizer;
+	StrongRef<love::font::Rasterizer> rasterizer;
 
 	VertexIndex *indexBuffer;
 

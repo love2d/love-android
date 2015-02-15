@@ -137,8 +137,6 @@ bool OpenGL::initContext()
 	initMaxValues();
 	createDefaultTexture();
 
-	state.lastPseudoInstanceID = -1;
-
 	// Invalidate the cached matrices by setting some elements to NaN.
 	float nan = std::numeric_limits<float>::quiet_NaN();
 	state.lastProjectionMatrix.setTranslation(nan, nan);
@@ -305,14 +303,6 @@ void OpenGL::prepareDraw()
 	{
 		shader->checkSetScreenParams();
 
-		// Make sure the Instance ID variable is up-to-date when
-		// pseudo-instancing is used.
-		if (state.lastPseudoInstanceID != 0 && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID))
-		{
-			glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, 0.0f);
-			state.lastPseudoInstanceID = 0;
-		}
-
 		// We need to make sure antialiased Canvases are properly resolved
 		// before sampling from their textures in a shader.
 		// This is kind of a big hack. :(
@@ -376,62 +366,6 @@ void OpenGL::drawElements(GLenum mode, GLsizei count, GLenum type, const void *i
 void OpenGL::drawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
 	glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
-	++stats.drawCalls;
-}
-
-void OpenGL::drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount)
-{
-	Shader *shader = Shader::current;
-
-	if (GLAD_ARB_draw_instanced)
-		glDrawArraysInstancedARB(mode, first, count, primcount);
-	else if (GLAD_EXT_draw_instanced && GLAD_ES_VERSION_2_0)
-		glDrawArraysInstancedEXT(mode, first, count, primcount);
-	else
-	{
-		bool shaderHasID = shader && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID);
-
-		// Pseudo-instancing fallback.
-		for (int i = 0; i < primcount; i++)
-		{
-			if (shaderHasID)
-				glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, (GLfloat) i);
-
-			glDrawArrays(mode, first, count);
-		}
-
-		if (shaderHasID)
-			state.lastPseudoInstanceID = primcount - 1;
-	}
-
-	++stats.drawCalls;
-}
-
-void OpenGL::drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount)
-{
-	Shader *shader = Shader::current;
-
-	if (GLAD_ARB_draw_instanced)
-		glDrawElementsInstancedARB(mode, count, type, indices, primcount);
-	else if (GLAD_EXT_draw_instanced && GLAD_ES_VERSION_2_0)
-		glDrawElementsInstancedEXT(mode, count, type, indices, primcount);
-	else
-	{
-		bool shaderHasID = shader && shader->hasVertexAttrib(ATTRIB_PSEUDO_INSTANCE_ID);
-
-		// Pseudo-instancing fallback.
-		for (int i = 0; i < primcount; i++)
-		{
-			if (shaderHasID)
-				glVertexAttrib1f((GLuint) ATTRIB_PSEUDO_INSTANCE_ID, (GLfloat) i);
-
-			glDrawElements(mode, count, type, indices);
-		}
-
-		if (shaderHasID)
-			state.lastPseudoInstanceID = primcount - 1;
-	}
-
 	++stats.drawCalls;
 }
 

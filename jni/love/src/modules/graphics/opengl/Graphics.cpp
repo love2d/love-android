@@ -25,6 +25,7 @@
 
 #include "Graphics.h"
 #include "window/sdl/Window.h"
+#include "font/Font.h"
 #include "Polyline.h"
 
 // C++
@@ -71,6 +72,7 @@ Graphics::~Graphics()
 {
 	// We do this manually so the love objects get released before the window.
 	states.clear();
+	defaultFont.set(nullptr);
 
 	if (Shader::defaultShader)
 	{
@@ -160,20 +162,37 @@ void Graphics::restoreStateChecked(const DisplayState &s)
 		}
 	}
 
-	for (int i = 0; i < 4; i++)
-	{
-		if (s.colorMask[i] != cur.colorMask[i])
-		{
-			setColorMask(s.colorMask);
-			break;
-		}
-	}
+	if (s.colorMask != cur.colorMask)
+		setColorMask(s.colorMask);
 
 	if (s.wireframe != cur.wireframe)
 		setWireframe(s.wireframe);
 
 	setDefaultFilter(s.defaultFilter);
 	setDefaultMipmapFilter(s.defaultMipmapFilter, s.defaultMipmapSharpness);
+}
+
+void Graphics::checkSetDefaultFont()
+{
+	// We don't create or set the default Font if an existing font is in use.
+	if (states.back().font.get() != nullptr)
+		return;
+
+	// Create a new default font if we don't have one yet.
+	if (!defaultFont.get())
+	{
+		font::Font *fontmodule = Module::getInstance<font::Font>(M_FONT);
+		if (!fontmodule)
+			throw love::Exception("Font module has not been loaded.");
+
+		StrongRef<font::Rasterizer> r(fontmodule->newRasterizer(12));
+		r->release();
+
+		defaultFont.set(newFont(r.get()));
+		defaultFont->release();
+	}
+
+	states.back().font.set(defaultFont.get());
 }
 
 void Graphics::setViewportSize(int width, int height)
@@ -186,7 +205,7 @@ void Graphics::setViewportSize(int width, int height)
 
 	// We want to affect the main screen, not any Canvas that's currently active
 	// (not that any *should* be active when this is called.)
-	std::vector<Object::StrongRef<Canvas>> canvases = states.back().canvases;
+	std::vector<StrongRef<Canvas>> canvases = states.back().canvases;
 	setCanvas();
 
 	// Set the viewport to top-left corner.
@@ -233,17 +252,8 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 	// Enable blending
 	glEnable(GL_BLEND);
 
-	// Enable all color component writes.
-	bool colormask[] = {true, true, true, true};
-	setColorMask(colormask);
-
-	// Enable line/point smoothing.
-	setLineStyle(LINE_SMOOTH);
 	if (GLAD_VERSION_1_0)
-	{
-		glEnable(GL_POINT_SMOOTH);
 		glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-	}
 
 	// Auto-generated mipmaps should be the best quality possible
 	if (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4 || GLAD_SGIS_generate_mipmap)
@@ -429,7 +439,7 @@ void Graphics::present()
 		return;
 
 	// Make sure we don't have a canvas active.
-	std::vector<Object::StrongRef<Canvas>> canvases = states.back().canvases;
+	std::vector<StrongRef<Canvas>> canvases = states.back().canvases;
 	setCanvas();
 
 	if (GLAD_EXT_discard_framebuffer)
@@ -710,18 +720,16 @@ Color Graphics::getBackgroundColor() const
 
 void Graphics::setFont(Font *font)
 {
-	// Hack: the Lua-facing love.graphics.print function will set the current
-	// font if needed, but only on its first call... we want to make sure a nil
-	// font is never accidentally set (e.g. via love.graphics.reset.)
-	if (font == nullptr)
-		return;
+	// We don't need to set a default font here if null is passed in, since we
+	// only care about the default font in getFont and print.
 
 	DisplayState &state = states.back();
 	state.font.set(font);
 }
 
-Font *Graphics::getFont() const
+Font *Graphics::getFont()
 {
+	checkSetDefaultFont();
 	return states.back().font.get();
 }
 
@@ -760,7 +768,7 @@ void Graphics::setCanvas(Canvas *canvas)
 
 	canvas->startGrab();
 
-	std::vector<Object::StrongRef<Canvas>> canvasref;
+	std::vector<StrongRef<Canvas>> canvasref;
 	canvasref.push_back(canvas);
 
 	std::swap(state.canvases, canvasref);
@@ -778,7 +786,7 @@ void Graphics::setCanvas(const std::vector<Canvas *> &canvases)
 	auto attachments = std::vector<Canvas *>(canvases.begin() + 1, canvases.end());
 	canvases[0]->startGrab(attachments);
 
-	std::vector<Object::StrongRef<Canvas>> canvasrefs;
+	std::vector<StrongRef<Canvas>> canvasrefs;
 	canvasrefs.reserve(canvases.size());
 
 	for (Canvas *c : canvases)
@@ -787,12 +795,12 @@ void Graphics::setCanvas(const std::vector<Canvas *> &canvases)
 	std::swap(state.canvases, canvasrefs);
 }
 
-void Graphics::setCanvas(const std::vector<Object::StrongRef<Canvas>> &canvases)
+void Graphics::setCanvas(const std::vector<StrongRef<Canvas>> &canvases)
 {
 	std::vector<Canvas *> canvaslist;
 	canvaslist.reserve(canvases.size());
 
-	for (const Object::StrongRef<Canvas> &c : canvases)
+	for (const StrongRef<Canvas> &c : canvases)
 		canvaslist.push_back(c.get());
 
 	return setCanvas(canvaslist);
@@ -813,21 +821,18 @@ std::vector<Canvas *> Graphics::getCanvas() const
 	std::vector<Canvas *> canvases;
 	canvases.reserve(states.back().canvases.size());
 
-	for (const Object::StrongRef<Canvas> &c : states.back().canvases)
+	for (const StrongRef<Canvas> &c : states.back().canvases)
 		canvases.push_back(c.get());
 
 	return canvases;
 }
 
-void Graphics::setColorMask(const bool mask[4])
+void Graphics::setColorMask(ColorMask mask)
 {
-	for (int i = 0; i < 4; i++)
-		states.back().colorMask[i] = mask[i];
-
-	glColorMask(mask[0], mask[1], mask[2], mask[3]);
+	glColorMask(mask.r, mask.g, mask.b, mask.a);
 }
 
-const bool *Graphics::getColorMask() const
+Graphics::ColorMask Graphics::getColorMask() const
 {
 	return states.back().colorMask;
 }
@@ -990,6 +995,8 @@ bool Graphics::isWireframe() const
 
 void Graphics::print(const std::string &str, float x, float y , float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
+	checkSetDefaultFont();
+
 	DisplayState &state = states.back();
 
 	if (state.font.get() != nullptr)
@@ -998,6 +1005,8 @@ void Graphics::print(const std::string &str, float x, float y , float angle, flo
 
 void Graphics::printf(const std::string &str, float x, float y, float wrap, AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
+	checkSetDefaultFont();
+
 	DisplayState &state = states.back();
 
 	if (state.font.get() == nullptr)
@@ -1231,7 +1240,7 @@ love::image::ImageData *Graphics::newScreenshot(love::image::Image *image, bool 
 {
 	// Temporarily unbind the currently active canvas (glReadPixels reads the
 	// active framebuffer, not the main one.)
-	std::vector<Object::StrongRef<Canvas>> canvases = states.back().canvases;
+	std::vector<StrongRef<Canvas>> canvases = states.back().canvases;
 	setCanvas();
 
 	int w = getWidth();
@@ -1486,14 +1495,12 @@ Graphics::DisplayState::DisplayState()
 	, scissorBox()
 	, font(nullptr)
 	, shader(nullptr)
+	, colorMask({true, true, true, true})
 	, wireframe(false)
 	, defaultFilter()
 	, defaultMipmapFilter(Texture::FILTER_NONE)
 	, defaultMipmapSharpness(0.0f)
 {
-	// We should just directly initialize the array in the initializer list, but
-	// that feature of C++11 is broken in Visual Studio 2013...
-	colorMask[0] = colorMask[1] = colorMask[2] = colorMask[3] = true;
 }
 
 Graphics::DisplayState::DisplayState(const DisplayState &other)
@@ -1510,13 +1517,12 @@ Graphics::DisplayState::DisplayState(const DisplayState &other)
 	, font(other.font)
 	, shader(other.shader)
 	, canvases(other.canvases)
+	, colorMask(other.colorMask)
 	, wireframe(other.wireframe)
 	, defaultFilter(other.defaultFilter)
 	, defaultMipmapFilter(other.defaultMipmapFilter)
 	, defaultMipmapSharpness(other.defaultMipmapSharpness)
 {
-	for (int i = 0; i < 4; i++)
-		colorMask[i] = other.colorMask[i];
 }
 
 Graphics::DisplayState::~DisplayState()
@@ -1540,8 +1546,7 @@ Graphics::DisplayState &Graphics::DisplayState::operator = (const DisplayState &
 	shader = other.shader;
 	canvases = other.canvases;
 
-	for (int i = 0; i < 4; i++)
-		colorMask[i] = other.colorMask[i];
+	colorMask = other.colorMask;
 
 	wireframe = other.wireframe;
 

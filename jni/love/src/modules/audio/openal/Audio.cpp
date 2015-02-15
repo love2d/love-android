@@ -262,6 +262,17 @@ void Audio::setVelocity(float *v)
 	alListenerfv(AL_VELOCITY, v);
 }
 
+void Audio::setDopplerScale(float scale)
+{
+	if (scale >= 0.0f)
+		alDopplerFactor(scale);
+}
+
+float Audio::getDopplerScale() const
+{
+	return alGetFloat(AL_DOPPLER_FACTOR);
+}
+
 void Audio::record()
 {
 	if (!canRecord()) return;

@@ -252,11 +252,19 @@ int w_newQuad(lua_State *L)
 
 int w_newFont(lua_State *L)
 {
-	// Convert to Rasterizer, if necessary.
-	if (lua_isstring(L, 1) || luax_istype(L, 1, FILESYSTEM_FILE_T) || luax_istype(L, 1, FILESYSTEM_FILE_DATA_T))
+	// Convert to Rasterizer, if necessary. Note that lua_isstring returns true
+	// if the value is a number, which we rely on for the variant that uses the
+	// default Font rather than a font file.
+	if (lua_isnoneornil(L, 1) || lua_isstring(L, 1) || luax_istype(L, 1, FILESYSTEM_FILE_T) || luax_istype(L, 1, FILESYSTEM_FILE_DATA_T))
 	{
-		int idxs[] = {1, 2};
-		luax_convobj(L, idxs, 2, "font", "newRasterizer");
+		if (lua_isnone(L, 1))
+			lua_pushnil(L);
+
+		std::vector<int> idxs;
+		for (int i = 0; i < lua_gettop(L); i++)
+			idxs.push_back(i + 1);
+
+		luax_convobj(L, &idxs[0], (int) idxs.size(), "font", "newRasterizer");
 	}
 
 	love::font::Rasterizer *rasterizer = luax_checktype<love::font::Rasterizer>(L, 1, "Rasterizer", FONT_RASTERIZER_T);
@@ -640,6 +648,14 @@ int w_getBackgroundColor(lua_State *L)
 	return 4;
 }
 
+int w_setNewFont(lua_State *L)
+{
+	int ret = w_newFont(L);
+	Font *font = luax_checktype<Font>(L, -1, "Font", GRAPHICS_FONT_T);
+	instance()->setFont(font);
+	return ret;
+}
+
 int w_setFont(lua_State *L)
 {
 	Font *font = luax_checktype<Font>(L, 1, "Font", GRAPHICS_FONT_T);
@@ -649,10 +665,8 @@ int w_setFont(lua_State *L)
 
 int w_getFont(lua_State *L)
 {
-	Font *f = instance()->getFont();
-
-	if (f == 0)
-		return 0;
+	Font *f = nullptr;
+	luax_catchexcept(L, [&](){ f = instance()->getFont(); });
 
 	luax_pushtype(L, "Font", GRAPHICS_FONT_T, f);
 	return 1;
@@ -660,17 +674,19 @@ int w_getFont(lua_State *L)
 
 int w_setColorMask(lua_State *L)
 {
-	bool mask[4];
+	Graphics::ColorMask mask;
 
 	if (lua_gettop(L) <= 1 && lua_isnoneornil(L, 1))
 	{
 		// Enable all color components if no argument is given.
-		mask[0] = mask[1] = mask[2] = mask[3] = true;
+		mask.r = mask.g = mask.b = mask.a = true;
 	}
 	else
 	{
-		for (int i = 0; i < 4; i++)
-			mask[i] = luax_toboolean(L, i + 1);
+		mask.r = luax_toboolean(L, 1);
+		mask.g = luax_toboolean(L, 2);
+		mask.b = luax_toboolean(L, 3);
+		mask.a = luax_toboolean(L, 4);
 	}
 
 	instance()->setColorMask(mask);
@@ -680,10 +696,12 @@ int w_setColorMask(lua_State *L)
 
 int w_getColorMask(lua_State *L)
 {
-	const bool *mask = instance()->getColorMask();
+	Graphics::ColorMask mask = instance()->getColorMask();
 
-	for (int i = 0; i < 4; i++)
-		luax_pushboolean(L, mask[i]);
+	luax_pushboolean(L, mask.r);
+	luax_pushboolean(L, mask.g);
+	luax_pushboolean(L, mask.b);
+	luax_pushboolean(L, mask.a);
 
 	return 4;
 }
@@ -1470,6 +1488,7 @@ static const luaL_Reg functions[] =
 	{ "setBackgroundColor", w_setBackgroundColor },
 	{ "getBackgroundColor", w_getBackgroundColor },
 
+	{ "setNewFont", w_setNewFont },
 	{ "setFont", w_setFont },
 	{ "getFont", w_getFont },
 

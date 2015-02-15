@@ -48,6 +48,9 @@ public:
 	bool hasKeyRepeat() const;
 	bool isDown(Key *keylist) const;
 
+	Key getKeyFromScancode(Scancode scancode) const;
+	Scancode getScancodeFromKey(Key key) const;
+
 	void setTextInput(bool enable);
 	void setTextInput(bool enable, int x, int y, int w, int h);
 	bool hasTextInput() const;
@@ -61,6 +64,9 @@ private:
 
 	static const SDL_Keycode *createKeyMap();
 	static const SDL_Keycode *keymap;
+
+	static EnumMap<Scancode, SDL_Scancode, SDL_NUM_SCANCODES>::Entry scancodeEntries[];
+	static EnumMap<Scancode, SDL_Scancode, SDL_NUM_SCANCODES> scancodes;
 
 }; // Keyboard
 

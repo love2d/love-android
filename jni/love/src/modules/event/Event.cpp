@@ -28,7 +28,7 @@ namespace love
 namespace event
 {
 
-Message::Message(const std::string &name, const std::vector<Object::StrongRef<Variant>> &vargs)
+Message::Message(const std::string &name, const std::vector<StrongRef<Variant>> &vargs)
 	: name(name)
 	, args(vargs)
 {
@@ -42,7 +42,7 @@ int Message::toLua(lua_State *L)
 {
 	luax_pushstring(L, name);
 
-	for (const Object::StrongRef<Variant> &v : args)
+	for (const StrongRef<Variant> &v : args)
 	{
 		if (v.get() != nullptr)
 			v->toLua(L);
@@ -56,7 +56,7 @@ int Message::toLua(lua_State *L)
 Message *Message::fromLua(lua_State *L, int n)
 {
 	std::string name = luax_checkstring(L, n);
-	std::vector<Object::StrongRef<Variant>> vargs;
+	std::vector<StrongRef<Variant>> vargs;
 
 	int count = lua_gettop(L) - n;
 	n++;

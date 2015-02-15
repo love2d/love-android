@@ -524,6 +524,7 @@ static const luaL_Reg functions[] =
 	{ "toPixels", w_toPixels },
 	{ "fromPixels", w_fromPixels },
 	{ "minimize", w_minimize },
+	{ "maximize", w_maximize },
 	{ "showMessageBox", w_showMessageBox },
 	{ 0, 0 }
 };

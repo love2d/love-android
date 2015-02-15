@@ -187,13 +187,6 @@ public:
 	void drawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void* indices, GLint basevertex);
 
 	/**
-	 * glDrawArraysInstanced and glDrawElementsInstanced with pseudo-instancing
-	 * fallbacks. They also increment the draw-call counter (once per call).
-	 **/
-	void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei primcount);
-	void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount);
-
-	/**
 	 * Sets the current constant color.
 	 **/
 	void setColor(const Color &c);
@@ -387,9 +380,6 @@ private:
 		GLuint defaultFBO;
 
 		BlendState blend;
-
-		// The last ID value used for pseudo-instancing.
-		int lastPseudoInstanceID;
 
 		Matrix lastProjectionMatrix;
 		Matrix lastTransformMatrix;

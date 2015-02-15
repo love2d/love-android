@@ -23,6 +23,7 @@
 #ifndef LOVE_ANDROID
 #include "common/version.h"
 #endif
+#include <string>
 
 #include <SDL.h>
 
@@ -43,7 +44,16 @@ extern "C" {
 #include "OSX.h"
 #endif // LOVE_MACOSX
 
-#include <string>
+#ifdef LOVE_WINDOWS
+extern "C"
+{
+// Prefer the higher performance GPU on Windows systems that use nvidia Optimus.
+// http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+// TODO: Re-evaluate in the future when the average integrated GPU in Optimus
+// systems is less mediocre?
+LOVE_EXPORT DWORD NvOptimusEnablement = 0x00000001;
+}
+#endif
 
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
 
@@ -206,7 +216,7 @@ int main(int argc, char **argv)
 	if (strcmp(love::VERSION, love_version()) != 0)
 	{
 		printf("Version mismatch detected!\nLOVE binary is version %s\n"
-				"LOVE library is version %s\n", love::VERSION, love_version());
+				"LOVE library is version %s\n", LOVE_VERSION_STRING, love_version());
 		return 1;
 	}
 #endif
