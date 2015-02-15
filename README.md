@@ -6,6 +6,14 @@ Instructions:
 
 For detailed instructions please refer to the wiki at [https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home](https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home).
 
+Download:
+---------
+
+You can download pre-built Android packages from
+[https://bitbucket.org/MartinFelis/love-android-sdl2/downloads](https://bitbucket.org/MartinFelis/love-android-sdl2/downloads)
+that allow you to run .love files by opening them using a file manager of
+your choice.
+
 Quick Start:
 ------------
 
