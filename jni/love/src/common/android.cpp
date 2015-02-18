@@ -49,6 +49,24 @@ void setImmersive (bool immersive_active) {
 	env->DeleteLocalRef (clazz);
 }
 
+bool getImmersive () {
+	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+
+	jobject activity = (jobject) SDL_AndroidGetActivity();
+
+	jclass clazz (env->GetObjectClass(activity));
+	jmethodID method_id = env->GetMethodID (clazz, "getImmersiveMode", "()Z");
+
+	jboolean immersive_active = env->CallBooleanMethod (activity, method_id);
+
+	env->DeleteLocalRef (activity);
+	env->DeleteLocalRef (clazz);
+
+	if (immersive_active)
+		return true;
+	return false;
+}
+
 double getScreenScale()
 {
   static double result = -1.;

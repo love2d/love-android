@@ -442,6 +442,10 @@ void Window::updateSettings(const WindowSettings &newsettings)
 		curMode.settings.fstype = newsettings.fstype;
 	}
 
+#ifdef LOVE_ANDROID
+	curMode.settings.fullscreen = love::android::getImmersive();
+#endif
+
 	// The min width/height is set to 0 internally in SDL when in fullscreen.
 	if (curMode.settings.fullscreen)
 	{
@@ -518,6 +522,10 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 		}
 	}
 
+#ifdef LOVE_ANDROID
+	love::android::setImmersive(fullscreen);
+#endif
+
 	if (SDL_SetWindowFullscreen(window, sdlflags) == 0)
 	{
 		SDL_GL_MakeCurrent(window, context);
@@ -533,10 +541,6 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 			// FIXME: disabled in Linux for runtime SDL 2.0.0 compatibility.
 #if SDL_VERSION_ATLEAST(2,0,1) && !defined(LOVE_LINUX)
 			SDL_GL_GetDrawableSize(window, &width, &height);
-#endif
-
-#ifdef LOVE_ANDROID
-			love::android::setImmersive(fullscreen);
 #endif
 
 			gfx->setViewportSize(width, height);

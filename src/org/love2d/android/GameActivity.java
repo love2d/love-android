@@ -143,6 +143,10 @@ public class GameActivity extends SDLActivity {
       };
     }
 
+    public boolean getImmersiveMode () {
+      return immersiveActive;
+    }
+
     public static String getGamePath() {
       Log.d ("GameActivity", "called getGamePath(), game path = " + gamePath);
       return gamePath;

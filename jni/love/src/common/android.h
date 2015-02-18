@@ -32,7 +32,11 @@ namespace love
 namespace android
 {
 
+/**
+ * Enables or disables immersive mode where the navigation bar is hidden.
+ **/
 void setImmersive (bool immersive_active);
+bool getImmersive ();
 
 /**
  * Gets the scale factor of the window's screen, e.g. on Retina displays this
