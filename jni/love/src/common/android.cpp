@@ -75,22 +75,25 @@ const char* getSelectedGameFile()
 {
 	static const char *path = NULL;
 
-	if (!path) {
-		JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
-		jclass activity = env->FindClass("org/love2d/android/GameActivity");
-
-		jmethodID getGamePath = env->GetStaticMethodID(activity, "getGamePath", "()Ljava/lang/String;");
-		jstring gamePath = (jstring) env->CallStaticObjectMethod(activity, getGamePath);
-		const char *utf = env->GetStringUTFChars(gamePath, 0);
-		if (utf)
-		{
-			path = SDL_strdup(utf);
-			env->ReleaseStringUTFChars(gamePath, utf);
-		}
-
-		env->DeleteLocalRef (gamePath);
-		env->DeleteLocalRef (activity);
+	if (path) {
+		delete path;
+		path = NULL;
 	}
+
+	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+	jclass activity = env->FindClass("org/love2d/android/GameActivity");
+
+	jmethodID getGamePath = env->GetStaticMethodID(activity, "getGamePath", "()Ljava/lang/String;");
+	jstring gamePath = (jstring) env->CallStaticObjectMethod(activity, getGamePath);
+	const char *utf = env->GetStringUTFChars(gamePath, 0);
+	if (utf)
+	{
+		path = SDL_strdup(utf);
+		env->ReleaseStringUTFChars(gamePath, utf);
+	}
+
+	env->DeleteLocalRef (gamePath);
+	env->DeleteLocalRef (activity);
 
 	return path;
 }

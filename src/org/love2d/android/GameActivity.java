@@ -46,9 +46,26 @@ public class GameActivity extends SDLActivity {
       context = this.getApplicationContext();
       vibrator = (Vibrator) this.context.getSystemService(Context.VIBRATOR_SERVICE);
 
-      Uri game = this.getIntent().getData();
+      handleIntent (this.getIntent());
+
+      super.onCreate(savedInstanceState);
+      getWindowManager().getDefaultDisplay().getMetrics(metrics);
+    }
+
+    @Override
+    protected void onNewIntent (Intent intent) {
+      Log.d("GameActivity", "onNewIntent() with " + intent);
+      handleIntent (intent);
+      resetNative();
+      startNative();
+    };
+
+    protected void handleIntent (Intent intent) {
+      Uri game = intent.getData();
       if (game != null) {
         if (game.getScheme().equals ("file")) {
+          Log.d("GameActivity", "Received intent with path: " + game.getPath());
+
           // If we were given the path of a main.lua then use its
           // directory. Otherwise use full path.
           List<String> path_segments = game.getPathSegments();
@@ -60,12 +77,10 @@ public class GameActivity extends SDLActivity {
         } else {
           copyGameToCache (game);
         }
-        Log.d("GameActivity", "Opening game from: " + getGamePath());
-      }
 
-      super.onCreate(savedInstanceState);
-      getWindowManager().getDefaultDisplay().getMetrics(metrics);
-    }
+        Log.d("GameActivity", "new gamePath: " + gamePath);
+      }
+    };
 
     @Override
     protected void onDestroy() {

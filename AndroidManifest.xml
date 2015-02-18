@@ -19,6 +19,7 @@
         android:name="GameActivity"
         android:configChanges="orientation|screenSize"
         android:label="LÖVE for Android"
+        android:launchMode="singleTop"
         android:screenOrientation="landscape" >
         <intent-filter>
           <action android:name="android.intent.action.MAIN" />

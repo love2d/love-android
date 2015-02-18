@@ -98,25 +98,8 @@ public class SDLActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.v("SDL", "onCreate():" + mSingleton);
         super.onCreate(savedInstanceState);
-        
-        SDLActivity.initialize();
-        // So we can call stuff from static callbacks
-        mSingleton = this;
-
-        // Set up the surface
-        mSurface = new SDLSurface(getApplication());
-        
-        if(Build.VERSION.SDK_INT >= 12) {
-            mJoystickHandler = new SDLJoystickHandler_API12();
-        }
-        else {
-            mJoystickHandler = new SDLJoystickHandler();
-        }
-
-        mLayout = new AbsoluteLayout(this);
-        mLayout.addView(mSurface);
-
-        setContentView(mLayout);
+       
+				startNative();
     }
 
     // Events
@@ -153,28 +136,59 @@ public class SDLActivity extends Activity {
         SDLActivity.nativeLowMemory();
     }
 
+    /** Ends the native thread.
+     */
+    public void resetNative() {
+      Log.v("SDL", "resetNative()");
+
+      // Send a quit message to the application
+      SDLActivity.mExitCalledFromJava = true;
+      SDLActivity.nativeQuit();
+
+      // Now wait for the SDL thread to quit
+      if (SDLActivity.mSDLThread != null) {
+        try {
+          SDLActivity.mSDLThread.join();
+        } catch(Exception e) {
+          Log.v("SDL", "Problem stopping thread: " + e);
+        }
+        SDLActivity.mSDLThread = null;
+
+        //Log.v("SDL", "Finished waiting for SDL thread");
+      }
+
+      SDLActivity.initialize();
+    }
+
+    public void startNative() {
+      Log.v("SDL", "startNative()");
+      SDLActivity.initialize();
+      // So we can call stuff from static callbacks
+      mSingleton = this;
+
+      // Set up the surface
+      mSurface = new SDLSurface(getApplication());
+
+      if(Build.VERSION.SDK_INT >= 12) {
+        mJoystickHandler = new SDLJoystickHandler_API12();
+      }
+      else {
+        mJoystickHandler = new SDLJoystickHandler();
+      }
+
+      mLayout = new AbsoluteLayout(this);
+      mLayout.addView(mSurface);
+
+      setContentView(mLayout);
+    }
+
     @Override
     protected void onDestroy() {
         Log.v("SDL", "onDestroy()");
-        // Send a quit message to the application
-        SDLActivity.mExitCalledFromJava = true;
-        SDLActivity.nativeQuit();
 
-        // Now wait for the SDL thread to quit
-        if (SDLActivity.mSDLThread != null) {
-            try {
-                SDLActivity.mSDLThread.join();
-            } catch(Exception e) {
-                Log.v("SDL", "Problem stopping thread: " + e);
-            }
-            SDLActivity.mSDLThread = null;
-
-            //Log.v("SDL", "Finished waiting for SDL thread");
-        }
+				resetNative();
             
         super.onDestroy();
-        // Reset everything in case the user re opens the app
-        SDLActivity.initialize();
     }
 
     @Override
