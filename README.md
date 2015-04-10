@@ -39,6 +39,9 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.9.2a:
+* Added bugfix for ParticleSystem:clone
+
 0.9.2:
 
 * updated API to match that of LÖVE 0.9.2
