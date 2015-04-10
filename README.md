@@ -39,6 +39,20 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.9.2:
+* updated API to match that of LÖVE 0.9.2
+* love.window.setFullscreen can be used to switch between regular and immersive mode without status and navbar
+* added loading of games by opening a main.lua file
+* quitting LÖVE now conforms to the Android application lifecycle
+* stop vibrator when app is paused
+* fixed battery drain by properly pausing OpenAL device
+* fixed printing of non-number and non-string values
+* fixed compilation of Android NDK r10
+* fixed compilation warnings concerning ```APP_PLATFORM```
+* old instance is shut down when opening a new game (note: it may crash when opening games at a high frequency, e.g. more than 2 per second)
+* updated OpenAL-Soft to version 1.16.0
+* updated to newer SDL version (f9244b2a151)
+
 0.9.1b:
 
 * added love.system.vibrate(seconds)
