@@ -460,14 +460,19 @@ void Image::uploadTexturePadded()
 	}
 	else if (data.get())
 	{
+		GLenum xformat = GL_RGBA;
 		GLenum iformat = (format == FORMAT_SRGB) ? GL_SRGB_ALPHA : GL_RGBA;
+
+		if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
+			xformat = iformat;
+
 		glTexImage2D(GL_TEXTURE_2D,
 		             0,
 		             iformat,
 		             (GLsizei)paddedWidth,
 		             (GLsizei)paddedHeight,
 		             0,
-		             GL_RGBA,
+		             xformat,
 		             GL_UNSIGNED_BYTE,
 		             0);
 
@@ -476,7 +481,7 @@ void Image::uploadTexturePadded()
 		                0, 0,
 		                (GLsizei)width,
 		                (GLsizei)height,
-		                GL_RGBA,
+		                xformat,
 		                GL_UNSIGNED_BYTE,
 		                data->getData());
 	}
@@ -498,14 +503,20 @@ void Image::uploadTexture()
 	}
 	else if (data.get())
 	{
+		GLenum xformat = GL_RGBA;
 		GLenum iformat = (format == FORMAT_SRGB) ? GL_SRGB_ALPHA : GL_RGBA;
+
+		// The internal and external format parameters must match in OpenGL ES 2.
+		if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
+			xformat = iformat;
+
 		glTexImage2D(GL_TEXTURE_2D,
 		             0,
 		             iformat,
 		             (GLsizei)width,
 		             (GLsizei)height,
 		             0,
-		             GL_RGBA,
+		             xformat,
 		             GL_UNSIGNED_BYTE,
 		             data->getData());
 	}
