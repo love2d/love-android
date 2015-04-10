@@ -40,6 +40,7 @@ Changelog:
 ----------
 
 0.9.2:
+
 * updated API to match that of LÖVE 0.9.2
 * love.window.setFullscreen can be used to switch between regular and immersive mode without status and navbar
 * added loading of games by opening a main.lua file
