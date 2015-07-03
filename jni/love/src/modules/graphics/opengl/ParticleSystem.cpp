@@ -64,7 +64,7 @@ ParticleSystem::ParticleSystem(Texture *texture, uint32 size)
 	, pHead(nullptr)
 	, pTail(nullptr)
 	, particleVerts(nullptr)
-	, ibo(nullptr)
+	, quadIndices(1)
 	, texture(texture)
 	, active(true)
 	, insertMode(INSERT_MODE_TOP)
@@ -95,8 +95,8 @@ ParticleSystem::ParticleSystem(Texture *texture, uint32 size)
 	, spinStart(0)
 	, spinEnd(0)
 	, spinVariation(0)
-	, offsetX(float(texture->getWidth())*0.5f)
-	, offsetY(float(texture->getHeight())*0.5f)
+	, offset(float(texture->getWidth())*0.5f, float(texture->getHeight())*0.5f)
+	, defaultOffset(true)
 	, relativeRotation(false)
 {
 	if (size == 0 || size > MAX_PARTICLES)
@@ -113,7 +113,7 @@ ParticleSystem::ParticleSystem(const ParticleSystem &p)
 	, pHead(nullptr)
 	, pTail(nullptr)
 	, particleVerts(nullptr)
-	, ibo(nullptr)
+	, quadIndices(p.quadIndices)
 	, texture(p.texture)
 	, active(p.active)
 	, insertMode(p.insertMode)
@@ -148,8 +148,8 @@ ParticleSystem::ParticleSystem(const ParticleSystem &p)
 	, spinStart(p.spinStart)
 	, spinEnd(p.spinEnd)
 	, spinVariation(p.spinVariation)
-	, offsetX(p.offsetX)
-	, offsetY(p.offsetY)
+	, offset(p.offset)
+	, defaultOffset(p.defaultOffset)
 	, colors(p.colors)
 	, quads(p.quads)
 	, relativeRotation(p.relativeRotation)
@@ -167,19 +167,24 @@ ParticleSystem *ParticleSystem::clone()
 	return new ParticleSystem(*this);
 }
 
+void ParticleSystem::resetOffset()
+{
+	if (quads.empty())
+		offset = love::Vector(float(texture->getWidth())*0.5f, float(texture->getHeight())*0.5f);
+	else
+	{
+		Quad::Viewport v = quads[0]->getViewport();
+		offset = love::Vector(v.x*0.5f, v.y*0.5f);
+	}
+}
+
 void ParticleSystem::createBuffers(size_t size)
 {
 	try
 	{
 		pFree = pMem = new Particle[size];
 		particleVerts = new love::Vertex[size * 4];
-		ibo = new VertexIndex(size);
 		maxParticles = (uint32) size;
-	}
-	catch (love::Exception &)
-	{
-		deleteBuffers();
-		throw;
 	}
 	catch (std::bad_alloc &)
 	{
@@ -193,12 +198,9 @@ void ParticleSystem::deleteBuffers()
 	// Clean up for great gracefulness!
 	delete[] pMem;
 	delete[] particleVerts;
-	delete ibo;
 
 	pMem = nullptr;
 	particleVerts = nullptr;
-	ibo = nullptr;
-
 	maxParticles = 0;
 	activeParticles = 0;
 }
@@ -207,6 +209,7 @@ void ParticleSystem::setBufferSize(uint32 size)
 {
 	if (size == 0 || size > MAX_PARTICLES)
 		throw love::Exception("Invalid buffer size");
+	quadIndices = QuadIndices(size);
 	deleteBuffers();
 	createBuffers(size);
 	reset();
@@ -431,6 +434,9 @@ ParticleSystem::Particle *ParticleSystem::removeParticle(Particle *p)
 void ParticleSystem::setTexture(Texture *tex)
 {
 	texture.set(tex);
+
+	if (defaultOffset)
+		resetOffset();
 }
 
 Texture *ParticleSystem::getTexture() const
@@ -691,13 +697,13 @@ float ParticleSystem::getSpinVariation() const
 
 void ParticleSystem::setOffset(float x, float y)
 {
-	offsetX = x;
-	offsetY = y;
+	offset = love::Vector(x, y);
+	defaultOffset = false;
 }
 
 love::Vector ParticleSystem::getOffset() const
 {
-	return love::Vector(offsetX, offsetY);
+	return offset;
 }
 
 void ParticleSystem::setColor(const Color &color)
@@ -738,6 +744,9 @@ void ParticleSystem::setQuads(const std::vector<Quad *> &newQuads)
 		quadlist.push_back(q);
 
 	quads = quadlist;
+
+	if (defaultOffset)
+		resetOffset();
 }
 
 void ParticleSystem::setQuads()
@@ -843,10 +852,9 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 	if (pCount == 0 || texture.get() == nullptr || pMem == nullptr || particleVerts == nullptr)
 		return;
 
-	Color curcolor = gl.getColor();
+	OpenGL::TempDebugGroup debuggroup("ParticleSystem draw");
 
-	Matrix t;
-	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
+	Matrix4 t(x, y, angle, sx, sy, ox, oy, kx, ky);
 
 	OpenGL::TempTransform transform(gl);
 	transform.get() *= t;
@@ -864,7 +872,7 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 			textureVerts = quads[p->quadIndex]->getVertices();
 
 		// particle vertices are image vertices transformed by particle information
-		t.setTransformation(p->position[0], p->position[1], p->angle, p->size, p->size, offsetX, offsetY, 0.0f, 0.0f);
+		t.setTransformation(p->position[0], p->position[1], p->angle, p->size, p->size, offset.x, offset.y, 0.0f, 0.0f);
 		t.transform(pVerts, textureVerts, 4);
 
 		// set the texture coordinate and color data for particle vertices
@@ -884,29 +892,20 @@ void ParticleSystem::draw(float x, float y, float angle, float sx, float sy, flo
 		p = p->next;
 	}
 
-	texture->predraw();
+	gl.bindTexture(*(GLuint *) texture->getHandle());
 	gl.prepareDraw();
 
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_COLOR);
+	gl.useVertexAttribArrays(ATTRIBFLAG_POS | ATTRIBFLAG_TEXCOORD | ATTRIBFLAG_COLOR);
 
-	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), &particleVerts[0].x);
-	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), &particleVerts[0].s);
-	gl.setVertexAttribArray(OpenGL::ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, sizeof(Vertex), &particleVerts[0].r);
+	glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), &particleVerts[0].r);
+	glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), &particleVerts[0].x);
+	glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), &particleVerts[0].s);
 
 	{
-		VertexBuffer::Bind ibo_bind(*ibo->getVertexBuffer());
-		gl.drawElements(GL_TRIANGLES, ibo->getIndexCount(pCount), ibo->getType(), ibo->getPointer(0));
+		GLsizei count = (GLsizei) quadIndices.getIndexCount(pCount);
+		GLBuffer::Bind ibo_bind(*quadIndices.getBuffer());
+		gl.drawElements(GL_TRIANGLES, count, quadIndices.getType(), quadIndices.getPointer(0));
 	}
-
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_COLOR);
-
-	texture->postdraw();
-
-	gl.setColor(curcolor);
 }
 
 void ParticleSystem::update(float dt)
@@ -998,7 +997,7 @@ void ParticleSystem::update(float dt)
 			{
 				s = t * (float) k; // [0:numquads-1] (clamped below)
 				i = (s > 0.0f) ? (size_t) s : 0;
-				p->quadIndex = (i < k) ? i : k - 1;
+				p->quadIndex = (int) ((i < k) ? i : k - 1);
 			}
 
 			// Next particle.

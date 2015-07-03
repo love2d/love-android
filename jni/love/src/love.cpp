@@ -41,8 +41,12 @@ extern "C" {
 #endif // LOVE_WINDOWS
 
 #ifdef LOVE_MACOSX
-#include "OSX.h"
+#include "common/OSX.h"
 #endif // LOVE_MACOSX
+
+#ifdef LOVE_IOS
+#include "common/iOS.h"
+#endif
 
 #ifdef LOVE_WINDOWS
 extern "C"
@@ -53,7 +57,7 @@ extern "C"
 // systems is less mediocre?
 LOVE_EXPORT DWORD NvOptimusEnablement = 0x00000001;
 }
-#endif
+#endif // LOVE_WINDOWS
 
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
 
@@ -106,6 +110,7 @@ static void get_app_arguments(int argc, char **argv, int &new_argc, char **&new_
 			temp_argv.push_back(std::string(argv[i]));
 	}
 
+#ifdef LOVE_MACOSX
 	// Check for a drop file string.
 	std::string dropfilestr = love::osx::checkDropEvents();
 	if (!dropfilestr.empty())
@@ -113,15 +118,24 @@ static void get_app_arguments(int argc, char **argv, int &new_argc, char **&new_
 		temp_argv.insert(temp_argv.begin() + 1, dropfilestr);
 	}
 	else
+#endif
 	{
 		// If it exists, add the love file in love.app/Contents/Resources/ to argv.
-		std::string loveResourcesPath = love::osx::getLoveInResources();
+		std::string loveResourcesPath;
+		bool fused = true;
+#if defined(LOVE_MACOSX)
+		loveResourcesPath = love::osx::getLoveInResources();
+#elif defined(LOVE_IOS)
+		loveResourcesPath = love::ios::getLoveInResources(fused);
+#endif
 		if (!loveResourcesPath.empty())
 		{
-			// Run in pseudo-fused mode.
 			std::vector<std::string>::iterator it = temp_argv.begin();
 			it = temp_argv.insert(it + 1, loveResourcesPath);
-			temp_argv.insert(it + 1, std::string("--fused"));
+
+			// Run in pseudo-fused mode.
+			if (fused)
+				temp_argv.insert(it + 1, std::string("--fused"));
 		}
 	}
 
@@ -190,8 +204,23 @@ static int l_print_sdl_log (lua_State *L) {
 
 int main(int argc, char **argv)
 {
+	int retval = 0;
+
 #ifdef LOVE_ANDROID
 	SDL_SetHint("LOVE_GRAPHICS_USE_OPENGLES", "1");
+#endif
+
+#ifdef LOVE_IOS
+	int orig_argc = argc;
+	char **orig_argv = argv;
+
+	// on iOS we should never programmatically exit the app, so we'll just
+	// "restart" when that is attempted. Games which use threads might cause
+	// some issues if the threads aren't cleaned up properly...
+	while (true)
+	{
+		argc = orig_argc;
+		argv = orig_argv;
 #endif
 
 #ifdef LOVE_LEGENDARY_UTF8_ARGV_HACK
@@ -285,7 +314,6 @@ int main(int argc, char **argv)
 	// Call the returned boot function.
 	lua_call(L, 0, 1);
 
-	int retval = 0;
 	if (lua_isnumber(L, -1))
 		retval = (int) lua_tonumber(L, -1);
 
@@ -299,7 +327,14 @@ int main(int argc, char **argv)
 		delete [] hack_argv;
 	}
 #endif // LOVE_LEGENDARY_UTF8_ARGV_HACK || LOVE_LEGENDARY_APP_ARGV_HACK
+
+#ifdef LOVE_IOS
+	} // while (true)
+#endif
+
+#ifdef LOVE_ANDROID
 	SDL_Quit();
+#endif
 
 	return retval;
 }

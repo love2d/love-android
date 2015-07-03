@@ -44,18 +44,17 @@ public:
 	// Raw RGBA pixel data.
 	struct DecodedImage
 	{
-		int width, height;
-		size_t size;
-		unsigned char *data;
-		DecodedImage() : width(0), height(0), size(0), data(0) {}
+		int width   = 0;
+		int height  = 0;
+		size_t size = 0;
+		unsigned char *data = nullptr;
 	};
 
 	// Pixel data encoded in a particular format.
 	struct EncodedImage
 	{
-		size_t size;
-		unsigned char *data;
-		EncodedImage() : size(0), data(0) {}
+		size_t size = 0;
+		unsigned char *data = nullptr;
 	};
 
 	/**
@@ -76,7 +75,7 @@ public:
 	/**
 	 * Whether this format handler can encode to a particular format.
 	 **/
-	virtual bool canEncode(ImageData::Format format);
+	virtual bool canEncode(ImageData::EncodedFormat format);
 
 	/**
 	 * Decodes an image from its encoded form into raw pixel data.
@@ -91,7 +90,7 @@ public:
 	 * @param format The format to encode to.
 	 * @return The encoded image data.
 	 **/
-	virtual EncodedImage encode(const DecodedImage &img, ImageData::Format format);
+	virtual EncodedImage encode(const DecodedImage &img, ImageData::EncodedFormat format);
 
 	/**
 	 * Frees memory allocated by the format handler.

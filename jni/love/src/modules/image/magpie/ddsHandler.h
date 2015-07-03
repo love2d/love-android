@@ -38,7 +38,7 @@ namespace magpie
 {
 
 /**
- * Interface between CompressedData and the ddsparse library.
+ * Interface between CompressedImageData and the ddsparse library.
  **/
 class DDSHandler : public CompressedFormatHandler
 {
@@ -48,11 +48,11 @@ public:
 
 	// Implements CompressedFormatHandler.
 	virtual bool canParse(const filesystem::FileData *data);
-	virtual uint8 *parse(filesystem::FileData *filedata, std::vector<CompressedData::SubImage> &images, size_t &dataSize, CompressedData::Format &format);
+	virtual uint8 *parse(filesystem::FileData *filedata, std::vector<CompressedImageData::SubImage> &images, size_t &dataSize, CompressedImageData::Format &format, bool &sRGB);
 
 private:
 
-	static CompressedData::Format convertFormat(dds::Format ddsformat);
+	static CompressedImageData::Format convertFormat(dds::Format ddsformat, bool &sRGB);
 
 }; // DDSHandler
 

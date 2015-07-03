@@ -21,6 +21,7 @@
 #include "wrap_Math.h"
 #include "wrap_RandomGenerator.h"
 #include "wrap_BezierCurve.h"
+#include "wrap_CompressedData.h"
 #include "MathModule.h"
 #include "BezierCurve.h"
 
@@ -100,7 +101,7 @@ int w_newRandomGenerator(lua_State *L)
 			return luaL_error(L, "%s", lua_tostring(L, -1));
 	}
 
-	luax_pushtype(L, "RandomGenerator", MATH_RANDOM_GENERATOR_T, t);
+	luax_pushtype(L, MATH_RANDOM_GENERATOR_ID, t);
 	t->release();
 	return 1;
 }
@@ -110,9 +111,9 @@ int w_newBezierCurve(lua_State *L)
 	std::vector<Vector> points;
 	if (lua_istable(L, 1))
 	{
-		size_t top = lua_objlen(L, 1);
+		int top = (int) luax_objlen(L, 1);
 		points.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			lua_rawgeti(L, 1, i);
 			lua_rawgeti(L, 1, i+1);
@@ -127,9 +128,9 @@ int w_newBezierCurve(lua_State *L)
 	}
 	else
 	{
-		size_t top = lua_gettop(L);
+		int top = (int) lua_gettop(L);
 		points.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			Vector v;
 			v.x = (float) luaL_checknumber(L, i);
@@ -139,7 +140,7 @@ int w_newBezierCurve(lua_State *L)
 	}
 
 	BezierCurve *curve = Math::instance.newBezierCurve(points);
-	luax_pushtype(L, "BezierCurve", MATH_BEZIER_CURVE_T, curve);
+	luax_pushtype(L, MATH_BEZIER_CURVE_ID, curve);
 	curve->release();
 	return 1;
 }
@@ -149,9 +150,9 @@ int w_triangulate(lua_State *L)
 	std::vector<Vertex> vertices;
 	if (lua_istable(L, 1))
 	{
-		size_t top = lua_objlen(L, 1);
+		int top = (int) luax_objlen(L, 1);
 		vertices.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			lua_rawgeti(L, 1, i);
 			lua_rawgeti(L, 1, i+1);
@@ -166,9 +167,9 @@ int w_triangulate(lua_State *L)
 	}
 	else
 	{
-		size_t top = lua_gettop(L);
+		int top = (int) lua_gettop(L);
 		vertices.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			Vertex v;
 			v.x = (float) luaL_checknumber(L, i);
@@ -189,8 +190,8 @@ int w_triangulate(lua_State *L)
 			triangles = Math::instance.triangulate(vertices);
 	});
 
-	lua_createtable(L, triangles.size(), 0);
-	for (size_t i = 0; i < triangles.size(); ++i)
+	lua_createtable(L, (int) triangles.size(), 0);
+	for (int i = 0; i < (int) triangles.size(); ++i)
 	{
 		const Triangle &tri = triangles[i];
 
@@ -219,9 +220,9 @@ int w_isConvex(lua_State *L)
 	std::vector<Vertex> vertices;
 	if (lua_istable(L, 1))
 	{
-		size_t top = lua_objlen(L, 1);
+		int top = (int) luax_objlen(L, 1);
 		vertices.reserve(top / 2);
-		for (size_t i = 1; i <= top; i += 2)
+		for (int i = 1; i <= top; i += 2)
 		{
 			lua_rawgeti(L, 1, i);
 			lua_rawgeti(L, 1, i+1);
@@ -257,7 +258,7 @@ static int getGammaArgs(lua_State *L, float color[4])
 
 	if (lua_istable(L, 1))
 	{
-		int n = lua_objlen(L, 1);
+		int n = (int) luax_objlen(L, 1);
 		for (int i = 1; i <= n && i <= 4; i++)
 		{
 			lua_rawgeti(L, 1, i);
@@ -279,7 +280,7 @@ static int getGammaArgs(lua_State *L, float color[4])
 
 	if (numcomponents == 0)
 		luaL_checknumber(L, 1);
-	
+
 	return numcomponents;
 }
 
@@ -351,6 +352,64 @@ int w_noise(lua_State *L)
 	return 1;
 }
 
+int w_compress(lua_State *L)
+{
+	const char *fstr = lua_isnoneornil(L, 2) ? nullptr : luaL_checkstring(L, 2);
+	Compressor::Format format = Compressor::FORMAT_LZ4;
+
+	if (fstr && !Compressor::getConstant(fstr, format))
+		return luaL_error(L, "Invalid compressed format: %s", fstr);
+
+	int level = (int) luaL_optnumber(L, 3, -1);
+
+	CompressedData *cdata = nullptr;
+	if (lua_isstring(L, 1))
+	{
+		size_t rawsize = 0;
+		const char *rawbytes = luaL_checklstring(L, 1, &rawsize);
+		luax_catchexcept(L, [&](){ cdata = Math::instance.compress(format, rawbytes, rawsize, level); });
+	}
+	else
+	{
+		Data *rawdata = luax_checktype<Data>(L, 1, DATA_ID);
+		luax_catchexcept(L, [&](){ cdata = Math::instance.compress(format, rawdata, level); });
+	}
+
+	luax_pushtype(L, MATH_COMPRESSED_DATA_ID, cdata);
+	return 1;
+}
+
+int w_decompress(lua_State *L)
+{
+	char *rawbytes = nullptr;
+	size_t rawsize = 0;
+
+	if (lua_isstring(L, 1))
+	{
+		Compressor::Format format = Compressor::FORMAT_LZ4;
+		const char *fstr = luaL_checkstring(L, 2);
+
+		if (!Compressor::getConstant(fstr, format))
+			return luaL_error(L, "Invalid compressed format: %s", fstr);
+
+		size_t compressedsize = 0;
+		const char *cbytes = luaL_checklstring(L, 1, &compressedsize);
+
+		luax_catchexcept(L, [&](){ rawbytes = Math::instance.decompress(format, cbytes, compressedsize, rawsize); });
+	}
+	else
+	{
+		CompressedData *data = luax_checkcompresseddata(L, 1);
+		rawsize = data->getDecompressedSize();
+		luax_catchexcept(L, [&](){ rawbytes = Math::instance.decompress(data, rawsize); });
+	}
+
+	lua_pushlstring(L, rawbytes, rawsize);
+	delete[] rawbytes;
+
+	return 1;
+}
+
 // List of functions to wrap.
 static const luaL_Reg functions[] =
 {
@@ -367,6 +426,8 @@ static const luaL_Reg functions[] =
 	{ "gammaToLinear", w_gammaToLinear },
 	{ "linearToGamma", w_linearToGamma },
 	{ "noise", w_noise },
+	{ "compress", w_compress },
+	{ "decompress", w_decompress },
 	{ 0, 0 }
 };
 
@@ -374,6 +435,7 @@ static const lua_CFunction types[] =
 {
 	luaopen_randomgenerator,
 	luaopen_beziercurve,
+	luaopen_compresseddata,
 	0
 };
 
@@ -384,7 +446,7 @@ extern "C" int luaopen_love_math(lua_State *L)
 	WrappedModule w;
 	w.module = &Math::instance;
 	w.name = "math";
-	w.flags = MODULE_T;
+	w.type = MODULE_ID;
 	w.functions = functions;
 	w.types = types;
 

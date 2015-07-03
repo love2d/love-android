@@ -30,27 +30,34 @@ namespace touch
 namespace sdl
 {
 
-int Touch::getTouchCount() const
+std::vector<int64> Touch::getTouches() const
 {
-	return (int) touches.size();
+	std::vector<int64> ids;
+	ids.reserve(touches.size());
+
+	for (const auto &touch : touches)
+		ids.push_back(touch.first);
+
+	return ids;
 }
 
-Touch::TouchInfo Touch::getTouch(int index) const
+void Touch::getPosition(int64 id, double &x, double &y) const
 {
-	if (index < 0)
-		throw love::Exception("Invalid touch index: %d", index);
+	const auto it = touches.find(id);
+	if (it == touches.end())
+		throw love::Exception("Invalid active touch ID: %d", id);
 
-	std::map<int64, TouchInfo>::const_iterator it = touches.begin();
+	x = it->second.x;
+	y = it->second.y;
+}
 
-	// We can't do something like "touches.begin() + index", so we get the
-	// value at the index by iterating from the beginning of the map.
-	for (int i = 0; i < index; i++)
-	{
-		if (++it == touches.end())
-			throw love::Exception("Invalid touch index: %d", index);
-	}
+double Touch::getPressure(int64 id) const
+{
+	const auto it = touches.find(id);
+	if (it == touches.end())
+		throw love::Exception("Invalid active touch ID: %d", id);
 
-	return it->second;
+	return it->second.pressure;
 }
 
 const char *Touch::getName() const
@@ -58,16 +65,9 @@ const char *Touch::getName() const
 	return "love.touch.sdl";
 }
 
-void Touch::onEvent(const SDL_TouchFingerEvent &event)
+void Touch::onEvent(Uint32 eventtype, const TouchInfo &info)
 {
-	TouchInfo info = {
-		(int64) event.fingerId,
-		event.x,
-		event.y,
-		event.pressure
-	};
-
-	switch (event.type)
+	switch (eventtype)
 	{
 	case SDL_FINGERDOWN:
 	case SDL_FINGERMOTION:

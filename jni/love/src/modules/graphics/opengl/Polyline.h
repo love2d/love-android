@@ -21,14 +21,16 @@
 #ifndef LOVE_GRAPHICS_OPENGL_POLYLINE_H
 #define LOVE_GRAPHICS_OPENGL_POLYLINE_H
 
-#include <vector>
-
 // LOVE
 #include "common/config.h"
 #include "common/Vector.h"
 
 // OpenGL
 #include "OpenGL.h"
+
+// C++
+#include <vector>
+#include <string.h>
 
 namespace love
 {
@@ -44,8 +46,15 @@ namespace opengl
 class Polyline
 {
 public:
-
-	Polyline(GLenum mode = GL_TRIANGLE_STRIP, bool quadindices = false);
+	Polyline(GLenum mode = GL_TRIANGLE_STRIP, bool quadindices = false)
+		: vertices(nullptr)
+		, overdraw(nullptr)
+		, vertex_count(0)
+		, overdraw_vertex_count(0)
+		, draw_mode(mode)
+		, use_quad_indices(quadindices)
+		, overdraw_vertex_start(0)
+	{}
 	virtual ~Polyline();
 
 	/**
@@ -63,8 +72,9 @@ public:
 	void draw();
 
 protected:
+	virtual void calc_overdraw_vertex_count(bool is_looping);
 	virtual void render_overdraw(const std::vector<Vector> &normals, float pixel_size, bool is_looping);
-	virtual void fill_color_array(Color *colors, const Color &c);
+	virtual void fill_color_array(Color *colors);
 
 	/** Calculate line boundary points.
 	 *
@@ -87,6 +97,7 @@ protected:
 	size_t overdraw_vertex_count;
 	GLenum draw_mode;
 	bool use_quad_indices;
+	size_t overdraw_vertex_start;
 
 }; // Polyline
 
@@ -99,22 +110,30 @@ class NoneJoinPolyline : public Polyline
 {
 public:
 	NoneJoinPolyline()
-		// Draw quads using GL_TRIANGLES and a vertex index array.
 		: Polyline(GL_TRIANGLES, true)
 	{}
 
 	void render(const float *vertices, size_t count, float halfwidth, float pixel_size, bool draw_overdraw)
 	{
 		Polyline::render(vertices, count, 2 * count - 4, halfwidth, pixel_size, draw_overdraw);
+
 		// discard the first and last two vertices. (these are redundant)
-		for (size_t i = 0; i < vertex_count - 2; ++i)
+		for (size_t i = 0; i < vertex_count - 4; ++i)
 			this->vertices[i] = this->vertices[i+2];
-		vertex_count -= 2;
+
+		// The last quad is now garbage, so zero it out to make sure it doesn't
+		// get rasterized. These vertices are in between the core line vertices
+		// and the overdraw vertices in the combined vertex array, so they still
+		// get "rendered" since we draw everything with one draw call.
+		memset(&this->vertices[vertex_count - 4], 0, sizeof(love::Vector) * 4);
+
+		vertex_count -= 4;
 	}
 
 protected:
+	virtual void calc_overdraw_vertex_count(bool is_looping);
 	virtual void render_overdraw(const std::vector<Vector> &normals, float pixel_size, bool is_looping);
-	virtual void fill_color_array(Color *colors, const Color &c);
+	virtual void fill_color_array(Color *colors);
 	virtual void renderEdge(std::vector<Vector> &anchors, std::vector<Vector> &normals,
 	                        Vector &s, float &len_s, Vector &ns,
 	                        const Vector &q, const Vector &r, float hw);

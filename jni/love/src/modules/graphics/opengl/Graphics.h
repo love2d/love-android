@@ -40,11 +40,13 @@
 #include "Font.h"
 #include "Image.h"
 #include "graphics/Quad.h"
+#include "graphics/Texture.h"
 #include "SpriteBatch.h"
 #include "ParticleSystem.h"
 #include "Canvas.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Text.h"
 
 namespace love
 {
@@ -52,11 +54,6 @@ namespace graphics
 {
 namespace opengl
 {
-
-// During display mode changing, certain
-// variables about the OpenGL context are
-// lost.
-
 
 class Graphics : public love::graphics::Graphics
 {
@@ -85,9 +82,19 @@ public:
 	void reset();
 
 	/**
-	 * Clears the screen.
+	 * Clears the screen to a specific color.
 	 **/
-	void clear();
+	void clear(Color c);
+
+	/**
+	 * Clears each active canvas to a different color.
+	 **/
+	void clear(const std::vector<Color> &colors);
+
+	/**
+	 * Discards the contents of the screen.
+	 **/
+	void discard(const std::vector<bool> &colorbuffers, bool stencil);
 
 	/**
 	 * Flips buffers. (Rendered geometry is presented on screen).
@@ -131,28 +138,27 @@ public:
 	bool getScissor(int &x, int &y, int &width, int &height) const;
 
 	/**
-	 * Enables the stencil buffer and set stencil function to fill it
-	 */
-	void defineStencil();
+	 * Enables or disables drawing to the stencil buffer. When enabled, the
+	 * color buffer is disabled.
+	 **/
+	void drawToStencilBuffer(bool enable);
 
 	/**
-	 * Set stencil function to mask the following drawing calls using
-	 * the current stencil buffer
-	 * @param invert Invert the mask, i.e. draw everywhere expect where
-	 *               the mask is defined.
-	 */
-	void useStencil(bool invert = false);
+	 * Sets whether stencil testing is enabled.
+	 **/
+	void setStencilTest(bool enable, bool invert);
+	void getStencilTest(bool &enable, bool &invert);
 
 	/**
-	 * Disables the stencil buffer
-	 */
-	void discardStencil();
+	 * Clear the stencil buffer in the active Canvas(es.)
+	 **/
+	void clearStencil();
 
 	/**
 	 * Creates an Image object with padding and/or optimization.
 	 **/
-	Image *newImage(love::image::ImageData *data, Image::Format format = Image::FORMAT_NORMAL);
-	Image *newImage(love::image::CompressedData *cdata, Image::Format format = Image::FORMAT_NORMAL);
+	Image *newImage(love::image::ImageData *data, const Image::Flags &flags);
+	Image *newImage(love::image::CompressedImageData *cdata, const Image::Flags &flags);
 
 	Quad *newQuad(Quad::Viewport v, float sw, float sh);
 
@@ -161,7 +167,7 @@ public:
 	 **/
 	Font *newFont(love::font::Rasterizer *data, const Texture::Filter &filter = Texture::getDefaultFilter());
 
-	SpriteBatch *newSpriteBatch(Texture *texture, int size, int usage);
+	SpriteBatch *newSpriteBatch(Texture *texture, int size, Mesh::Usage usage);
 
 	ParticleSystem *newParticleSystem(Texture *texture, int size);
 
@@ -169,14 +175,19 @@ public:
 
 	Shader *newShader(const Shader::ShaderSource &source);
 
-	Mesh *newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode mode = Mesh::DRAW_MODE_FAN);
-	Mesh *newMesh(int vertexcount, Mesh::DrawMode mode = Mesh::DRAW_MODE_FAN);
+	Mesh *newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode drawmode, Mesh::Usage usage);
+	Mesh *newMesh(int vertexcount, Mesh::DrawMode drawmode, Mesh::Usage usage);
+
+	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, int vertexcount, Mesh::DrawMode drawmode, Mesh::Usage usage);
+	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, const void *data, size_t datasize, Mesh::DrawMode drawmode, Mesh::Usage usage);
+
+	Text *newText(Font *font, const std::string &text = "");
 
 	/**
 	 * Sets the foreground color.
 	 * @param c The new foreground color.
 	 **/
-	void setColor(const Color &c);
+	void setColor(Color c);
 
 	/**
 	 * Gets current color.
@@ -186,7 +197,7 @@ public:
 	/**
 	 * Sets the background Color.
 	 **/
-	void setBackgroundColor(const Color &c);
+	void setBackgroundColor(Color c);
 
 	/**
 	 * Gets the current background color.
@@ -221,12 +232,12 @@ public:
 	/**
 	 * Sets the current blend mode.
 	 **/
-	void setBlendMode(BlendMode mode);
+	void setBlendMode(BlendMode mode, bool multiplyalpha);
 
 	/**
 	 * Gets the current blend mode.
 	 **/
-	BlendMode getBlendMode() const;
+	BlendMode getBlendMode(bool &multiplyalpha) const;
 
 	/**
 	 * Sets the default filter for images, canvases, and fonts.
@@ -283,20 +294,9 @@ public:
 	void setPointSize(float size);
 
 	/**
-	 * Sets the style of points.
-	 * @param style POINT_SMOOTH or POINT_ROUGH.
-	 **/
-	void setPointStyle(PointStyle style);
-
-	/**
 	 * Gets the point size.
 	 **/
 	float getPointSize() const;
-
-	/**
-	 * Gets the point style.
-	 **/
-	PointStyle getPointStyle() const;
 
 	/**
 	 * Sets whether graphics will be drawn as wireframe lines instead of filled
@@ -342,7 +342,7 @@ public:
 	 * @param kx Shear along the x-axis.
 	 * @param ky Shear along the y-axis.
 	 **/
-	void printf(const std::string &str, float x, float y, float wrap, AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
+	void printf(const std::string &str, float x, float y, float wrap, Font::AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
 
 	/**
 	 * Draws a point at (x,y).
@@ -368,6 +368,19 @@ public:
 	void rectangle(DrawMode mode, float x, float y, float w, float h);
 
 	/**
+	 * Variant of rectangle that draws a rounded rectangle.
+	 * @param mode The mode of drawing (line/filled).
+	 * @param x X-coordinate of top-left corner
+	 * @param y Y-coordinate of top-left corner
+	 * @param w The width of the rectangle.
+	 * @param h The height of the rectangle.
+	 * @param rx The radius of the corners on the x axis
+	 * @param ry The radius of the corners on the y axis
+	 * @param points The number of points to use per corner
+	 **/
+	void rectangle(DrawMode mode, float x, float y, float w, float h, float rx, float ry, int points = 10);
+
+	/**
 	 * Draws a circle using the specified arguments.
 	 * @param mode The mode of drawing (line/filled).
 	 * @param x X-coordinate.
@@ -376,6 +389,17 @@ public:
 	 * @param points Number of points to use to draw the circle.
 	 **/
 	void circle(DrawMode mode, float x, float y, float radius, int points = 10);
+
+	/**
+	 * Draws an ellipse using the specified arguments.
+	 * @param mode The mode of drawing (line/filled).
+	 * @param x X-coordinate of center
+	 * @param y Y-coordinate of center
+	 * @param a Radius in x-direction
+	 * @param b Radius in y-direction
+	 * @param points Number of points to use to draw the circle.
+	 **/
+	void ellipse(DrawMode mode, float x, float y, float a, float b, int points = 10);
 
 	/**
 	 * Draws an arc using the specified arguments.
@@ -443,16 +467,20 @@ private:
 		Color backgroundColor;
 
 		BlendMode blendMode;
+		bool blendMultiplyAlpha;
 
 		float lineWidth;
 		LineStyle lineStyle;
 		LineJoin lineJoin;
 
 		float pointSize;
-		PointStyle pointStyle;
 
 		bool scissor;
 		OpenGL::Viewport scissorBox;
+
+		// Stencil.
+		bool stencilTest;
+		bool stencilInvert;
 
 		StrongRef<Font> font;
 		StrongRef<Shader> shader;
@@ -484,14 +512,16 @@ private:
 
 	StrongRef<Font> defaultFont;
 
-	std::vector<double> pixel_size_stack; // stores current size of a pixel (needed for line drawing)
+	std::vector<double> pixelSizeStack; // stores current size of a pixel (needed for line drawing)
+
+	QuadIndices *quadIndices;
 
 	int width;
 	int height;
 	bool created;
 	bool active;
 
-	bool activeStencil;
+	bool writingToStencil;
 
 	std::vector<DisplayState> states;
 	std::vector<StackType> stackTypes; // Keeps track of the pushed stack types.

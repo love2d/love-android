@@ -38,10 +38,10 @@ int w_newSoundData(lua_State *L)
 
 	if (lua_isnumber(L, 1))
 	{
-		int samples = luaL_checkint(L, 1);
-		int sampleRate = luaL_optint(L, 2, Decoder::DEFAULT_SAMPLE_RATE);
-		int bitDepth = luaL_optint(L, 3, Decoder::DEFAULT_BIT_DEPTH);
-		int channels = luaL_optint(L, 4, Decoder::DEFAULT_CHANNELS);
+		int samples = (int) luaL_checknumber(L, 1);
+		int sampleRate = (int) luaL_optnumber(L, 2, Decoder::DEFAULT_SAMPLE_RATE);
+		int bitDepth = (int) luaL_optnumber(L, 3, Decoder::DEFAULT_BIT_DEPTH);
+		int channels = (int) luaL_optnumber(L, 4, Decoder::DEFAULT_CHANNELS);
 
 		luax_catchexcept(L, [&](){ t = instance()->newSoundData(samples, sampleRate, bitDepth, channels); });
 	}
@@ -49,7 +49,7 @@ int w_newSoundData(lua_State *L)
 	else
 	{
 		// Convert to Decoder, if necessary.
-		if (!luax_istype(L, 1, SOUND_DECODER_T))
+		if (!luax_istype(L, 1, SOUND_DECODER_ID))
 		{
 			w_newDecoder(L);
 			lua_replace(L, 1);
@@ -58,7 +58,7 @@ int w_newSoundData(lua_State *L)
 		luax_catchexcept(L, [&](){ t = instance()->newSoundData(luax_checkdecoder(L, 1)); });
 	}
 
-	luax_pushtype(L, "SoundData", SOUND_SOUND_DATA_T, t);
+	luax_pushtype(L, SOUND_SOUND_DATA_ID, t);
 	t->release();
 	return 1;
 }
@@ -66,18 +66,18 @@ int w_newSoundData(lua_State *L)
 int w_newDecoder(lua_State *L)
 {
 	love::filesystem::FileData *data = love::filesystem::luax_getfiledata(L, 1);
-	int bufferSize = luaL_optint(L, 2, Decoder::DEFAULT_BUFFER_SIZE);
+	int bufferSize = (int) luaL_optnumber(L, 2, Decoder::DEFAULT_BUFFER_SIZE);
 
 	Decoder *t = nullptr;
 	luax_catchexcept(L,
 		[&]() { t = instance()->newDecoder(data, bufferSize); },
-		[&]() { data->release(); }
+		[&](bool) { data->release(); }
 	);
 
 	if (t == nullptr)
 		return luaL_error(L, "Extension \"%s\" not supported.", data->getExtension().c_str());
 
-	luax_pushtype(L, "Decoder", SOUND_DECODER_T, t);
+	luax_pushtype(L, SOUND_DECODER_ID, t);
 	t->release();
 	return 1;
 }
@@ -111,7 +111,7 @@ extern "C" int luaopen_love_sound(lua_State *L)
 	WrappedModule w;
 	w.module = instance;
 	w.name = "sound";
-	w.flags = MODULE_SOUND_T;
+	w.type = MODULE_SOUND_ID;
 	w.functions = functions;
 	w.types = types;
 

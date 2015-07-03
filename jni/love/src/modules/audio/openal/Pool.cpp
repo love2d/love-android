@@ -56,7 +56,9 @@ Pool::Pool()
 	// Create the mutex.
 	mutex = thread::newMutex();
 
+#ifdef AL_SOFT_direct_channels
 	ALboolean hasext = alIsExtensionPresent("AL_SOFT_direct_channels");
+#endif
 
 	// Make all sources available initially.
 	for (int i = 0; i < totalSources; i++)
@@ -126,7 +128,7 @@ void Pool::update()
 
 int Pool::getSourceCount() const
 {
-	return playing.size();
+	return (int) playing.size();
 }
 
 int Pool::getMaxSources() const
@@ -180,6 +182,7 @@ void Pool::stop()
 	for (const auto &i : playing)
 	{
 		i.first->stopAtomic();
+		i.first->rewindAtomic();
 		i.first->release();
 		available.push(i.second);
 	}

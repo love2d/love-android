@@ -27,7 +27,7 @@ namespace font
 
 GlyphData *luax_checkglyphdata(lua_State *L, int idx)
 {
-	return luax_checktype<GlyphData>(L, idx, "GlyphData", FONT_GLYPH_DATA_T);
+	return luax_checktype<GlyphData>(L, idx, FONT_GLYPH_DATA_ID);
 }
 
 int w_GlyphData_getWidth(lua_State *L)
@@ -59,7 +59,7 @@ int w_GlyphData_getGlyph(lua_State *L)
 	lua_pushnumber(L, (lua_Number) glyph);
 	return 1;
 }
-	
+
 int w_GlyphData_getGlyphString(lua_State *L)
 {
 	GlyphData *t = luax_checkglyphdata(L, 1);
@@ -136,7 +136,7 @@ static const luaL_Reg functions[] =
 
 extern "C" int luaopen_glyphdata(lua_State *L)
 {
-	return luax_register_type(L, "GlyphData", functions);
+	return luax_register_type(L, FONT_GLYPH_DATA_ID, functions);
 }
 
 } // font

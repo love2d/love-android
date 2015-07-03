@@ -27,9 +27,9 @@
 #include "common/Vector.h"
 #include "graphics/Drawable.h"
 #include "graphics/Color.h"
-#include "VertexBuffer.h"
 #include "graphics/Quad.h"
-#include "Texture.h"
+#include "graphics/Texture.h"
+#include "GLBuffer.h"
 
 // STL
 #include <vector>
@@ -577,7 +577,7 @@ protected:
 	Vertex *particleVerts;
 
 	// Vertex index buffer.
-	VertexIndex *ibo;
+	QuadIndices quadIndices;
 
 	// The texture to be drawn.
 	StrongRef<Texture> texture;
@@ -653,8 +653,10 @@ protected:
 	float spinVariation;
 
 	// Offsets
-	float offsetX;
-	float offsetY;
+	love::Vector offset;
+
+	// Is the ParticleSystem using a default offset?
+	bool defaultOffset;
 
 	// Color.
 	std::vector<Colorf> colors;
@@ -663,6 +665,8 @@ protected:
 	std::vector<StrongRef<Quad>> quads;
 
 	bool relativeRotation;
+
+	void resetOffset();
 
 	void createBuffers(size_t size);
 	void deleteBuffers();

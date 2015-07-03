@@ -25,6 +25,10 @@
 
 #include "love.h"
 
+// C++
+#include <string>
+#include <sstream>
+
 #ifdef LOVE_WINDOWS
 #include <windows.h>
 #endif // LOVE_WINDOWS
@@ -52,6 +56,7 @@
 #endif
 
 // Scripts
+#include "scripts/nogame.lua.h"
 #include "scripts/boot.lua.h"
 
 // All modules define a c-accessible luaopen
@@ -110,6 +115,7 @@ extern "C"
 #if defined(LOVE_ENABLE_WINDOW)
 	extern int luaopen_love_window(lua_State*);
 #endif
+	extern int luaopen_love_nogame(lua_State*);
 	extern int luaopen_love_boot(lua_State*);
 }
 
@@ -165,6 +171,7 @@ static const luaL_Reg modules[] = {
 #if defined(LOVE_ENABLE_WINDOW)
 	{ "love.window", luaopen_love_window },
 #endif
+	{ "love.nogame", luaopen_love_nogame },
 	{ "love.boot", luaopen_love_boot },
 	{ 0, 0 }
 };
@@ -198,6 +205,39 @@ static int w_love_getVersion(lua_State *L)
 	return 4;
 }
 
+static int w_love_isVersionCompatible(lua_State *L)
+{
+	std::string version;
+
+	if (lua_type(L, 1) == LUA_TSTRING)
+		version = luaL_checkstring(L, 1);
+	else
+	{
+		int major = (int) luaL_checknumber(L, 1);
+		int minor = (int) luaL_checknumber(L, 2);
+		int rev   = (int) luaL_checknumber(L, 3);
+
+		// Convert the numbers to a string, since VERSION_COMPATIBILITY is an
+		// array of version strings.
+		std::stringstream ss;
+		ss << major << "." << minor << "." << rev;
+
+		version = ss.str();
+	}
+
+	for (int i = 0; love::VERSION_COMPATIBILITY[i] != nullptr; i++)
+	{
+		if (version.compare(love::VERSION_COMPATIBILITY[i]) != 0)
+			continue;
+
+		lua_pushboolean(L, true);
+		return 1;
+	}
+
+	lua_pushboolean(L, false);
+	return 1;
+}
+
 int luaopen_love(lua_State * L)
 {
 	love::luax_insistglobal(L, "love");
@@ -228,7 +268,7 @@ int luaopen_love(lua_State * L)
 
 	lua_newtable(L);
 
-	for (int i = 0; love::VERSION_COMPATIBILITY[i] != 0; ++i)
+	for (int i = 0; love::VERSION_COMPATIBILITY[i] != nullptr; i++)
 	{
 		lua_pushstring(L, love::VERSION_COMPATIBILITY[i]);
 		lua_rawseti(L, -2, i+1);
@@ -239,10 +279,15 @@ int luaopen_love(lua_State * L)
 	lua_pushcfunction(L, w_love_getVersion);
 	lua_setfield(L, -2, "getVersion");
 
+	lua_pushcfunction(L, w_love_isVersionCompatible);
+	lua_setfield(L, -2, "isVersionCompatible");
+
 #ifdef LOVE_WINDOWS
 	lua_pushstring(L, "Windows");
 #elif defined(LOVE_MACOSX)
 	lua_pushstring(L, "OS X");
+#elif defined(LOVE_IOS)
+	lua_pushstring(L, "iOS");
 #elif defined(LOVE_ANDROID)
 	lua_pushstring(L, "Android");
 #elif defined(LOVE_LINUX)
@@ -253,7 +298,7 @@ int luaopen_love(lua_State * L)
 	lua_setfield(L, -2, "_os");
 
 	// Preload module loaders.
-	for (int i = 0; modules[i].name != 0; i++)
+	for (int i = 0; modules[i].name != nullptr; i++)
 		love::luax_preload(L, modules[i].func, modules[i].name);
 
 #ifdef LOVE_ENABLE_LUASOCKET
@@ -347,15 +392,21 @@ int w__openConsole(lua_State *L)
 #endif // LOVE_LEGENDARY_CONSOLE_IO_HACK
 
 #ifdef LOVE_LEGENDARY_ACCELEROMETER_AS_JOYSTICK_HACK
-
 int w__setAccelerometerAsJoystick(lua_State *L)
 {
-	bool enable = lua_toboolean(L, 1);
+	bool enable = (bool) lua_toboolean(L, 1);
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, enable ? "1" : "0");
 	return 0;
 }
-
 #endif // LOVE_LEGENDARY_ACCELEROMETER_AS_JOYSTICK_HACK
+
+int luaopen_love_nogame(lua_State *L)
+{
+	if (luaL_loadbuffer(L, (const char *)love::nogame_lua, sizeof(love::nogame_lua), "nogame.lua") == 0)
+		lua_call(L, 0, 1);
+
+	return 1;
+}
 
 int luaopen_love_boot(lua_State *L)
 {

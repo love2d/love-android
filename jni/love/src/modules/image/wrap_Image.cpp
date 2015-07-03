@@ -39,15 +39,32 @@ int w_newImageData(lua_State *L)
 	// Case 1: Integers.
 	if (lua_isnumber(L, 1))
 	{
-		int w = luaL_checkint(L, 1);
-		int h = luaL_checkint(L, 2);
+		int w = (int) luaL_checknumber(L, 1);
+		int h = (int) luaL_checknumber(L, 2);
 		if (w <= 0 || h <= 0)
 			return luaL_error(L, "Invalid image size.");
+
+		size_t numbytes = 0;
+		const char *bytes = nullptr;
+
+		if (!lua_isnoneornil(L, 3))
+			bytes = luaL_checklstring(L, 3, &numbytes);
 
 		ImageData *t = nullptr;
 		luax_catchexcept(L, [&](){ t = instance()->newImageData(w, h); });
 
-		luax_pushtype(L, "ImageData", IMAGE_IMAGE_DATA_T, t);
+		if (bytes)
+		{
+			if (numbytes != t->getSize())
+			{
+				t->release();
+				return luaL_error(L, "The size of the raw byte string must match the ImageData's actual size in bytes.");
+			}
+
+			memcpy(t->getData(), bytes, t->getSize());
+		}
+
+		luax_pushtype(L, IMAGE_IMAGE_DATA_ID, t);
 		t->release();
 		return 1;
 	}
@@ -58,10 +75,10 @@ int w_newImageData(lua_State *L)
 	ImageData *t = nullptr;
 	luax_catchexcept(L,
 		[&]() { t = instance()->newImageData(data); },
-		[&]() { data->release(); }
+		[&](bool) { data->release(); }
 	);
 
-	luax_pushtype(L, "ImageData", IMAGE_IMAGE_DATA_T, t);
+	luax_pushtype(L, IMAGE_IMAGE_DATA_ID, t);
 	t->release();
 	return 1;
 }
@@ -70,13 +87,13 @@ int w_newCompressedData(lua_State *L)
 {
 	love::filesystem::FileData *data = love::filesystem::luax_getfiledata(L, 1);
 
-	CompressedData *t = nullptr;
+	CompressedImageData *t = nullptr;
 	luax_catchexcept(L,
 		[&]() { t = instance()->newCompressedData(data); },
-		[&]() { data->release(); }
+		[&](bool) { data->release(); }
 	);
 
-	luax_pushtype(L, "CompressedData", IMAGE_COMPRESSED_DATA_T, t);
+	luax_pushtype(L, IMAGE_COMPRESSED_IMAGE_DATA_ID, t);
 	t->release();
 	return 1;
 }
@@ -103,7 +120,7 @@ static const luaL_Reg functions[] =
 static const lua_CFunction types[] =
 {
 	luaopen_imagedata,
-	luaopen_compresseddata,
+	luaopen_compressedimagedata,
 	0
 };
 
@@ -120,7 +137,7 @@ extern "C" int luaopen_love_image(lua_State *L)
 	WrappedModule w;
 	w.module = instance;
 	w.name = "image";
-	w.flags = MODULE_IMAGE_T;
+	w.type = MODULE_IMAGE_ID;
 	w.functions = functions;
 	w.types = types;
 

@@ -18,8 +18,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#include "Exception.h"
 #include "common/config.h"
+#include "Exception.h"
 
 #include <iostream>
 
@@ -58,6 +58,10 @@ Exception::Exception(const char *fmt, ...)
 	}
 	message = std::string(buffer);
 	delete[] buffer;
+}
+
+Exception::~Exception() throw()
+{
 }
 
 }

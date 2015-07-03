@@ -21,17 +21,20 @@
 // LOVE
 #include "STBHandler.h"
 
-static void loveSTBAssert(bool test, const char *teststr)
+static void loveSTBIAssert(bool test, const char *teststr)
 {
 	if (!test)
 		throw love::Exception("Could not decode image (stb_image assertion '%s' failed)", teststr);
 }
 
 // stb_image
-#define STBI_NO_HDR
+ #define STBI_ONLY_JPEG
+// #define STBI_ONLY_PNG
+#define STBI_ONLY_BMP
+#define STBI_ONLY_TGA
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
-#define STBI_ASSERT(A) loveSTBAssert((A), #A)
+#define STBI_ASSERT(A) loveSTBIAssert((A), #A)
 #include "libraries/stb/stb_image.h"
 
 // C
@@ -46,16 +49,19 @@ namespace magpie
 
 bool STBHandler::canDecode(love::filesystem::FileData *data)
 {
-	stbi__context s = {};
-	stbi__start_mem(&s, (const stbi_uc *) data->getData(), (int) data->getSize());
+	int w = 0;
+	int h = 0;
+	int comp = 0;
 
-	// These are internal stb_image functions, but we can still use them!
-	return stbi__bmp_test(&s) || stbi__tga_test(&s);
+	int status = stbi_info_from_memory((const stbi_uc *) data->getData(),
+	                                   (int) data->getSize(), &w, &h, &comp);
+
+	return status == 1 && w > 0 && h > 0;
 }
 
-bool STBHandler::canEncode(ImageData::Format format)
+bool STBHandler::canEncode(ImageData::EncodedFormat format)
 {
-	return format == ImageData::FORMAT_TGA;
+	return format == ImageData::ENCODED_TGA;
 }
 
 FormatHandler::DecodedImage STBHandler::decode(love::filesystem::FileData *data)
@@ -65,18 +71,18 @@ FormatHandler::DecodedImage STBHandler::decode(love::filesystem::FileData *data)
 	int comp = 0;
 	img.data = stbi_load_from_memory((const stbi_uc *) data->getData(),
 	                                 (int) data->getSize(),
-									 &img.width, &img.height,
-									 &comp, 4);
+	                                 &img.width, &img.height,
+	                                 &comp, 4);
 
 	if (img.data == nullptr || img.width <= 0 || img.height <= 0)
-		throw love::Exception("Could not decode TGA or BMP image.");
+		throw love::Exception("Could not decode image with stb_image.");
 
 	img.size = img.width * img.height * 4;
 
 	return img;
 }
 
-FormatHandler::EncodedImage STBHandler::encode(const DecodedImage &img, ImageData::Format format)
+FormatHandler::EncodedImage STBHandler::encode(const DecodedImage &img, ImageData::EncodedFormat format)
 {
 	if (!canEncode(format))
 		throw love::Exception("Invalid format.");

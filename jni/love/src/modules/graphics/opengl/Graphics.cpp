@@ -38,6 +38,10 @@
 #include <cmath>
 #include <cstdio>
 
+#ifdef LOVE_IOS
+#include <SDL_syswm.h>
+#endif
+
 namespace love
 {
 namespace graphics
@@ -46,11 +50,12 @@ namespace opengl
 {
 
 Graphics::Graphics()
-	: width(0)
+	: quadIndices(nullptr)
+	, width(0)
 	, height(0)
 	, created(false)
 	, active(true)
-	, activeStencil(false)
+	, writingToStencil(false)
 {
 	gl = OpenGL();
 
@@ -80,6 +85,9 @@ Graphics::~Graphics()
 		Shader::defaultShader = nullptr;
 	}
 
+	if (quadIndices)
+		delete quadIndices;
+
 	currentWindow->release();
 }
 
@@ -93,19 +101,20 @@ void Graphics::restoreState(const DisplayState &s)
 	setColor(s.color);
 	setBackgroundColor(s.backgroundColor);
 
-	setBlendMode(s.blendMode);
+	setBlendMode(s.blendMode, s.blendMultiplyAlpha);
 
 	setLineWidth(s.lineWidth);
 	setLineStyle(s.lineStyle);
 	setLineJoin(s.lineJoin);
 
 	setPointSize(s.pointSize);
-	setPointStyle(s.pointStyle);
 
 	if (s.scissor)
 		setScissor(s.scissorBox.x, s.scissorBox.y, s.scissorBox.w, s.scissorBox.h);
 	else
 		setScissor();
+
+	setStencilTest(s.stencilTest, s.stencilInvert);
 
 	setFont(s.font.get());
 	setShader(s.shader.get());
@@ -128,8 +137,8 @@ void Graphics::restoreStateChecked(const DisplayState &s)
 	if (*(uint32 *) &s.backgroundColor.r != *(uint32 *) &cur.backgroundColor.r)
 		setBackgroundColor(s.backgroundColor);
 
-	if (s.blendMode != cur.blendMode)
-		setBlendMode(s.blendMode);
+	if (s.blendMode != cur.blendMode || s.blendMultiplyAlpha != cur.blendMultiplyAlpha)
+		setBlendMode(s.blendMode, s.blendMultiplyAlpha);
 
 	// These are just simple assignments.
 	setLineWidth(s.lineWidth);
@@ -139,9 +148,6 @@ void Graphics::restoreStateChecked(const DisplayState &s)
 	if (s.pointSize != cur.pointSize)
 		setPointSize(s.pointSize);
 
-	if (s.pointStyle != cur.pointStyle)
-		setPointStyle(s.pointStyle);
-
 	if (s.scissor != cur.scissor || (s.scissor && !(s.scissorBox == cur.scissorBox)))
 	{
 		if (s.scissor)
@@ -150,17 +156,25 @@ void Graphics::restoreStateChecked(const DisplayState &s)
 			setScissor();
 	}
 
+	if (s.stencilTest != cur.stencilTest || s.stencilInvert != cur.stencilInvert)
+		setStencilTest(s.stencilTest, s.stencilInvert);
+
 	setFont(s.font.get());
 	setShader(s.shader.get());
+
+	bool canvaseschanged = s.canvases.size() != cur.canvases.size();
 
 	for (size_t i = 0; i < s.canvases.size() && i < cur.canvases.size(); i++)
 	{
 		if (s.canvases[i].get() != cur.canvases[i].get())
 		{
-			setCanvas(s.canvases);
+			canvaseschanged = true;
 			break;
 		}
 	}
+
+	if (canvaseschanged)
+		setCanvas(s.canvases);
 
 	if (s.colorMask != cur.colorMask)
 		setColorMask(s.colorMask);
@@ -185,7 +199,7 @@ void Graphics::checkSetDefaultFont()
 		if (!fontmodule)
 			throw love::Exception("Font module has not been loaded.");
 
-		StrongRef<font::Rasterizer> r(fontmodule->newRasterizer(12));
+		StrongRef<font::Rasterizer> r(fontmodule->newTrueTypeRasterizer(12, font::TrueTypeRasterizer::HINTING_NORMAL));
 		r->release();
 
 		defaultFont.set(newFont(r.get()));
@@ -209,14 +223,14 @@ void Graphics::setViewportSize(int width, int height)
 	setCanvas();
 
 	// Set the viewport to top-left corner.
-	gl.setViewport(OpenGL::Viewport(0, 0, width, height));
+	gl.setViewport({0, 0, width, height});
 
 	// If a canvas was bound before this function was called, it needs to be
 	// made aware of the new system viewport size.
 	Canvas::systemViewport = gl.getViewport();
 
 	// Set up the projection matrix
-	gl.matrices.projection.back() = Matrix::ortho(0.0, width, height, 0.0);
+	gl.matrices.projection.back() = Matrix4::ortho(0.0, (float) width, (float) height, 0.0);
 
 	// Restore the previously active Canvas.
 	setCanvas(canvases);
@@ -228,40 +242,27 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 	this->height = height;
 
 	// Okay, setup OpenGL.
-	if (!gl.initContext())
-	{
-		created = false;
-		return false;
-	}
-
-	// Minimum required OpenGL version.
-	if (!(GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_3))
-	{
-		created = false;
-		return false;
-	}
+	gl.initContext();
+	gl.setupContext();
 
 	created = true;
 
 	setViewportSize(width, height);
 
-	// Make sure antialiasing works when set elsewhere
-	if (GLAD_VERSION_1_3)
-		glEnable(GL_MULTISAMPLE);
-
 	// Enable blending
 	glEnable(GL_BLEND);
 
-	if (GLAD_VERSION_1_0)
-		glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-
 	// Auto-generated mipmaps should be the best quality possible
-	if (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4 || GLAD_SGIS_generate_mipmap)
-		glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
+	glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
-	// Enable textures (necessary on desktop GL)
-	if (GLAD_VERSION_1_1)
+	if (!GLAD_ES_VERSION_2_0)
+	{
+		// Make sure antialiasing works when set elsewhere
+		glEnable(GL_MULTISAMPLE);
+
+		// Enable texturing
 		glEnable(GL_TEXTURE_2D);
+	}
 
 	gl.setTextureUnit(0);
 
@@ -270,15 +271,10 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 
 	// Set whether drawing converts input from linear -> sRGB colorspace.
 	if (GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_sRGB || GLAD_EXT_framebuffer_sRGB
-		|| (GLAD_ES_VERSION_3_0 || GLAD_EXT_sRGB))
+		|| GLAD_ES_VERSION_3_0 || GLAD_EXT_sRGB)
 	{
-		if (GLAD_VERSION_1_1 || GLAD_EXT_sRGB_write_control)
-		{
-			if (sRGB)
-				glEnable(GL_FRAMEBUFFER_SRGB);
-			else
-				glDisable(GL_FRAMEBUFFER_SRGB);
-		}
+		if (GLAD_VERSION_1_0 || GLAD_EXT_sRGB_write_control)
+			gl.setFramebufferSRGB(sRGB);
 	}
 	else
 		sRGB = false;
@@ -295,10 +291,15 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 		enabledebug = (flags & GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
 	}
 
-	// FIXME: workaround for KHR_debug being supported but function pointers
-	// resolving to null on Ouya.
-	if (!GLAD_ES_VERSION_2_0)
-		setDebug(enabledebug);
+	setDebug(enabledebug);
+
+	// Create a quad indices object owned by love.graphics, so at least one
+	// QuadIndices object is alive at all times while love.graphics is alive.
+	// This makes sure there aren't too many expensive destruction/creations of
+	// index buffer objects, since the shared index buffer used by QuadIndices
+	// objects is destroyed when the last object is destroyed.
+	if (quadIndices == nullptr)
+		quadIndices = new QuadIndices(20);
 
 	// Reload all volatile objects.
 	if (!Volatile::loadAll())
@@ -307,19 +308,21 @@ bool Graphics::setMode(int width, int height, bool &sRGB)
 	// Restore the graphics state.
 	restoreState(states.back());
 
-	pixel_size_stack.clear();
-	pixel_size_stack.reserve(5);
-	pixel_size_stack.push_back(1);
+	pixelSizeStack.clear();
+	pixelSizeStack.reserve(5);
+	pixelSizeStack.push_back(1);
 
-	// We always need a default shader in OpenGL ES 2.
-	if (GLAD_ES_VERSION_2_0)
+	// We always need a default shader.
+	if (!Shader::defaultShader)
 	{
-		if (!Shader::defaultShader)
-			Shader::defaultShader = newShader(Shader::defaultCode[RENDERER_OPENGLES]);
-
-		if (!getShader())
-			setShader(Shader::defaultShader);
+		Renderer renderer = GLAD_ES_VERSION_2_0 ? RENDERER_OPENGLES : RENDERER_OPENGL;
+		Shader::defaultShader = newShader(Shader::defaultCode[renderer]);
 	}
+
+	// A shader should always be active, but the default shader shouldn't be
+	// returned by getShader(), so we don't do setShader(defaultShader).
+	if (!Shader::current)
+		Shader::defaultShader->attach();
 
 	return true;
 }
@@ -338,14 +341,14 @@ void Graphics::unSetMode()
 	created = false;
 }
 
-void Graphics::setActive(bool active)
+void Graphics::setActive(bool enable)
 {
 	// Make sure all pending OpenGL commands have fully executed before
 	// returning, if we're going from active to inactive.
-	if (isCreated() && this->active && !active)
+	if (isCreated() && this->active && !enable)
 		glFinish();
 
-	this->active = active;
+	active = enable;
 }
 
 bool Graphics::isActive() const
@@ -373,16 +376,15 @@ void Graphics::setDebug(bool enable)
 	if (!(GLAD_VERSION_4_3 || GLAD_KHR_debug || GLAD_ARB_debug_output))
 		return;
 
+	// TODO: We don't support GL_KHR_debug in GLES yet.
+	if (GLAD_ES_VERSION_2_0)
+		return;
+
 	// Ugly hack to reduce code duplication.
 	if (GLAD_ARB_debug_output && !(GLAD_VERSION_4_3 || GLAD_KHR_debug))
 	{
 		fp_glDebugMessageCallback = (pfn_glDebugMessageCallback) fp_glDebugMessageCallbackARB;
 		fp_glDebugMessageControl = (pfn_glDebugMessageControl) fp_glDebugMessageControlARB;
-	}
-	else if (GLAD_ES_VERSION_2_0 && GLAD_KHR_debug)
-	{
-		fp_glDebugMessageCallback = (pfn_glDebugMessageCallback) fp_glDebugMessageCallbackKHR;
-		fp_glDebugMessageControl = (pfn_glDebugMessageControl) fp_glDebugMessageControlKHR;
 	}
 
 	if (!enable)
@@ -418,19 +420,100 @@ void Graphics::setDebug(bool enable)
 void Graphics::reset()
 {
 	DisplayState s;
-	discardStencil();
-	origin();
+	drawToStencilBuffer(false);
 	restoreState(s);
+	origin();
 }
 
-void Graphics::clear()
+void Graphics::clear(Color c)
 {
-	GLbitfield buffers = GL_COLOR_BUFFER_BIT;
+	glClearColor(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
 
-	if (GLAD_EXT_discard_framebuffer)
-		buffers |= GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+void Graphics::clear(const std::vector<Color> &colors)
+{
+	if (colors.size() == 0)
+		return;
 
-	glClear(buffers);
+	if (states.back().canvases.size() == 0)
+		return clear(colors[0]);
+
+	if (colors.size() != states.back().canvases.size())
+		throw love::Exception("Number of clear colors must match the number of active canvases (%ld)", states.back().canvases.size());
+
+	std::vector<GLenum> bufs;
+
+	for (int i = 0; i < (int) colors.size(); i++)
+	{
+		const GLfloat c[] = {colors[i].r/255.f, colors[i].g/255.f, colors[i].b/255.f, colors[i].a/255.f};
+
+		if (GLAD_ES_VERSION_3_0 || GLAD_VERSION_3_0)
+			glClearBufferfv(GL_COLOR, i, c);
+		else
+		{
+			bufs.push_back(GL_COLOR_ATTACHMENT0 + i);
+			glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
+			glClearColor(c[0], c[1], c[2], c[3]);
+			glClear(GL_COLOR_BUFFER_BIT);
+		}
+	}
+
+	glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Revert to the expected draw buffers once we're done, if glClearBuffer
+	// wasn't supported.
+	if (!(GLAD_ES_VERSION_3_0 || GLAD_VERSION_3_0))
+	{
+		if (bufs.size() > 1)
+			glDrawBuffers((int) bufs.size(), &bufs[0]);
+		else
+			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	}
+}
+
+void Graphics::discard(const std::vector<bool> &colorbuffers, bool stencil)
+{
+	if (!(GLAD_VERSION_4_3 || GLAD_ARB_invalidate_subdata || GLAD_ES_VERSION_3_0 || GLAD_EXT_discard_framebuffer))
+		return;
+
+	std::vector<GLenum> attachments;
+	attachments.reserve(colorbuffers.size());
+
+	// glDiscardFramebuffer uses different attachment enums for the default FBO.
+	if (!Canvas::current && gl.getDefaultFBO() == 0)
+	{
+		if (colorbuffers.size() > 0 && colorbuffers[0])
+			attachments.push_back(GL_COLOR);
+
+		if (stencil)
+		{
+			attachments.push_back(GL_STENCIL);
+			attachments.push_back(GL_DEPTH);
+		}
+	}
+	else
+	{
+		int activecanvascount = (int) states.back().canvases.size();
+
+		for (int i = 0; i < (int) colorbuffers.size(); i++)
+		{
+			if (colorbuffers[i] && i < activecanvascount)
+				attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+		}
+
+		if (stencil)
+		{
+			attachments.push_back(GL_STENCIL_ATTACHMENT);
+			attachments.push_back(GL_DEPTH_ATTACHMENT);
+		}
+	}
+
+	// Hint for the driver that it doesn't need to save these buffers.
+	if (GLAD_VERSION_4_3 || GLAD_ARB_invalidate_subdata || GLAD_ES_VERSION_3_0)
+		glInvalidateFramebuffer(GL_FRAMEBUFFER, (GLint) attachments.size(), &attachments[0]);
+	else if (GLAD_EXT_discard_framebuffer)
+		glDiscardFramebufferEXT(GL_FRAMEBUFFER, (GLint) attachments.size(), &attachments[0]);
 }
 
 void Graphics::present()
@@ -442,20 +525,16 @@ void Graphics::present()
 	std::vector<StrongRef<Canvas>> canvases = states.back().canvases;
 	setCanvas();
 
-	if (GLAD_EXT_discard_framebuffer)
-	{
-		GLenum attachments[] = {GL_STENCIL_EXT, GL_DEPTH_EXT};
+	// Discard the stencil buffer before swapping.
+	discard({}, true);
 
-		if (gl.getDefaultFBO() != 0)
-		{
-			// A non-zero FBO needs different attachment enums.
-			attachments[0] = GL_STENCIL_ATTACHMENT;
-			attachments[1] = GL_DEPTH_ATTACHMENT;
-		}
-
-		// Hint for the driver that it doesn't need to save these buffers.
-		glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, attachments);
-	}
+#ifdef LOVE_IOS
+	// Hack: SDL's color renderbuffer must be bound when swapBuffers is called.
+	SDL_SysWMinfo info = {};
+	SDL_VERSION(&info.version);
+	SDL_GetWindowWMInfo(SDL_GL_GetCurrentWindow(), &info);
+	glBindRenderbuffer(GL_RENDERBUFFER, info.info.uikit.colorbuffer);
+#endif
 
 	currentWindow->swapBuffers();
 
@@ -464,7 +543,7 @@ void Graphics::present()
 
 	// Reset the per-frame stat counts.
 	gl.stats.drawCalls = 0;
-	Canvas::switchCount = 0;
+	gl.stats.framebufferBinds = 0;
 }
 
 int Graphics::getWidth() const
@@ -484,12 +563,13 @@ bool Graphics::isCreated() const
 
 void Graphics::setScissor(int x, int y, int width, int height)
 {
-	OpenGL::Viewport box(x, y, width, height);
+	OpenGL::Viewport box = {x, y, width, height};
 
-	states.back().scissor = true;
 	glEnable(GL_SCISSOR_TEST);
 	// OpenGL's reversed y-coordinate is compensated for in OpenGL::setScissor.
 	gl.setScissor(box);
+
+	states.back().scissor = true;
 	states.back().scissorBox = box;
 }
 
@@ -501,102 +581,93 @@ void Graphics::setScissor()
 
 bool Graphics::getScissor(int &x, int &y, int &width, int &height) const
 {
-	OpenGL::Viewport scissor = gl.getScissor();
+	const DisplayState &state = states.back();
 
-	x = scissor.x;
-	y = scissor.y;
-	width = scissor.w;
-	height = scissor.h;
+	x = state.scissorBox.x;
+	y = state.scissorBox.y;
+	width = state.scissorBox.w;
+	height = state.scissorBox.h;
 
-	return states.back().scissor;
+	return state.scissor;
 }
 
-void Graphics::defineStencil()
+void Graphics::drawToStencilBuffer(bool enable)
 {
+	if (writingToStencil == enable)
+		return;
+
+	writingToStencil = enable;
+
+	if (!enable)
+	{
+		const DisplayState &state = states.back();
+
+		// Revert the color write mask.
+		setColorMask(state.colorMask);
+
+		// Use the user-set stencil test state when writes are disabled.
+		setStencilTest(state.stencilTest, state.stencilInvert);
+		return;
+	}
+
 	// Make sure the active canvas has a stencil buffer.
 	if (Canvas::current)
 		Canvas::current->checkCreateStencil();
 
-	// Disable color writes but don't save the mask values.
+	// Disable color writes but don't save the state for it.
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-	glClear(GL_STENCIL_BUFFER_BIT);
+	// The stencil test must be enabled in order to write to the stencil buffer.
 	glEnable(GL_STENCIL_TEST);
+
 	glStencilFunc(GL_ALWAYS, 1, 1);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-	activeStencil = true;
 }
 
-void Graphics::useStencil(bool invert)
+void Graphics::setStencilTest(bool enable, bool invert)
 {
-	glStencilFunc(GL_EQUAL, (GLint)(!invert), 1); // invert ? 0 : 1
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	setColorMask(states.back().colorMask);
-}
+	DisplayState &state = states.back();
+	state.stencilTest = enable;
+	state.stencilInvert = invert;
 
-void Graphics::discardStencil()
-{
-	if (!activeStencil)
+	if (writingToStencil)
 		return;
 
-	setColorMask(states.back().colorMask);
-	glDisable(GL_STENCIL_TEST);
-	activeStencil = false;
+	if (!enable)
+	{
+		glDisable(GL_STENCIL_TEST);
+		return;
+	}
+
+	// Make sure the active canvas has a stencil buffer.
+	if (Canvas::current)
+		Canvas::current->checkCreateStencil();
+
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_EQUAL, invert ? 0 : 1, 1);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 }
 
-Image *Graphics::newImage(love::image::ImageData *data, Image::Format format)
+void Graphics::getStencilTest(bool &enable, bool &invert)
 {
-	// Create the image.
-	Image *image = new Image(data, format);
-
-	if (!isCreated())
-		return image;
-
-	bool success = false;
-	try
-	{
-		success = image->load();
-	}
-	catch(love::Exception &)
-	{
-		image->release();
-		throw;
-	}
-	if (!success)
-	{
-		image->release();
-		return 0;
-	}
-
-	return image;
+	const DisplayState &state = states.back();
+	enable = state.stencilTest;
+	invert = state.stencilInvert;
 }
 
-Image *Graphics::newImage(love::image::CompressedData *cdata, Image::Format format)
+void Graphics::clearStencil()
 {
-	// Create the image.
-	Image *image = new Image(cdata, format);
+	glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
 
-	if (!isCreated())
-		return image;
+Image *Graphics::newImage(love::image::ImageData *data, const Image::Flags &flags)
+{
+	return new Image(data, flags);
+}
 
-	bool success = false;
-	try
-	{
-		success = image->load();
-	}
-	catch(love::Exception &)
-	{
-		image->release();
-		throw;
-	}
-	if (!success)
-	{
-		image->release();
-		return 0;
-	}
-
-	return image;
+Image *Graphics::newImage(love::image::CompressedImageData *cdata, const Image::Flags &flags)
+{
+	return new Image(cdata, flags);
 }
 
 Quad *Graphics::newQuad(Quad::Viewport v, float sw, float sh)
@@ -609,7 +680,7 @@ Font *Graphics::newFont(love::font::Rasterizer *r, const Texture::Filter &filter
 	return new Font(r, filter);
 }
 
-SpriteBatch *Graphics::newSpriteBatch(Texture *texture, int size, int usage)
+SpriteBatch *Graphics::newSpriteBatch(Texture *texture, int size, Mesh::Usage usage)
 {
 	return new SpriteBatch(texture, size, usage);
 }
@@ -648,21 +719,20 @@ Canvas *Graphics::newCanvas(int width, int height, Canvas::Format format, int ms
 	error_string << "Cannot create canvas: ";
 	switch (err)
 	{
-
 	case GL_FRAMEBUFFER_UNSUPPORTED:
 		error_string << "Not supported by your OpenGL implementation.";
 		break;
-
+	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+		error_string << "Texture format cannot be rendered to on this system.";
+		break;
 		// remaining error codes are highly unlikely:
 	case GL_FRAMEBUFFER_UNDEFINED:
-	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
 	case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
 	case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
 	case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
 	case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-		error_string << "Error in implementation. Possible fix: Make canvas width and height powers of two.";
+		error_string << "Error in implementation.";
 		break;
-
 	default:
 		// my intel hda card wrongly returns 0 to glCheckFramebufferStatus() but sets
 		// no error flag. I think it meant to return GL_FRAMEBUFFER_UNSUPPORTED, but who
@@ -686,19 +756,34 @@ Shader *Graphics::newShader(const Shader::ShaderSource &source)
 	return new Shader(source);
 }
 
-Mesh *Graphics::newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode mode)
+Mesh *Graphics::newMesh(const std::vector<Vertex> &vertices, Mesh::DrawMode drawmode, Mesh::Usage usage)
 {
-	return new Mesh(vertices, mode);
+	return new Mesh(vertices, drawmode, usage);
 }
 
-Mesh *Graphics::newMesh(int vertexcount, Mesh::DrawMode mode)
+Mesh *Graphics::newMesh(int vertexcount, Mesh::DrawMode drawmode, Mesh::Usage usage)
 {
-	return new Mesh(vertexcount, mode);
+	return new Mesh(vertexcount, drawmode, usage);
 }
 
-void Graphics::setColor(const Color &c)
+Mesh *Graphics::newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, int vertexcount, Mesh::DrawMode drawmode, Mesh::Usage usage)
 {
-	gl.setColor(c);
+	return new Mesh(vertexformat, vertexcount, drawmode, usage);
+}
+
+Mesh *Graphics::newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, const void *data, size_t datasize, Mesh::DrawMode drawmode, Mesh::Usage usage)
+{
+	return new Mesh(vertexformat, data, datasize, drawmode, usage);
+}
+
+Text *Graphics::newText(Font *font, const std::string &text)
+{
+	return new Text(font, text);
+}
+
+void Graphics::setColor(Color c)
+{
+	glVertexAttrib4f(ATTRIB_CONSTANTCOLOR, c.r/255.0f, c.g/255.0f, c.b/255.0f, c.a/255.0f);
 	states.back().color = c;
 }
 
@@ -707,9 +792,8 @@ Color Graphics::getColor() const
 	return states.back().color;
 }
 
-void Graphics::setBackgroundColor(const Color &c)
+void Graphics::setBackgroundColor(Color c)
 {
-	gl.setClearColor(c);
 	states.back().backgroundColor = c;
 }
 
@@ -749,6 +833,7 @@ void Graphics::setShader()
 {
 	DisplayState &state = states.back();
 
+	// This will activate the default shader.
 	Shader::detach();
 
 	state.shader.set(nullptr);
@@ -830,6 +915,7 @@ std::vector<Canvas *> Graphics::getCanvas() const
 void Graphics::setColorMask(ColorMask mask)
 {
 	glColorMask(mask.r, mask.g, mask.b, mask.a);
+	states.back().colorMask = mask;
 }
 
 Graphics::ColorMask Graphics::getColorMask() const
@@ -837,60 +923,56 @@ Graphics::ColorMask Graphics::getColorMask() const
 	return states.back().colorMask;
 }
 
-void Graphics::setBlendMode(Graphics::BlendMode mode)
+void Graphics::setBlendMode(BlendMode mode, bool multiplyalpha)
 {
-	OpenGL::BlendState blend = {GL_ONE, GL_ONE, GL_ZERO, GL_ZERO, GL_FUNC_ADD};
+	GLenum func   = GL_FUNC_ADD;
+	GLenum srcRGB = GL_ONE;
+	GLenum srcA   = GL_ONE;
+	GLenum dstRGB = GL_ZERO;
+	GLenum dstA   = GL_ZERO;
 
 	switch (mode)
 	{
 	case BLEND_ALPHA:
-		if (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4 || GLAD_EXT_blend_func_separate)
-		{
-			blend.srcRGB = GL_SRC_ALPHA;
-			blend.srcA = GL_ONE;
-			blend.dstRGB = blend.dstA = GL_ONE_MINUS_SRC_ALPHA;
-		}
-		else
-		{
-			// Fallback for OpenGL implementations without support for separate blend functions.
-			// This will most likely only be used for the Microsoft software renderer and
-			// since it's still stuck with OpenGL 1.1, the only expected difference is a
-			// different alpha value when reading back the default framebuffer (newScreenshot).
-			blend.srcRGB = blend.srcA = GL_SRC_ALPHA;
-			blend.dstRGB = blend.dstA = GL_ONE_MINUS_SRC_ALPHA;
-		}
+		srcRGB = srcA = GL_ONE;
+		dstRGB = dstA = GL_ONE_MINUS_SRC_ALPHA;
 		break;
-	case BLEND_MULTIPLICATIVE:
-		blend.srcRGB = blend.srcA = GL_DST_COLOR;
-		blend.dstRGB = blend.dstA = GL_ZERO;
+	case BLEND_MULTIPLY:
+		srcRGB = srcA = GL_DST_COLOR;
+		dstRGB = dstA = GL_ZERO;
 		break;
-	case BLEND_PREMULTIPLIED:
-		blend.srcRGB = blend.srcA = GL_ONE;
-		blend.dstRGB = blend.dstA = GL_ONE_MINUS_SRC_ALPHA;
-		break;
-	case BLEND_SUBTRACTIVE:
-		blend.func = GL_FUNC_REVERSE_SUBTRACT;
-	case BLEND_ADDITIVE:
-		blend.srcRGB = blend.srcA = GL_SRC_ALPHA;
-		blend.dstRGB = blend.dstA = GL_ONE;
+	case BLEND_SUBTRACT:
+		func = GL_FUNC_REVERSE_SUBTRACT;
+	case BLEND_ADD:
+		srcRGB = GL_ONE;
+		srcA = GL_SRC_ALPHA; // FIXME: This isn't correct...
+		dstRGB = dstA = GL_ONE;
 		break;
 	case BLEND_SCREEN:
-		blend.srcRGB = blend.srcA = GL_ONE;
-		blend.dstRGB = blend.dstA = GL_ONE_MINUS_SRC_COLOR;
+		srcRGB = srcA = GL_ONE;
+		dstRGB = dstA = GL_ONE_MINUS_SRC_COLOR;
 		break;
 	case BLEND_REPLACE:
 	default:
-		blend.srcRGB = blend.srcA = GL_ONE;
-		blend.dstRGB = blend.dstA = GL_ZERO;
+		srcRGB = srcA = GL_ONE;
+		dstRGB = dstA = GL_ZERO;
 		break;
 	}
 
-	gl.setBlendState(blend);
+	// We can only do alpha-multiplication when srcRGB would have been unmodified.
+	if (srcRGB == GL_ONE && multiplyalpha)
+		srcRGB = GL_SRC_ALPHA;
+
+	glBlendEquation(func);
+	glBlendFuncSeparate(srcRGB, dstRGB, srcA, dstA);
+
 	states.back().blendMode = mode;
+	states.back().blendMultiplyAlpha = multiplyalpha;
 }
 
-Graphics::BlendMode Graphics::getBlendMode() const
+Graphics::BlendMode Graphics::getBlendMode(bool &multiplyalpha) const
 {
+	multiplyalpha = states.back().blendMultiplyAlpha;
 	return states.back().blendMode;
 }
 
@@ -956,35 +1038,18 @@ void Graphics::setPointSize(float size)
 	states.back().pointSize = size;
 }
 
-void Graphics::setPointStyle(Graphics::PointStyle style)
-{
-	if (GLAD_ES_VERSION_2_0)
-		return;
-
-	if (style == POINT_SMOOTH)
-		glEnable(GL_POINT_SMOOTH);
-	else // love::POINT_ROUGH
-		glDisable(GL_POINT_SMOOTH);
-
-	states.back().pointStyle = style;
-}
-
 float Graphics::getPointSize() const
 {
 	return states.back().pointSize;
 }
 
-Graphics::PointStyle Graphics::getPointStyle() const
-{
-	return states.back().pointStyle;
-}
-
 void Graphics::setWireframe(bool enable)
 {
 	// Not supported in OpenGL ES.
-	if (!GLAD_ES_VERSION_2_0)
-		glPolygonMode(GL_FRONT_AND_BACK, enable ? GL_LINE : GL_FILL);
+	if (GLAD_ES_VERSION_2_0)
+		return;
 
+	glPolygonMode(GL_FRONT_AND_BACK, enable ? GL_LINE : GL_FILL);
 	states.back().wireframe = enable;
 }
 
@@ -1000,70 +1065,17 @@ void Graphics::print(const std::string &str, float x, float y , float angle, flo
 	DisplayState &state = states.back();
 
 	if (state.font.get() != nullptr)
-		state.font->print(str, x, y, 0.0, angle, sx, sy, ox, oy, kx, ky);
+		state.font->print(str, x, y, angle, sx, sy, ox, oy, kx, ky);
 }
 
-void Graphics::printf(const std::string &str, float x, float y, float wrap, AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+void Graphics::printf(const std::string &str, float x, float y, float wrap, Font::AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
 {
 	checkSetDefaultFont();
 
 	DisplayState &state = states.back();
 
-	if (state.font.get() == nullptr)
-		return;
-
-	if (wrap < 0.0f)
-		throw love::Exception("Horizontal wrap limit cannot be negative.");
-
-	using std::string;
-	using std::vector;
-
-	// wrappedlines indicates which lines were automatically wrapped. It's
-	// guaranteed to have the same number of elements as lines_to_draw.
-	vector<bool> wrappedlines;
-	vector<string> lines_to_draw = state.font->getWrap(str, wrap, 0, &wrappedlines);
-
-	Matrix t;
-	t.setTransformation(ceilf(x), ceilf(y), angle, sx, sy, ox, oy, kx, ky);
-
-	OpenGL::TempTransform transform(gl);
-	transform.get() *= t;
-
-	x = y = 0.0f;
-
-	// now for the actual printing
-	vector<string>::const_iterator line_iter, line_end = lines_to_draw.end();
-	float extra_spacing = 0.0f;
-	int num_spaces = 0;
-	int i = 0;
-
-	for (line_iter = lines_to_draw.begin(); line_iter != line_end; ++line_iter)
-	{
-		float width = static_cast<float>(state.font->getWidth(*line_iter));
-		switch (align)
-		{
-		case ALIGN_RIGHT:
-			state.font->print(*line_iter, ceilf(x + (wrap - width)), ceilf(y), 0.0f);
-			break;
-		case ALIGN_CENTER:
-			state.font->print(*line_iter, ceilf(x + (wrap - width) / 2), ceilf(y), 0.0f);
-			break;
-		case ALIGN_JUSTIFY:
-			num_spaces = std::count(line_iter->begin(), line_iter->end(), ' ');
-			if (wrappedlines[i] && num_spaces >= 1)
-				extra_spacing = (wrap - width) / float(num_spaces);
-			else
-				extra_spacing = 0.0f;
-			state.font->print(*line_iter, ceilf(x), ceilf(y), extra_spacing);
-			break;
-		case ALIGN_LEFT:
-		default:
-			state.font->print(*line_iter, ceilf(x), ceilf(y), 0.0f);
-			break;
-		}
-		y += state.font->getHeight() * state.font->getLineHeight();
-		i++;
-	}
+	if (state.font.get() != nullptr)
+		state.font->printf(str, x, y, wrap, align, angle, sx, sy, ox, oy, kx, ky);
 }
 
 /**
@@ -1072,40 +1084,37 @@ void Graphics::printf(const std::string &str, float x, float y, float wrap, Alig
 
 void Graphics::point(float x, float y)
 {
-	gl.prepareDraw();
-
-	gl.bindTexture(gl.getDefaultTexture());
+	OpenGL::TempDebugGroup debuggroup("Graphics point draw");
 
 	GLfloat coord[] = {x, y};
 
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, coord);
-
+	gl.prepareDraw();
+	gl.bindTexture(gl.getDefaultTexture());
+	gl.useVertexAttribArrays(ATTRIBFLAG_POS);
+	glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, 0, coord);
 	gl.drawArrays(GL_POINTS, 0, 1);
-
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 }
 
 void Graphics::polyline(const float *coords, size_t count)
 {
-	DisplayState &state = states.back();
+	const DisplayState &state = states.back();
 
 	if (state.lineJoin == LINE_JOIN_NONE)
 	{
-			NoneJoinPolyline line;
-			line.render(coords, count, state.lineWidth * .5f, float(pixel_size_stack.back()), state.lineStyle == LINE_SMOOTH);
-			line.draw();
+		NoneJoinPolyline line;
+		line.render(coords, count, state.lineWidth * .5f, float(pixelSizeStack.back()), state.lineStyle == LINE_SMOOTH);
+		line.draw();
 	}
 	else if (state.lineJoin == LINE_JOIN_BEVEL)
 	{
 		BevelJoinPolyline line;
-		line.render(coords, count, state.lineWidth * .5f, float(pixel_size_stack.back()), state.lineStyle == LINE_SMOOTH);
+		line.render(coords, count, state.lineWidth * .5f, float(pixelSizeStack.back()), state.lineStyle == LINE_SMOOTH);
 		line.draw();
 	}
 	else // LINE_JOIN_MITER
 	{
 		MiterJoinPolyline line;
-		line.render(coords, count, state.lineWidth * .5f, float(pixel_size_stack.back()), state.lineStyle == LINE_SMOOTH);
+		line.render(coords, count, state.lineWidth * .5f, float(pixelSizeStack.back()), state.lineStyle == LINE_SMOOTH);
 		line.draw();
 	}
 }
@@ -1116,44 +1125,84 @@ void Graphics::rectangle(DrawMode mode, float x, float y, float w, float h)
 	polygon(mode, coords, 5 * 2);
 }
 
+void Graphics::rectangle(DrawMode mode, float x, float y, float w, float h, float rx, float ry, int points)
+{
+	if (rx == 0 || ry == 0)
+	{
+		rectangle(mode, x, y, w, h);
+		return;
+	}
+
+	points = std::max(points, 1);
+
+	const float half_pi = static_cast<float>(LOVE_M_PI / 2);
+	float angle_shift = half_pi / ((float) points + 1.0f);
+
+	int num_coords = (points + 2) * 8;
+	float *coords = new float[num_coords + 2];
+	float phi = .0f;
+
+	for (int i = 0; i <= points + 2; ++i, phi += angle_shift)
+	{
+		coords[2 * i + 0] = x + rx * (1 - cosf(phi));
+		coords[2 * i + 1] = y + ry * (1 - sinf(phi));
+	}
+
+	phi = half_pi;
+
+	for (int i = points + 2; i <= 2 * (points + 2); ++i, phi += angle_shift)
+	{
+		coords[2 * i + 0] = x + w - rx * (1 + cosf(phi));
+		coords[2 * i + 1] = y + ry * (1 - sinf(phi));
+	}
+
+	phi = 2 * half_pi;
+
+	for (int i = 2 * (points + 2); i <= 3 * (points + 2); ++i, phi += angle_shift)
+	{
+		coords[2 * i + 0] = x + w - rx * (1 + cosf(phi));
+		coords[2 * i + 1] = y + h - ry * (1 + sinf(phi));
+	}
+
+	phi =  3 * half_pi;
+
+	for (int i = 3 * (points + 2); i <= 4 * (points + 2); ++i, phi += angle_shift)
+	{
+		coords[2 * i + 0] = x + rx * (1 - cosf(phi));
+		coords[2 * i + 1] = y + h - ry * (1 + sinf(phi));
+	}
+
+	coords[num_coords + 0] = coords[0];
+	coords[num_coords + 1] = coords[1];
+
+	polygon(mode, coords, num_coords + 2);
+
+	delete[] coords;
+}
+
 void Graphics::circle(DrawMode mode, float x, float y, float radius, int points)
+{
+	ellipse(mode, x, y, radius, radius, points);
+}
+
+void Graphics::ellipse(DrawMode mode, float x, float y, float a, float b, int points)
 {
 	float two_pi = static_cast<float>(LOVE_M_PI * 2);
 	if (points <= 0) points = 1;
 	float angle_shift = (two_pi / points);
 	float phi = .0f;
 
-	float *coords = nullptr;
-	int extrapoints = 1;
-
-	// Fill mode will use a triangle fan internally, so we want the "hub" of the
-	// fan (its first vertex) to be the midpoint of the circle.
-	if (mode == DRAW_FILL)
-	{
-		extrapoints = 2;
-		coords = new float[2 * (points + extrapoints)];
-
-		coords[0] = x;
-		coords[1] = y;
-
-		coords += 2;
-	}
-	else
-		coords = new float[2 * (points + extrapoints)];
-
+	float *coords = new float[2 * (points + 1)];
 	for (int i = 0; i < points; ++i, phi += angle_shift)
 	{
-		coords[2*i]   = x + radius * cosf(phi);
-		coords[2*i+1] = y + radius * sinf(phi);
+		coords[2*i+0] = x + a * cosf(phi);
+		coords[2*i+1] = y + b * sinf(phi);
 	}
 
-	coords[2*points]   = coords[0];
+	coords[2*points+0] = coords[0];
 	coords[2*points+1] = coords[1];
 
-	if (mode == DRAW_FILL)
-		coords -= 2;
-
-	polygon(mode, coords, 2 * (points + extrapoints));
+	polygon(mode, coords, (points + 1) * 2);
 
 	delete[] coords;
 }
@@ -1195,16 +1244,13 @@ void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, 
 	}
 	else
 	{
+		OpenGL::TempDebugGroup debuggroup("Filled arc draw");
+
 		gl.prepareDraw();
-
 		gl.bindTexture(gl.getDefaultTexture());
-
-		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
-
+		gl.useVertexAttribArrays(ATTRIBFLAG_POS);
+		glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, 0, coords);
 		gl.drawArrays(GL_TRIANGLE_FAN, 0, points + 2);
-
-		gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
 	}
 
 	delete[] coords;
@@ -1223,16 +1269,13 @@ void Graphics::polygon(DrawMode mode, const float *coords, size_t count)
 	}
 	else
 	{
+		OpenGL::TempDebugGroup debuggroup("Filled polygon draw");
+
 		gl.prepareDraw();
-
 		gl.bindTexture(gl.getDefaultTexture());
-
-		gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, 0, (GLvoid *) coords);
-
-		gl.drawArrays(GL_TRIANGLE_FAN, 0, count / 2);
-
-		gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
+		gl.useVertexAttribArrays(ATTRIBFLAG_POS);
+		glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, 0, coords);
+		gl.drawArrays(GL_TRIANGLE_FAN, 0, (int)count/2-1); // opengl will close the polygon for us
 	}
 }
 
@@ -1246,12 +1289,11 @@ love::image::ImageData *Graphics::newScreenshot(love::image::Image *image, bool 
 	int w = getWidth();
 	int h = getHeight();
 
-	int row = 4*w;
+	int row = 4 * w;
+	int size = row * h;
 
-	int size = row*h;
-
-	GLubyte *pixels = 0;
-	GLubyte *screenshot = 0;
+	GLubyte *pixels = nullptr;
+	GLubyte *screenshot = nullptr;
 
 	try
 	{
@@ -1276,15 +1318,15 @@ love::image::ImageData *Graphics::newScreenshot(love::image::Image *image, bool 
 	}
 
 	// OpenGL sucks and reads pixels from the lower-left. Let's fix that.
-
-	GLubyte *src = pixels - row, *dst = screenshot + size;
+	GLubyte *src = pixels - row;
+	GLubyte *dst = screenshot + size;
 
 	for (int i = 0; i < h; ++i)
 		memcpy(dst-=row, src+=row, row);
 
 	delete[] pixels;
 
-	love::image::ImageData *img = 0;
+	love::image::ImageData *img = nullptr;
 	try
 	{
 		// Tell the new ImageData that it owns the screenshot data, so we don't
@@ -1339,7 +1381,7 @@ Graphics::Stats Graphics::getStats() const
 	Stats stats;
 
 	stats.drawCalls = gl.stats.drawCalls;
-	stats.canvasSwitches = Canvas::switchCount;
+	stats.canvasSwitches = gl.stats.framebufferBinds;
 	stats.canvases = Canvas::canvasCount;
 	stats.images = Image::imageCount;
 	stats.fonts = Font::fontCount;
@@ -1350,66 +1392,33 @@ Graphics::Stats Graphics::getStats() const
 
 double Graphics::getSystemLimit(SystemLimit limittype) const
 {
-	double limit = 0.0;
-
 	switch (limittype)
 	{
 	case Graphics::LIMIT_POINT_SIZE:
 		{
 			GLfloat limits[2];
 			glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
-			limit = limits[1];
+			return (double) limits[1];
 		}
-		break;
 	case Graphics::LIMIT_TEXTURE_SIZE:
-		limit = (double) gl.getMaxTextureSize();
-		break;
+		return (double) gl.getMaxTextureSize();
 	case Graphics::LIMIT_MULTI_CANVAS:
-		limit = (double) gl.getMaxRenderTargets();
-		break;
-	case Graphics::LIMIT_CANVAS_FSAA: // For backward-compatibility.
+		return (double) gl.getMaxRenderTargets();
 	case Graphics::LIMIT_CANVAS_MSAA:
-		if (GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object
-			|| GLAD_EXT_framebuffer_multisample)
-		{
-			GLint intlimit = 0;
-			glGetIntegerv(GL_MAX_SAMPLES, &intlimit);
-			limit = (double) intlimit;
-		}
-		break;
+		return (double) gl.getMaxRenderbufferSamples();
 	default:
-		break;
+		return 0.0;
 	}
-
-	return limit;
 }
 
 bool Graphics::isSupported(Support feature) const
 {
 	switch (feature)
 	{
-	case SUPPORT_CANVAS:
-		return Canvas::isSupported();
-	case SUPPORT_HDR_CANVAS:
-		return Canvas::isFormatSupported(Canvas::FORMAT_HDR);
 	case SUPPORT_MULTI_CANVAS:
 		return Canvas::isMultiCanvasSupported();
-	case SUPPORT_SHADER:
-		return Shader::isSupported();
-	case SUPPORT_NPOT:
-		return Image::hasNpot();
-	case SUPPORT_SUBTRACTIVE:
-		return (GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4) || (GLAD_EXT_blend_minmax && GLAD_EXT_blend_subtract);
-	case SUPPORT_MIPMAP:
-		return Image::hasMipmapSupport();
-	case SUPPORT_DXT:
-		return Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_DXT5);
-	case SUPPORT_BC5:
-		return Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_BC5);
-	case SUPPORT_ETC1:
-		return Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_ETC1);
-	case SUPPORT_PVRTC1:
-		return Image::hasCompressedTextureSupport(image::CompressedData::FORMAT_PVR1_RGBA4);
+	case SUPPORT_MULTI_CANVAS_FORMATS:
+		return Canvas::isMultiFormatMultiCanvasSupported();
 	case SUPPORT_SRGB:
 		// sRGB support for the screen is guaranteed if it's supported as a
 		// Canvas format.
@@ -1426,7 +1435,7 @@ void Graphics::push(StackType type)
 
 	gl.pushTransform();
 
-	pixel_size_stack.push_back(pixel_size_stack.back());
+	pixelSizeStack.push_back(pixelSizeStack.back());
 
 	if (type == STACK_ALL)
 		states.push_back(states.back());
@@ -1440,7 +1449,7 @@ void Graphics::pop()
 		throw Exception("Minimum stack depth reached (more pops than pushes?)");
 
 	gl.popTransform();
-	pixel_size_stack.pop_back();
+	pixelSizeStack.pop_back();
 
 	if (stackTypes.back() == STACK_ALL)
 	{
@@ -1463,7 +1472,7 @@ void Graphics::rotate(float r)
 void Graphics::scale(float x, float y)
 {
 	gl.getTransform().scale(x, y);
-	pixel_size_stack.back() *= 2. / (fabs(x) + fabs(y));
+	pixelSizeStack.back() *= 2. / (fabs(x) + fabs(y));
 }
 
 void Graphics::translate(float x, float y)
@@ -1473,32 +1482,34 @@ void Graphics::translate(float x, float y)
 
 void Graphics::shear(float kx, float ky)
 {
-	gl.getTransform().setShear(kx, ky);
+	gl.getTransform().shear(kx, ky);
 }
 
 void Graphics::origin()
 {
 	gl.getTransform().setIdentity();
-	pixel_size_stack.back() = 1;
+	pixelSizeStack.back() = 1;
 }
 
 Graphics::DisplayState::DisplayState()
 	: color(255, 255, 255, 255)
 	, backgroundColor(0, 0, 0, 255)
 	, blendMode(BLEND_ALPHA)
+	, blendMultiplyAlpha(true)
 	, lineWidth(1.0f)
 	, lineStyle(LINE_SMOOTH)
 	, lineJoin(LINE_JOIN_MITER)
 	, pointSize(1.0f)
-	, pointStyle(POINT_SMOOTH)
 	, scissor(false)
 	, scissorBox()
+	, stencilTest(false)
+	, stencilInvert(false)
 	, font(nullptr)
 	, shader(nullptr)
 	, colorMask({true, true, true, true})
 	, wireframe(false)
 	, defaultFilter()
-	, defaultMipmapFilter(Texture::FILTER_NONE)
+	, defaultMipmapFilter(Texture::FILTER_NEAREST)
 	, defaultMipmapSharpness(0.0f)
 {
 }
@@ -1507,13 +1518,15 @@ Graphics::DisplayState::DisplayState(const DisplayState &other)
 	: color(other.color)
 	, backgroundColor(other.backgroundColor)
 	, blendMode(other.blendMode)
+	, blendMultiplyAlpha(other.blendMultiplyAlpha)
 	, lineWidth(other.lineWidth)
 	, lineStyle(other.lineStyle)
 	, lineJoin(other.lineJoin)
 	, pointSize(other.pointSize)
-	, pointStyle(other.pointStyle)
 	, scissor(other.scissor)
 	, scissorBox(other.scissorBox)
+	, stencilTest(other.stencilTest)
+	, stencilInvert(other.stencilInvert)
 	, font(other.font)
 	, shader(other.shader)
 	, canvases(other.canvases)
@@ -1534,13 +1547,15 @@ Graphics::DisplayState &Graphics::DisplayState::operator = (const DisplayState &
 	color = other.color;
 	backgroundColor = other.backgroundColor;
 	blendMode = other.blendMode;
+	blendMultiplyAlpha = other.blendMultiplyAlpha;
 	lineWidth = other.lineWidth;
 	lineStyle = other.lineStyle;
 	lineJoin = other.lineJoin;
 	pointSize = other.pointSize;
-	pointStyle = other.pointStyle;
 	scissor = other.scissor;
 	scissorBox = other.scissorBox;
+	stencilTest = other.stencilTest;
+	stencilInvert = other.stencilInvert;
 
 	font = other.font;
 	shader = other.shader;

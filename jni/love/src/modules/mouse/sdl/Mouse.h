@@ -40,34 +40,34 @@ class Mouse : public love::mouse::Mouse
 public:
 
 	// Implements Module.
-	const char *getName() const;
+	const char *getName() const override;
 
 	Mouse();
-	~Mouse();
+	virtual ~Mouse();
 
-	love::mouse::Cursor *newCursor(love::image::ImageData *data, int hotx, int hoty);
-	love::mouse::Cursor *getSystemCursor(Cursor::SystemCursor cursortype);
+	love::mouse::Cursor *newCursor(love::image::ImageData *data, int hotx, int hoty) override;
+	love::mouse::Cursor *getSystemCursor(Cursor::SystemCursor cursortype) override;
 
-	void setCursor(love::mouse::Cursor *cursor);
-	void setCursor();
+	void setCursor(love::mouse::Cursor *cursor) override;
+	void setCursor() override;
 
-	love::mouse::Cursor *getCursor() const;
+	love::mouse::Cursor *getCursor() const override;
 
-	bool hasCursor() const;
+	bool hasCursor() const override;
 
-	int getX() const;
-	int getY() const;
-	void getPosition(int &x, int &y) const;
-	void setX(int x);
-	void setY(int y);
-	void setPosition(int x, int y);
-	void setVisible(bool visible);
-	bool isDown(Button *buttonlist) const;
-	bool isVisible() const;
-	void setGrabbed(bool grab);
-	bool isGrabbed() const;
-	bool setRelativeMode(bool relative);
-	bool getRelativeMode() const;
+	double getX() const override;
+	double getY() const override;
+	void getPosition(double &x, double &y) const override;
+	void setX(double x) override;
+	void setY(double y) override;
+	void setPosition(double x, double y) override;
+	void setVisible(bool visible) override;
+	bool isDown(const std::vector<int> &buttons) const override;
+	bool isVisible() const override;
+	void setGrabbed(bool grab) override;
+	bool isGrabbed() const override;
+	bool setRelativeMode(bool relative) override;
+	bool getRelativeMode() const override;
 
 private:
 

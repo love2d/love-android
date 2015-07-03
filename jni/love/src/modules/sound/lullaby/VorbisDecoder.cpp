@@ -63,7 +63,7 @@ static size_t vorbisRead(void *ptr	/* ptr to the data that the vorbis files need
 	if (actualSizeToRead)
 	{
 		// Copy the data from the start of the file PLUS how much we have already read in
-		memcpy(ptr, (char *)vorbisData->dataPtr + vorbisData->dataRead, actualSizeToRead);
+		memcpy(ptr, (const char *)vorbisData->dataPtr + vorbisData->dataRead, actualSizeToRead);
 		// Increase by how much we have read by
 		vorbisData->dataRead += (actualSizeToRead);
 	}
@@ -109,7 +109,7 @@ static int vorbisSeek(void *datasource	/* ptr to the data that the vorbis files 
 		vorbisData->dataRead = vorbisData->dataSize+1;
 		break;
 	default:
-		throw love::Exception("Unknown seek command in vorbisSeek\n");
+		throw love::Exception("Unknown seek command in vorbisSeek");
 		break;
 	};
 
@@ -143,8 +143,8 @@ VorbisDecoder::VorbisDecoder(Data *data, const std::string &ext, int bufferSize)
 #endif
 
 	// Initialize OGG file
-	oggFile.dataPtr = (char *) data->getData();
-	oggFile.dataSize = data->getSize();
+	oggFile.dataPtr = (const char *) data->getData();
+	oggFile.dataSize = (int) data->getSize();
 	oggFile.dataRead = 0;
 
 	// Open Vorbis handle
@@ -188,7 +188,7 @@ int VorbisDecoder::decode()
 
 	while (size < bufferSize)
 	{
-		int result = ov_read(&handle, (char *) buffer + size, bufferSize - size, endian, (getBitDepth() == 16 ? 2 : 1), 1, 0);
+		long result = ov_read(&handle, (char *) buffer + size, bufferSize - size, endian, (getBitDepth() == 16 ? 2 : 1), 1, 0);
 
 		if (result == OV_HOLE)
 			continue;
@@ -250,7 +250,7 @@ int VorbisDecoder::getBitDepth() const
 
 int VorbisDecoder::getSampleRate() const
 {
-	return vorbisInfo->rate;
+	return (int) vorbisInfo->rate;
 }
 
 } // lullaby

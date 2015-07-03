@@ -43,18 +43,19 @@ public:
 
 	virtual ~Touch() {}
 
-	virtual int getTouchCount() const;
-	virtual TouchInfo getTouch(int index) const;
+	std::vector<int64> getTouches() const override;
+	void getPosition(int64 id, double &x, double &y) const override;
+	double getPressure(int64 id) const override;
 
 	// Implements Module.
-	virtual const char *getName() const;
+	const char *getName() const override;
 
 	// SDL has functions to query the state of touch presses, but unfortunately
 	// they are updated on a different thread in some backends, which causes
 	// issues especially if the user is iterating through the current touches
 	// when they're updated. So we only update our touch press state in
 	// love::event::sdl::Event::convert.
-	void onEvent(const SDL_TouchFingerEvent &event);
+	void onEvent(Uint32 eventtype, const TouchInfo &info);
 
 private:
 

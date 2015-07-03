@@ -25,6 +25,9 @@
 #include "common/Module.h"
 #include "common/StringMap.h"
 
+// C++
+#include <vector>
+
 namespace love
 {
 namespace keyboard
@@ -501,7 +504,7 @@ public:
 		SCANCODE_AC_STOP,
 		SCANCODE_AC_REFRESH,
 		SCANCODE_AC_BOOKMARKS,
-		
+
 		SCANCODE_BRIGHTNESSDOWN,
 		SCANCODE_BRIGHTNESSUP,
 		SCANCODE_DISPLAYSWITCH,
@@ -510,7 +513,7 @@ public:
 		SCANCODE_KBDILLUMUP,
 		SCANCODE_EJECT,
 		SCANCODE_SLEEP,
-		
+
 		SCANCODE_APP1,
 		SCANCODE_APP2,
 
@@ -535,11 +538,18 @@ public:
 	virtual bool hasKeyRepeat() const = 0;
 
 	/**
-	 * Checks whether certain keys are down or not.
-	 * @param keylist An array of key identifiers, terminated by KEY_MAX_ENUM.
-	 * @return boolean
+	 * Checks whether certain keys are pressed or not.
+	 * @param keylist A list of key identifiers.
+	 * @return Whether any of the specified keys are pressed.
 	 **/
-	virtual bool isDown(Key *keylist) const = 0;
+	virtual bool isDown(const std::vector<Key> &keylist) const = 0;
+
+	/**
+	 * Checks whether certain scancodes are pressed or not.
+	 * @param scancodelist A list of scancodes.
+	 * @return Whether any of the specified scancodes are pressed.
+	 **/
+	virtual bool isScancodeDown(const std::vector<Scancode> &scancodelist) const = 0;
 
 	/**
 	 * Gets the key corresponding to the specified scancode according to the
@@ -554,16 +564,17 @@ public:
 	virtual Scancode getScancodeFromKey(Key key) const = 0;
 
 	/**
-	 * Sets whether text input events should be sent
-	 * @param enable Whether to send text input events.
+	 * Sets whether text input events should be received.
+	 * @param enable Whether to receive text input events.
 	 **/
 	virtual void setTextInput(bool enable) = 0;
 
 	/**
-	 * Sets whether text input events should be received, and sets the
-	 * rectangle used for on-screen keyboards.
+	 * Sets whether text input events should be received, and specifies where
+	 * on the screen the text will appear. This is used as a hint so on-screen
+	 * keyboards don't cover the text area.
 	 **/
-	virtual void setTextInput(bool enable, int x, int y, int w, int h) = 0;
+	virtual void setTextInput(bool enable, double x, double y, double w, double h) = 0;
 
 	/**
 	 * Gets whether text input events are enabled.
@@ -571,7 +582,7 @@ public:
 	virtual bool hasTextInput() const = 0;
 
 	/**
-	 * Gets whether the system can display an on-screen keyboard when text input
+	 * Gets whether the system will display an on-screen keyboard when text input
 	 * events are enabled.
 	 **/
 	virtual bool hasScreenKeyboard() const = 0;

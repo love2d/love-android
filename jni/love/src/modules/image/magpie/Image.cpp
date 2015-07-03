@@ -21,12 +21,10 @@
 #include "Image.h"
 
 #include "ImageData.h"
-#include "CompressedData.h"
+#include "CompressedImageData.h"
 
 #include "PNGHandler.h"
 #include "STBHandler.h"
-#include "JPEGHandler.h"
-#include "DevilHandler.h"
 
 #include "ddsHandler.h"
 #include "PVRHandler.h"
@@ -44,14 +42,6 @@ Image::Image()
 {
 	formatHandlers.push_back(new PNGHandler);
 	formatHandlers.push_back(new STBHandler);
-
-#ifdef LOVE_TURBO_JPEG
-	formatHandlers.push_back(new JPEGHandler);
-#endif
-
-#ifndef LOVE_NO_DEVIL
-	formatHandlers.push_back(new DevilHandler);
-#endif
 
 	compressedFormatHandlers.push_back(new DDSHandler);
 	compressedFormatHandlers.push_back(new PVRHandler);
@@ -90,9 +80,9 @@ love::image::ImageData *Image::newImageData(int width, int height, void *data, b
 	return new ImageData(formatHandlers, width, height, data, own);
 }
 
-love::image::CompressedData *Image::newCompressedData(love::filesystem::FileData *data)
+love::image::CompressedImageData *Image::newCompressedData(love::filesystem::FileData *data)
 {
-	return new CompressedData(compressedFormatHandlers, data);
+	return new CompressedImageData(compressedFormatHandlers, data);
 }
 
 bool Image::isCompressed(love::filesystem::FileData *data)

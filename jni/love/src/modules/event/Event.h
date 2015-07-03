@@ -30,7 +30,7 @@
 #include "joystick/Joystick.h"
 #include "thread/threads.h"
 
-// STL
+// C++
 #include <queue>
 #include <vector>
 
@@ -43,7 +43,7 @@ class Message : public Object
 {
 public:
 
-	Message(const std::string &name, const std::vector<StrongRef<Variant>> &vargs = std::vector<StrongRef<Variant>>());
+	Message(const std::string &name, const std::vector<StrongRef<Variant>> &vargs = {});
 	~Message();
 
 	int toLua(lua_State *L);
@@ -59,7 +59,6 @@ private:
 class Event : public Module
 {
 public:
-
 	Event();
 	virtual ~Event();
 
@@ -71,9 +70,9 @@ public:
 	virtual void clear();
 
 	virtual void pump() = 0;
+	virtual Message *wait() = 0;
 
 protected:
-
 	thread::Mutex *mutex;
 	std::queue<Message *> queue;
 

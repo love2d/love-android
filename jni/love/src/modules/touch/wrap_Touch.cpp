@@ -32,32 +32,62 @@ namespace touch
 
 #define instance() (Module::getInstance<Touch>(Module::M_TOUCH))
 
-int w_getTouchCount(lua_State *L)
+int64 luax_checktouchid(lua_State *L, int idx)
 {
-	lua_pushinteger(L, instance()->getTouchCount());
+	if (!lua_islightuserdata(L, idx))
+		return luax_typerror(L, idx, "touch id");
+
+	return (int64) (intptr_t) lua_touserdata(L, 1);
+}
+
+int w_getTouches(lua_State *L)
+{
+	std::vector<int64> ids = instance()->getTouches();
+
+	lua_createtable(L, (int) ids.size(), 0);
+
+	for (size_t i = 0; i < ids.size(); i++)
+	{
+		// This is a bit hackish and we lose the higher 32 bits of the id on
+		// 32-bit systems, but SDL only ever gives id's that at most use as many
+		// bits as can fit in a pointer (for now.)
+		// We use lightuserdata instead of a lua_Number (double) because doubles
+		// can't represent all possible id values on 64-bit systems.
+		lua_pushlightuserdata(L, (void *) (intptr_t) ids[i]);
+		lua_rawseti(L, -2, (int) i + 1);
+	}
+
 	return 1;
 }
 
-int w_getTouch(lua_State *L)
+int w_getPosition(lua_State *L)
 {
-	int index = luaL_checkint(L, 1) - 1;
+	int64 id = luax_checktouchid(L, 1);
 
-	Touch::TouchInfo info;
-	luax_catchexcept(L, [&](){ info = instance()->getTouch(index); });
+	double x = 0;
+	double y = 0;
+	luax_catchexcept(L, [&]() { instance()->getPosition(id, x, y); });
 
-	// Lets hope the ID can be accurately represented in a Lua number...
-	lua_pushnumber(L, (lua_Number) info.id);
-	lua_pushnumber(L, info.x);
-	lua_pushnumber(L, info.y);
-	lua_pushnumber(L, info.pressure);
+	lua_pushnumber(L, x);
+	lua_pushnumber(L, y);
 
-	return 4;
+	return 2;
+}
+
+int w_getPressure(lua_State *L)
+{
+	int64 id = luax_checktouchid(L, 1);
+	double pressure = 0.0;
+	luax_catchexcept(L, [&](){ pressure = instance()->getPressure(id); });
+	lua_pushnumber(L, pressure);
+	return 1;
 }
 
 static const luaL_Reg functions[] =
 {
-	{ "getTouchCount", w_getTouchCount },
-	{ "getTouch", w_getTouch },
+	{ "getTouches", w_getTouches },
+	{ "getPosition", w_getPosition },
+	{ "getPressure", w_getPressure },
 	{ 0, 0 }
 };
 
@@ -74,7 +104,7 @@ extern "C" int luaopen_love_touch(lua_State *L)
 	WrappedModule w;
 	w.module = instance;
 	w.name = "touch";
-	w.flags = MODULE_T;
+	w.type = MODULE_ID;
 	w.functions = functions;
 	w.types = nullptr;
 

@@ -36,7 +36,7 @@ int w_getDisplayCount(lua_State *L)
 
 int w_getDisplayName(lua_State *L)
 {
-	int index = luaL_checkint(L, 1) - 1;
+	int index = (int) luaL_checknumber(L, 1) - 1;
 
 	const char *name = nullptr;
 	luax_catchexcept(L, [&](){ name = instance()->getDisplayName(index); });
@@ -54,12 +54,12 @@ static const char *settingName(Window::Setting setting)
 
 int w_setMode(lua_State *L)
 {
-	int w = luaL_checkint(L, 1);
-	int h = luaL_checkint(L, 2);
+	int w = (int) luaL_checknumber(L, 1);
+	int h = (int) luaL_checknumber(L, 2);
 
 	if (lua_isnoneornil(L, 3))
 	{
-		luax_pushboolean(L, instance()->setWindow(w, h, 0));
+		luax_pushboolean(L, instance()->setWindow(w, h, nullptr));
 		return 1;
 	}
 
@@ -92,8 +92,8 @@ int w_setMode(lua_State *L)
 	}
 	else
 	{
-		// Default to "normal" fullscreen.
-		settings.fstype = Window::FULLSCREEN_TYPE_NORMAL;
+		// Default to desktop fullscreen mode.
+		settings.fstype = Window::FULLSCREEN_DESKTOP;
 	}
 	lua_pop(L, 1);
 
@@ -114,16 +114,12 @@ int w_setMode(lua_State *L)
 	settings.useposition = !(lua_isnoneornil(L, -2) && lua_isnoneornil(L, -1));
 	if (settings.useposition)
 	{
-		settings.x = luaL_optint(L, -2, 0);
-		settings.y = luaL_optint(L, -1, 0);
+		settings.x = (int) luaL_optnumber(L, -2, 0);
+		settings.y = (int) luaL_optnumber(L, -1, 0);
 	}
 	lua_pop(L, 2);
 
 	// We don't explicitly set the refresh rate, it's "read-only".
-
-	// For backward-compatibility. TODO: remove!
-	int fsaa = luax_intflag(L, 3, settingName(Window::SETTING_FSAA), 0);
-	if (fsaa > settings.msaa) settings.msaa = fsaa;
 
 	luax_catchexcept(L,
 		[&](){ luax_pushboolean(L, instance()->setWindow(w, h, &settings)); }
@@ -142,7 +138,7 @@ int w_getMode(lua_State *L)
 
 	lua_newtable(L);
 
-	const char *fstypestr = "normal";
+	const char *fstypestr = "desktop";
 	Window::getConstant(settings.fstype, fstypestr);
 
 	lua_pushstring(L, fstypestr);
@@ -156,9 +152,6 @@ int w_getMode(lua_State *L)
 
 	lua_pushinteger(L, settings.msaa);
 	lua_setfield(L, -2, settingName(Window::SETTING_MSAA));
-
-	lua_pushinteger(L, settings.msaa);
-	lua_setfield(L, -2, settingName(Window::SETTING_FSAA)); // For backward-compatibility. TODO: remove!
 
 	luax_pushboolean(L, settings.resizable);
 	lua_setfield(L, -2, settingName(Window::SETTING_RESIZABLE));
@@ -199,15 +192,22 @@ int w_getMode(lua_State *L)
 
 int w_getFullscreenModes(lua_State *L)
 {
-	int displayindex = luaL_optint(L, 1, 1) - 1;
+	int displayindex = 0;
+	if (!lua_isnoneornil(L, 1))
+		displayindex = (int) luaL_checknumber(L, 1);
+	else
+	{
+		int x, y;
+		instance()->getPosition(x, y, displayindex);
+	}
 
 	std::vector<Window::WindowSize> modes = instance()->getFullscreenSizes(displayindex);
 
-	lua_createtable(L, modes.size(), 0);
+	lua_createtable(L, (int) modes.size(), 0);
 
 	for (size_t i = 0; i < modes.size(); i++)
 	{
-		lua_pushinteger(L, i+1);
+		lua_pushinteger(L, i + 1);
 		lua_createtable(L, 0, 2);
 
 		// Inner table attribs.
@@ -229,14 +229,14 @@ int w_getFullscreenModes(lua_State *L)
 int w_setFullscreen(lua_State *L)
 {
 	bool fullscreen = luax_toboolean(L, 1);
-	Window::FullscreenType fstype = Window::FULLSCREEN_TYPE_MAX_ENUM;
+	Window::FullscreenType fstype = Window::FULLSCREEN_MAX_ENUM;
 
 	const char *typestr = lua_isnoneornil(L, 2) ? 0 : luaL_checkstring(L, 2);
 	if (typestr && !Window::getConstant(typestr, fstype))
 		return luaL_error(L, "Invalid fullscreen type: %s", typestr);
 
 	bool success = false;
-	if (fstype == Window::FULLSCREEN_TYPE_MAX_ENUM)
+	if (fstype == Window::FULLSCREEN_MAX_ENUM)
 		success = instance()->setFullscreen(fullscreen);
 	else
 		success = instance()->setFullscreen(fullscreen, fstype);
@@ -266,29 +266,17 @@ int w_isCreated(lua_State *L)
 	return 1;
 }
 
-int w_getWidth(lua_State *L)
-{
-	lua_pushinteger(L, instance()->getWidth());
-	return 1;
-}
-
-int w_getHeight(lua_State *L)
-{
-	lua_pushinteger(L, instance()->getHeight());
-	return 1;
-}
-
-int w_getDimensions(lua_State *L)
-{
-	lua_pushinteger(L, instance()->getWidth());
-	lua_pushinteger(L, instance()->getHeight());
-	return 2;
-}
-
 int w_getDesktopDimensions(lua_State *L)
 {
 	int width = 0, height = 0;
-	int displayindex = luaL_optint(L, 1, 1) - 1;
+	int displayindex = 0;
+	if (!lua_isnoneornil(L, 1))
+		displayindex = (int) luaL_checknumber(L, 1);
+	else
+	{
+		int x, y;
+		instance()->getPosition(x, y, displayindex);
+	}
 	instance()->getDesktopDimensions(displayindex, width, height);
 	lua_pushinteger(L, width);
 	lua_pushinteger(L, height);
@@ -297,9 +285,18 @@ int w_getDesktopDimensions(lua_State *L)
 
 int w_setPosition(lua_State *L)
 {
-	int x = luaL_checkint(L, 1);
-	int y = luaL_checkint(L, 2);
-	int displayindex = luaL_optint(L, 3, 1) - 1;
+	int x = (int) luaL_checknumber(L, 1);
+	int y = (int) luaL_checknumber(L, 2);
+
+	int displayindex = 0;
+	if (!lua_isnoneornil(L, 3))
+		displayindex = (int) luaL_checknumber(L, 3);
+	else
+	{
+		int x_unused, y_unused;
+		instance()->getPosition(x_unused, y_unused, displayindex);
+	}
+
 	instance()->setPosition(x, y, displayindex);
 	return 0;
 }
@@ -318,7 +315,7 @@ int w_getPosition(lua_State *L)
 
 int w_setIcon(lua_State *L)
 {
-	image::ImageData *i = luax_checktype<image::ImageData>(L, 1, "ImageData", IMAGE_IMAGE_DATA_T);
+	image::ImageData *i = luax_checktype<image::ImageData>(L, 1, IMAGE_IMAGE_DATA_ID);
 	luax_pushboolean(L, instance()->setIcon(i));
 	return 1;
 }
@@ -326,10 +323,7 @@ int w_setIcon(lua_State *L)
 int w_getIcon(lua_State *L)
 {
 	image::ImageData *i = instance()->getIcon();
-	if (i)
-		luax_pushtype(L, "ImageData", IMAGE_IMAGE_DATA_T, i);
-	else
-		lua_pushnil(L);
+	luax_pushtype(L, IMAGE_IMAGE_DATA_ID, i);
 	return 1;
 }
 
@@ -367,13 +361,6 @@ int w_isVisible(lua_State *L)
 int w_getPixelScale(lua_State *L)
 {
 	lua_pushnumber(L, instance()->getPixelScale());
-	return 1;
-}
-
-int w_isTouchScreen(lua_State *L)
-{
-	int index = luaL_optint(L, 1, 1) - 1;
-	luax_pushboolean(L, instance()->isTouchScreen(index));
 	return 1;
 }
 
@@ -443,14 +430,14 @@ int w_showMessageBox(lua_State *L)
 	// means we should use the more complex message box API.
 	if (lua_istable(L, 3))
 	{
-		size_t numbuttons = lua_objlen(L, 3);
+		size_t numbuttons = luax_objlen(L, 3);
 		if (numbuttons == 0)
 			return luaL_error(L, "Must have at least one messagebox button.");
 
 		// Array of button names.
 		for (size_t i = 0; i < numbuttons; i++)
 		{
-			lua_rawgeti(L, 3, i + 1);
+			lua_rawgeti(L, 3, (int) i + 1);
 			data.buttons.push_back(luax_checkstring(L, -1));
 			lua_pop(L, 1);
 		}
@@ -458,7 +445,7 @@ int w_showMessageBox(lua_State *L)
 		// Optional table entry specifying the button to use when enter is pressed.
 		lua_getfield(L, 3, "enterbutton");
 		if (!lua_isnoneornil(L, -1))
-			data.enterButtonIndex = luaL_checkint(L, -1) - 1;
+			data.enterButtonIndex = (int) luaL_checknumber(L, -1) - 1;
 		else
 			data.enterButtonIndex = 0;
 		lua_pop(L, 1);
@@ -466,7 +453,7 @@ int w_showMessageBox(lua_State *L)
 		// Optional table entry specifying the button to use when esc is pressed.
 		lua_getfield(L, 3, "escapebutton");
 		if (!lua_isnoneornil(L, -1))
-			data.escapeButtonIndex = luaL_checkint(L, -1) - 1;
+			data.escapeButtonIndex = (int) luaL_checknumber(L, -1) - 1;
 		else
 			data.escapeButtonIndex = (int) data.buttons.size() - 1;
 		lua_pop(L, 1);
@@ -496,6 +483,13 @@ int w_showMessageBox(lua_State *L)
 	return 1;
 }
 
+int w_requestAttention(lua_State *L)
+{
+	bool continuous = luax_optboolean(L, 1, false);
+	instance()->requestAttention(continuous);
+	return 0;
+}
+
 static const luaL_Reg functions[] =
 {
 	{ "getDisplayCount", w_getDisplayCount },
@@ -506,9 +500,6 @@ static const luaL_Reg functions[] =
 	{ "setFullscreen", w_setFullscreen },
 	{ "getFullscreen", w_getFullscreen },
 	{ "isCreated", w_isCreated },
-	{ "getWidth", w_getWidth },
-	{ "getHeight", w_getHeight },
-	{ "getDimensions", w_getDimensions },
 	{ "getDesktopDimensions", w_getDesktopDimensions },
 	{ "setPosition", w_setPosition },
 	{ "getPosition", w_getPosition },
@@ -520,12 +511,12 @@ static const luaL_Reg functions[] =
 	{ "hasMouseFocus", w_hasMouseFocus },
 	{ "isVisible", w_isVisible },
 	{ "getPixelScale", w_getPixelScale },
-	{ "isTouchScreen", w_isTouchScreen },
 	{ "toPixels", w_toPixels },
 	{ "fromPixels", w_fromPixels },
 	{ "minimize", w_minimize },
 	{ "maximize", w_maximize },
 	{ "showMessageBox", w_showMessageBox },
+	{ "requestAttention", w_requestAttention },
 	{ 0, 0 }
 };
 
@@ -537,7 +528,7 @@ extern "C" int luaopen_love_window(lua_State *L)
 	WrappedModule w;
 	w.module = instance;
 	w.name = "window";
-	w.flags = MODULE_T;
+	w.type = MODULE_ID;
 	w.functions = functions;
 	w.types = 0;
 

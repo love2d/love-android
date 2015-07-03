@@ -55,10 +55,11 @@ StringMap<Keyboard::Key, Keyboard::KEY_MAX_ENUM>::Entry Keyboard::keyEntries[] =
 	{"escape", Keyboard::KEY_ESCAPE},
 	{"backspace", Keyboard::KEY_BACKSPACE},
 	{"tab", Keyboard::KEY_TAB},
-	{" ", Keyboard::KEY_SPACE},
+	{"space", Keyboard::KEY_SPACE},
 	{"!", Keyboard::KEY_EXCLAIM},
 	{"\"", Keyboard::KEY_QUOTEDBL},
 	{"#", Keyboard::KEY_HASH},
+	{"%", Keyboard::KEY_PERCENT},
 	{"$", Keyboard::KEY_DOLLAR},
 	{"&", Keyboard::KEY_AMPERSAND},
 	{"'", Keyboard::KEY_QUOTE},
@@ -303,7 +304,7 @@ StringMap<Keyboard::Scancode, Keyboard::SCANCODE_MAX_ENUM>::Entry Keyboard::scan
 	{"escape", SCANCODE_ESCAPE},
 	{"backspace", SCANCODE_BACKSPACE},
 	{"tab", SCANCODE_TAB},
-	{" ", SCANCODE_SPACE},
+	{"space", SCANCODE_SPACE},
 
 	{"-", SCANCODE_MINUS},
 	{"=", SCANCODE_EQUALS},
@@ -514,7 +515,7 @@ StringMap<Keyboard::Scancode, Keyboard::SCANCODE_MAX_ENUM>::Entry Keyboard::scan
 	{"kbdillumup", SCANCODE_KBDILLUMUP},
 	{"eject", SCANCODE_EJECT},
 	{"sleep", SCANCODE_SLEEP},
-	
+
 	{"app1", SCANCODE_APP1},
 	{"app2", SCANCODE_APP2},
 };

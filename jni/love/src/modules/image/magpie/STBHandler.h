@@ -31,12 +31,11 @@ namespace magpie
 {
 
 /**
- * Interface between ImageData and the stb_image library, for decoding TGA and
- * BMP images.
+ * Interface between ImageData and the stb_image library, for decoding JPEG,
+ * TGA, and BMP images.
  *
- * We could use stb_image to decode PNG and JPEG as well, but performance and
- * comprehensive format support is lacking compared to some alternatives, plus
- * stb_image_write doesn't have JPEG support.
+ * We could use stb_image to decode PNG as well, but performance and
+ * comprehensive format support is lacking compared to some alternatives.
  **/
 class STBHandler : public FormatHandler
 {
@@ -45,10 +44,10 @@ public:
 	// Implements FormatHandler.
 
 	virtual bool canDecode(love::filesystem::FileData *data);
-	virtual bool canEncode(ImageData::Format format);
+	virtual bool canEncode(ImageData::EncodedFormat format);
 
 	virtual DecodedImage decode(love::filesystem::FileData *data);
-	virtual EncodedImage encode(const DecodedImage &img, ImageData::Format format);
+	virtual EncodedImage encode(const DecodedImage &img, ImageData::EncodedFormat format);
 
 	virtual void free(unsigned char *mem);
 

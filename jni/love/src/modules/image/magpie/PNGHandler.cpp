@@ -51,7 +51,7 @@ static unsigned zlibDecompress(unsigned char **out, size_t *outsize, const unsig
 
 	uLongf outdatasize = insize;
 	size_t sizemultiplier = 0;
-	unsigned char *outdata = nullptr;
+	unsigned char *outdata = out != nullptr ? *out : nullptr;
 
 	while (true)
 	{
@@ -59,7 +59,13 @@ static unsigned zlibDecompress(unsigned char **out, size_t *outsize, const unsig
 		outdatasize = insize << (++sizemultiplier);
 
 		// LodePNG uses malloc, realloc, and free.
-		outdata = (unsigned char *) malloc(outdatasize);
+		// Since version 2014-08-23, LodePNG passes in an existing pointer in
+		// the 'out' argument that it expects to be realloc'd. Not doing so can
+		// result in a memory leak.
+		if (outdata != nullptr)
+			outdata = (unsigned char *) realloc(outdata, outdatasize);
+		else
+			outdata = (unsigned char *) malloc(outdatasize);
 
 		if (!outdata)
 			return 83; // "Memory allocation failed" error code for LodePNG.
@@ -134,9 +140,9 @@ bool PNGHandler::canDecode(love::filesystem::FileData *data)
 	return status == 0 && width > 0 && height > 0;
 }
 
-bool PNGHandler::canEncode(ImageData::Format format)
+bool PNGHandler::canEncode(ImageData::EncodedFormat format)
 {
-	return format == ImageData::FORMAT_PNG;
+	return format == ImageData::ENCODED_PNG;
 }
 
 PNGHandler::DecodedImage PNGHandler::decode(love::filesystem::FileData *fdata)
@@ -163,16 +169,16 @@ PNGHandler::DecodedImage PNGHandler::decode(love::filesystem::FileData *fdata)
 		throw love::Exception("Could not decode PNG image (%s)", err);
 	}
 
-	img.width = (int) width;
+	img.width  = (int) width;
 	img.height = (int) height;
-	img.size = width * height * 4;
+	img.size   = width * height * 4;
 
 	return img;
 }
 
-PNGHandler::EncodedImage PNGHandler::encode(const DecodedImage &img, ImageData::Format format)
+PNGHandler::EncodedImage PNGHandler::encode(const DecodedImage &img, ImageData::EncodedFormat format)
 {
-	if (format != ImageData::FORMAT_PNG)
+	if (format != ImageData::ENCODED_PNG)
 		throw love::Exception("PNG encoder cannot encode to non-PNG format.");
 
 	EncodedImage encimg;

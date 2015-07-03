@@ -29,6 +29,7 @@
 #include <math.h>
 #include <sstream>
 #include <algorithm> // for max
+#include <limits>
 
 namespace love
 {
@@ -39,175 +40,194 @@ namespace opengl
 
 int Font::fontCount = 0;
 
-const int Font::TEXTURE_WIDTHS[]  = {128, 256, 256, 512, 512, 1024, 1024};
-const int Font::TEXTURE_HEIGHTS[] = {128, 128, 256, 256, 512, 512,  1024};
-
 Font::Font(love::font::Rasterizer *r, const Texture::Filter &filter)
-	: rasterizer(r)
-	, indexBuffer(nullptr)
+	: rasterizers({r})
 	, height(r->getHeight())
 	, lineHeight(1)
-	, mSpacing(1)
+	, textureWidth(128)
+	, textureHeight(128)
 	, filter(filter)
 	, useSpacesAsTab(false)
+	, quadIndices(20) // We make this bigger at draw-time, if needed.
+	, textureCacheID(0)
 	, textureMemorySize(0)
 {
 	this->filter.mipmap = Texture::FILTER_NONE;
 
 	// Try to find the best texture size match for the font size. default to the
 	// largest texture size if no rough match is found.
-	textureSizeIndex = NUM_TEXTURE_SIZES - 1;
-	for (int i = 0; i < NUM_TEXTURE_SIZES; i++)
+	while (true)
 	{
-		// Make a rough estimate of the total used texture size, based on glyph
-		// height. The estimated size is likely larger than the actual total
-		// size, which is good because texture switching is expensive.
-		if ((height * 0.8) * height * 95 <= TEXTURE_WIDTHS[i] * TEXTURE_HEIGHTS[i])
-		{
-			textureSizeIndex = i;
+		if ((height * 0.8) * height * 30 <= textureWidth * textureHeight)
 			break;
-		}
+
+		TextureSize nextsize = getNextTextureSize();
+
+		if (nextsize.width <= textureWidth && nextsize.height <= textureHeight)
+			break;
+
+		textureWidth = nextsize.width;
+		textureHeight = nextsize.height;
 	}
 
-	textureWidth = TEXTURE_WIDTHS[textureSizeIndex];
-	textureHeight = TEXTURE_HEIGHTS[textureSizeIndex];
+	love::font::GlyphData *gd = r->getGlyphData(32); // Space character.
+	type = (gd->getFormat() == font::GlyphData::FORMAT_LUMINANCE_ALPHA) ? FONT_TRUETYPE : FONT_IMAGE;
+	gd->release();
 
-	indexBuffer = new VertexIndex(20);
+	if (!r->hasGlyph(9)) // No tab character in the Rasterizer.
+		useSpacesAsTab = true;
 
-	love::font::GlyphData *gd = nullptr;
-
-	try
-	{
-		gd = r->getGlyphData(32); // Space character.
-		type = (gd->getFormat() == love::font::GlyphData::FORMAT_LUMINANCE_ALPHA) ? FONT_TRUETYPE : FONT_IMAGE;
-
-		if (!r->hasGlyph(9)) // No tab character in the Rasterizer.
-			useSpacesAsTab = true;
-
-		loadVolatile();
-	}
-	catch (love::Exception &)
-	{
-		delete gd;
-		throw;
-	}
-
-	delete gd;
+	loadVolatile();
 
 	++fontCount;
 }
 
 Font::~Font()
 {
-	delete indexBuffer;
 	unloadVolatile();
 
 	--fontCount;
 }
 
-bool Font::initializeTexture(GLenum format)
+Font::TextureSize Font::getNextTextureSize() const
 {
-	GLint internalformat = (format == GL_LUMINANCE_ALPHA) ? GL_LUMINANCE_ALPHA : GL_RGBA;
+	TextureSize size = {textureWidth, textureHeight};
 
-	// clear errors before initializing
-	while (glGetError() != GL_NO_ERROR);
+	int maxsize = std::min(4096, gl.getMaxTextureSize());
 
-	glTexImage2D(GL_TEXTURE_2D,
-				 0,
-				 internalformat,
-				 (GLsizei)textureWidth,
-				 (GLsizei)textureHeight,
-				 0,
-				 format,
-				 GL_UNSIGNED_BYTE,
-				 NULL);
+	if (size.width * 2 <= maxsize || size.height * 2 <= maxsize)
+	{
+		// {128, 128} -> {256, 128} -> {256, 256} -> {512, 256} -> etc.
+		if (size.width == size.height)
+			size.width *= 2;
+		else
+			size.height *= 2;
+	}
 
-	return glGetError() == GL_NO_ERROR;
+	return size;
 }
 
 void Font::createTexture()
 {
-	textureX = textureY = rowHeight = TEXTURE_PADDING;
+	OpenGL::TempDebugGroup debuggroup("Font create texture");
 
-	GLuint t;
-	glGenTextures(1, &t);
-	textures.push_back(t);
+	GLenum format = type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA;
+	size_t bpp = format == GL_LUMINANCE_ALPHA ? 2 : 4;
+
+	size_t prevmemsize = textureMemorySize;
+	if (prevmemsize > 0)
+	{
+		textureMemorySize -= (textureWidth * textureHeight * bpp);
+		gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
+	}
+
+	GLuint t = 0;
+	TextureSize size = {textureWidth, textureHeight};
+	TextureSize nextsize = getNextTextureSize();
+	bool recreatetexture = false;
+
+	// If we have an existing texture already, we'll try replacing it with a
+	// larger-sized one rather than creating a second one. Having a single
+	// texture reduces texture switches and draw calls when rendering.
+	if ((nextsize.width > size.width || nextsize.height > size.height)
+		&& !textures.empty())
+	{
+		recreatetexture = true;
+		size = nextsize;
+		t = textures.back();
+	}
+	else
+		glGenTextures(1, &t);
 
 	gl.bindTexture(t);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	gl.setTextureFilter(filter);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	GLenum format = (type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA);
+	GLenum internalformat = type == FONT_TRUETYPE ? GL_LUMINANCE8_ALPHA8 : GL_RGBA8;
 
-	// Initialize the texture, attempting smaller sizes if initialization fails.
-	bool initialized = false;
-	while (textureSizeIndex >= 0)
+	// In GLES2, the internalformat and format params of TexImage have to match.
+	// There is still no GL_LUMINANCE8_ALPHA8 in GLES3, so we have to use
+	// GL_LUMINANCE_ALPHA even on ES3.
+	if (GLAD_ES_VERSION_2_0)
+		internalformat = format;
+
+	// Initialize the texture with transparent black.
+	std::vector<GLubyte> emptydata(size.width * size.height * bpp, 0);
+
+	// Clear errors before initializing.
+	while (glGetError() != GL_NO_ERROR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, size.width, size.height, 0,
+	             format, GL_UNSIGNED_BYTE, &emptydata[0]);
+
+	if (glGetError() != GL_NO_ERROR)
 	{
-		textureWidth = TEXTURE_WIDTHS[textureSizeIndex];
-		textureHeight = TEXTURE_HEIGHTS[textureSizeIndex];
-
-		initialized = initializeTexture(format);
-
-		if (initialized || textureSizeIndex <= 0)
-			break;
-
-		--textureSizeIndex;
-	}
-
-	if (!initialized)
-	{
-		// Clean up before throwing.
-		gl.deleteTexture(t);
-		gl.bindTexture(gl.getDefaultTexture());
-		textures.pop_back();
-
+		if (!recreatetexture)
+			gl.deleteTexture(t);
 		throw love::Exception("Could not create font texture!");
 	}
 
-	// Fill the texture with transparent black.
-	std::vector<GLubyte> emptyData(textureWidth * textureHeight * (type == FONT_TRUETYPE ? 2 : 4), 0);
-	glTexSubImage2D(GL_TEXTURE_2D,
-					0,
-					0, 0,
-					(GLsizei)textureWidth,
-					(GLsizei)textureHeight,
-					format,
-					GL_UNSIGNED_BYTE,
-					&emptyData[0]);
+	textureWidth  = size.width;
+	textureHeight = size.height;
 
-	setFilter(filter);
+	rowHeight = textureX = textureY = TEXTURE_PADDING;
 
-	size_t prevmemsize = textureMemorySize;
-
-	textureMemorySize += emptyData.size();
+	prevmemsize = textureMemorySize;
+	textureMemorySize += emptydata.size();
 	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
+
+	// Re-add the old glyphs if we re-created the existing texture object.
+	if (recreatetexture)
+	{
+		textureCacheID++;
+
+		std::vector<uint32> glyphstoadd;
+
+		for (const auto &glyphpair : glyphs)
+			glyphstoadd.push_back(glyphpair.first);
+
+		glyphs.clear();
+
+		for (uint32 g : glyphstoadd)
+			addGlyph(g);
+	}
+	else
+		textures.push_back(t);
 }
 
-Font::Glyph *Font::addGlyph(uint32 glyph)
+love::font::GlyphData *Font::getRasterizerGlyphData(uint32 glyph)
 {
-	love::font::GlyphData *gd = nullptr;
-
 	// Use spaces for the tab 'glyph'.
 	if (glyph == 9 && useSpacesAsTab)
 	{
-		love::font::GlyphData *spacegd = rasterizer->getGlyphData(32);
+		love::font::GlyphData *spacegd = rasterizers[0]->getGlyphData(32);
+		love::font::GlyphData::Format fmt = spacegd->getFormat();
 
 		love::font::GlyphMetrics gm = {};
 		gm.advance = spacegd->getAdvance() * SPACES_PER_TAB;
 		gm.bearingX = spacegd->getBearingX();
 		gm.bearingY = spacegd->getBearingY();
-		love::font::GlyphData::Format f = spacegd->getFormat();
 
 		spacegd->release();
 
-		gd = new love::font::GlyphData(glyph, gm, f);
+		return new love::font::GlyphData(glyph, gm, fmt);
 	}
-	else
-		gd = rasterizer->getGlyphData(glyph);
+
+	for (const StrongRef<love::font::Rasterizer> &r : rasterizers)
+	{
+		if (r->hasGlyph(glyph))
+			return r->getGlyphData(glyph);
+	}
+
+	return rasterizers[0]->getGlyphData(glyph);
+}
+
+const Font::Glyph &Font::addGlyph(uint32 glyph)
+{
+	love::font::GlyphData *gd = getRasterizerGlyphData(glyph);
 
 	int w = gd->getWidth();
 	int h = gd->getHeight();
@@ -233,89 +253,116 @@ Font::Glyph *Font::addGlyph(uint32 glyph)
 		}
 	}
 
-	Glyph *g = new Glyph;
+	Glyph g;
 
-	g->texture = 0;
-	g->spacing = gd->getAdvance();
+	g.texture = 0;
+	g.spacing = gd->getAdvance();
 
-	memset(g->vertices, 0, sizeof(GlyphVertex) * 4);
+	memset(g.vertices, 0, sizeof(GlyphVertex) * 4);
 
-	// don't waste space for empty glyphs. also fixes a division by zero bug with ati drivers
+	// don't waste space for empty glyphs. also fixes a divide by zero bug with ATI drivers
 	if (w > 0 && h > 0)
 	{
 		const GLuint t = textures.back();
 
 		gl.bindTexture(t);
-		glTexSubImage2D(GL_TEXTURE_2D,
-						0,
-						textureX,
-						textureY,
-						w, h,
-						(type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA),
-						GL_UNSIGNED_BYTE,
-						gd->getData());
+		glTexSubImage2D(GL_TEXTURE_2D, 0, textureX, textureY, w, h,
+		                (type == FONT_TRUETYPE ? GL_LUMINANCE_ALPHA : GL_RGBA),
+		                GL_UNSIGNED_BYTE, gd->getData());
 
-		g->texture = t;
+		g.texture = t;
 
+		float tX     = (float) textureX,     tY      = (float) textureY;
+		float tWidth = (float) textureWidth, tHeight = (float) textureHeight;
+
+		// 0----2
+		// |  / |
+		// | /  |
+		// 1----3
 		const GlyphVertex verts[4] = {
-			{    0.0f,     0.0f, float(textureX)/float(textureWidth),   float(textureY)/float(textureHeight)},
-			{    0.0f, float(h), float(textureX)/float(textureWidth),   float(textureY+h)/float(textureHeight)},
-			{float(w), float(h), float(textureX+w)/float(textureWidth), float(textureY+h)/float(textureHeight)},
-			{float(w),     0.0f, float(textureX+w)/float(textureWidth), float(textureY)/float(textureHeight)},
+			{    0.0f,     0.0f,     tX/tWidth,     tY/tHeight},
+			{    0.0f, float(h),     tX/tWidth, (tY+h)/tHeight},
+			{float(w),     0.0f, (tX+w)/tWidth,     tY/tHeight},
+			{float(w), float(h), (tX+w)/tWidth, (tY+h)/tHeight}
 		};
 
-		// copy vertex data to the glyph and set proper bearing
+		// Copy vertex data to the glyph and set proper bearing.
 		for (int i = 0; i < 4; i++)
 		{
-			g->vertices[i] = verts[i];
-			g->vertices[i].x += gd->getBearingX();
-			g->vertices[i].y -= gd->getBearingY();
+			g.vertices[i] = verts[i];
+			g.vertices[i].x += gd->getBearingX();
+			g.vertices[i].y -= gd->getBearingY();
 		}
 	}
 
 	if (w > 0)
 		textureX += (w + TEXTURE_PADDING);
+
 	if (h > 0)
 		rowHeight = std::max(rowHeight, h + TEXTURE_PADDING);
 
-	delete gd;
+	gd->release();
 
-	glyphs[glyph] = g;
+	const auto p = glyphs.insert(std::make_pair(glyph, g));
 
-	return g;
+	return p.first->second;
 }
 
-Font::Glyph *Font::findGlyph(uint32 glyph)
+const Font::Glyph &Font::findGlyph(uint32 glyph)
 {
-	auto it = glyphs.find(glyph);
+	const auto it = glyphs.find(glyph);
 
 	if (it != glyphs.end())
 		return it->second;
-	else
-		return addGlyph(glyph);
+
+	return addGlyph(glyph);
+}
+
+float Font::getKerning(uint32 leftglyph, uint32 rightglyph)
+{
+	uint64 packedglyphs = ((uint64) leftglyph << 32) | (uint64) rightglyph;
+
+	const auto it = kerning.find(packedglyphs);
+	if (it != kerning.end())
+		return it->second;
+
+	float k = rasterizers[0]->getKerning(leftglyph, rightglyph);
+
+	for (const auto &r : rasterizers)
+	{
+		if (r->hasGlyph(leftglyph) && r->hasGlyph(rightglyph))
+		{
+			k = r->getKerning(leftglyph, rightglyph);
+			break;
+		}
+	}
+
+	kerning[packedglyphs] = k;
+	return k;
 }
 
 float Font::getHeight() const
 {
-	return static_cast<float>(height);
+	return (float) height;
 }
 
-void Font::print(const std::string &text, float x, float y, float extra_spacing, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+std::vector<Font::DrawCommand> Font::generateVertices(const std::string &text, std::vector<GlyphVertex> &vertices, float extra_spacing, Vector offset, TextInfo *info)
 {
 	// Spacing counter and newline handling.
-	float dx = 0.0f;
-	float dy = 0.0f;
+	float dx = offset.x;
+	float dy = offset.y;
 
 	float lineheight = getBaseline();
+	int maxwidth = 0;
 
 	// Keeps track of when we need to switch textures in our vertex array.
-	std::vector<GlyphArrayDrawInfo> glyphinfolist;
+	std::vector<DrawCommand> drawcommands;
 
 	// Pre-allocate space for the maximum possible number of vertices.
-	std::vector<GlyphVertex> glyphverts;
-	glyphverts.reserve(text.length() * 4);
+	size_t vertstartsize = vertices.size();
+	vertices.reserve(vertstartsize + text.length() * 4);
 
-	int vertexcount = 0;
+	uint32 prevglyph = 0;
 
 	try
 	{
@@ -328,45 +375,67 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 
 			if (g == '\n')
 			{
+				if (dx > maxwidth)
+					maxwidth = (int) dx;
+
 				// Wrap newline, but do not print it.
 				dy += floorf(getHeight() * getLineHeight() + 0.5f);
-				dx = 0.0f;
+				dx = offset.x;
 				continue;
 			}
 
-			Glyph *glyph = findGlyph(g);
+			uint32 cacheid = textureCacheID;
 
-			if (glyph->texture != 0)
+			const Glyph &glyph = findGlyph(g);
+
+			// If findGlyph invalidates the texture cache, re-start the loop.
+			if (cacheid != textureCacheID)
+			{
+				i = utf8::iterator<std::string::const_iterator>(text.begin(), text.begin(), text.end());
+				maxwidth = 0;
+				dx = offset.x;
+				dy = offset.y;
+				drawcommands.clear();
+				vertices.resize(vertstartsize);
+				prevglyph = 0;
+				continue;
+			}
+
+			// Add kerning to the current horizontal offset.
+			dx += getKerning(prevglyph, g);
+
+			if (glyph.texture != 0)
 			{
 				// Copy the vertices and set their proper relative positions.
 				for (int j = 0; j < 4; j++)
 				{
-					glyphverts.push_back(glyph->vertices[j]);
-					glyphverts.back().x += dx;
-					glyphverts.back().y += dy + lineheight;
+					vertices.push_back(glyph.vertices[j]);
+					vertices.back().x += dx /*+ kerning*/;
+					vertices.back().y += dy /*+ kerning.y*/ + lineheight;
 				}
 
 				// Check if glyph texture has changed since the last iteration.
-				if (glyphinfolist.size() == 0 || glyphinfolist.back().texture != glyph->texture)
+				if (drawcommands.empty() || drawcommands.back().texture != glyph.texture)
 				{
-					// keep track of each sub-section of the string whose glyphs use different textures than the previous section
-					GlyphArrayDrawInfo gdrawinfo;
-					gdrawinfo.startvertex = vertexcount;
-					gdrawinfo.vertexcount = 0;
-					gdrawinfo.texture = glyph->texture;
-					glyphinfolist.push_back(gdrawinfo);
+					// Add a new draw command if the texture has changed.
+					DrawCommand cmd;
+					cmd.startvertex = (int) vertices.size() - 4;
+					cmd.vertexcount = 0;
+					cmd.texture = glyph.texture;
+					drawcommands.push_back(cmd);
 				}
 
-				vertexcount += 4;
-				glyphinfolist.back().vertexcount += 4;
+				drawcommands.back().vertexcount += 4;
 			}
 
 			// Advance the x position for the next glyph.
-			dx += glyph->spacing;
+			dx += glyph.spacing;
 
 			// Account for extra spacing given to space characters.
 			if (g == ' ' && extra_spacing != 0.0f)
 				dx = floorf(dx + extra_spacing);
+
+			prevglyph = g;
 		}
 	}
 	catch (utf8::exception &e)
@@ -374,71 +443,186 @@ void Font::print(const std::string &text, float x, float y, float extra_spacing,
 		throw love::Exception("UTF-8 decoding error: %s", e.what());
 	}
 
-	if (vertexcount <= 0 || glyphinfolist.size() == 0)
-		return;
+	// Sort draw commands by texture first, and quad position in memory second
+	// (using the struct's < operator).
+	std::sort(drawcommands.begin(), drawcommands.end());
 
-	// Sort glyph draw info list by texture first, and quad position in memory
-	// second (using the struct's < operator).
-	std::sort(glyphinfolist.begin(), glyphinfolist.end());
+	if (dx > maxwidth)
+		maxwidth = (int) dx;
 
-	int maxvertices = 0;
-	for (auto it = glyphinfolist.begin(); it != glyphinfolist.end(); ++it)
-		maxvertices = std::max(maxvertices, it->vertexcount);
-
-	// If the index buffer is too small for the number of glyphs we're going to
-	// draw, we need to make a new one that has the correct size.
-	if ((size_t) maxvertices / 4 > indexBuffer->getSize())
+	if (info != nullptr)
 	{
-		VertexIndex *newIndexBuffer = new VertexIndex(maxvertices / 4);
-		delete indexBuffer;
-		indexBuffer = newIndexBuffer;
+		info->width = maxwidth - offset.x;;
+		info->height = (int) dy + (dx > 0.0f ? floorf(getHeight() * getLineHeight() + 0.5f) : 0) - offset.y;
 	}
 
-	Matrix t;
-	t.setTransformation(ceilf(x), ceilf(y), angle, sx, sy, ox, oy, kx, ky);
+	return drawcommands;
+}
+
+std::vector<Font::DrawCommand> Font::generateVerticesFormatted(const std::string &text, float wrap, AlignMode align, std::vector<GlyphVertex> &vertices, TextInfo *info)
+{
+	if (wrap < 0.0f)
+		wrap = std::numeric_limits<float>::max();
+
+	uint32 cacheid = textureCacheID;
+
+	std::vector<DrawCommand> drawcommands;
+	vertices.reserve(text.length() * 4);
+
+	// wrappedlines indicates which lines were automatically wrapped. It
+	// has the same number of elements as lines_to_draw.
+	std::vector<bool> wrappedlines;
+	std::vector<int> widths;
+	std::vector<std::string> lines;
+
+	// We only need the list of wrapped lines in 'justify' mode.
+	getWrap(text, wrap, lines, &widths, align == ALIGN_JUSTIFY ? &wrappedlines : nullptr);
+
+	float extraspacing = 0.0f;
+	int numspaces = 0;
+	int i = 0;
+	float y = 0.0f;
+	float maxwidth = 0;
+
+	for (const std::string &line : lines)
+	{
+		extraspacing = 0.0f;
+		float width = (float) widths[i];
+		love::Vector offset(0.0f, floorf(y));
+
+		if (width > maxwidth)
+			maxwidth = width;
+
+		switch (align)
+		{
+		case ALIGN_RIGHT:
+			offset.x = floorf(wrap - width);
+			break;
+		case ALIGN_CENTER:
+			offset.x = floorf((wrap - width) / 2.0f);
+			break;
+		case ALIGN_JUSTIFY:
+			numspaces = (int) std::count(line.begin(), line.end(), ' ');
+			if (wrappedlines[i] && numspaces >= 1)
+				extraspacing = (wrap - width) / float(numspaces);
+			else
+				extraspacing = 0.0f;
+			break;
+		case ALIGN_LEFT:
+		default:
+			break;
+		}
+
+		std::vector<DrawCommand> commands = generateVertices(line, vertices, extraspacing, offset);
+
+		if (!commands.empty())
+		{
+			auto firstcmd = commands.begin();
+
+			// If the first draw command in the new list has the same texture
+			// as the last one in the existing list we're building and its
+			// vertices are in-order, we can combine them (saving a draw call.)
+			if (!drawcommands.empty())
+			{
+				auto prevcmd = drawcommands.back();
+				if (prevcmd.texture == firstcmd->texture && (prevcmd.startvertex + prevcmd.vertexcount) == firstcmd->startvertex)
+				{
+					drawcommands.back().vertexcount += firstcmd->vertexcount;
+					++firstcmd;
+				}
+			}
+
+			// Append the new draw commands to the list we're building.
+			drawcommands.insert(drawcommands.end(), firstcmd, commands.end());
+		}
+
+		y += getHeight() * getLineHeight();
+		i++;
+	}
+
+	if (info != nullptr)
+	{
+		info->width = (int) maxwidth;
+		info->height = (int) y;
+	}
+
+	if (cacheid != textureCacheID)
+	{
+		vertices.clear();
+		drawcommands = generateVerticesFormatted(text, wrap, align, vertices);
+	}
+
+	return drawcommands;
+}
+
+void Font::drawVertices(const std::vector<DrawCommand> &drawcommands)
+{
+	// Vertex attribute pointers need to be set before calling this function.
+	// This assumes that the attribute pointers are constant for all vertices.
+
+	int totalverts = 0;
+	for (const DrawCommand &cmd : drawcommands)
+		totalverts = std::max(cmd.startvertex + cmd.vertexcount, totalverts);
+
+	if ((size_t) totalverts / 4 > quadIndices.getSize())
+		quadIndices = QuadIndices((size_t) totalverts / 4);
+
+	gl.prepareDraw();
+
+	const GLenum gltype = quadIndices.getType();
+	const size_t elemsize = quadIndices.getElementSize();
+
+	GLBuffer::Bind bind(*quadIndices.getBuffer());
+
+	// We need a separate draw call for every section of the text which uses a
+	// different texture than the previous section.
+	for (const DrawCommand &cmd : drawcommands)
+	{
+		GLsizei count = (cmd.vertexcount / 4) * 6;
+		size_t offset = (cmd.startvertex / 4) * 6 * elemsize;
+
+		// TODO: Use glDrawElementsBaseVertex when supported?
+		gl.bindTexture(cmd.texture);
+		gl.drawElements(GL_TRIANGLES, count, gltype, quadIndices.getPointer(offset));
+	}
+}
+
+void Font::printv(const Matrix4 &t, const std::vector<DrawCommand> &drawcommands, const std::vector<GlyphVertex> &vertices)
+{
+	if (vertices.empty() || drawcommands.empty())
+		return;
+
+	OpenGL::TempDebugGroup debuggroup("Font print");
 
 	OpenGL::TempTransform transform(gl);
 	transform.get() *= t;
 
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+	gl.useVertexAttribArrays(ATTRIBFLAG_POS | ATTRIBFLAG_TEXCOORD);
 
-	gl.prepareDraw();
+	glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, sizeof(GlyphVertex), &vertices[0].x);
+	glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(GlyphVertex), &vertices[0].s);
 
-	VertexBuffer::Bind index_bind(*indexBuffer->getVertexBuffer());
-	GLenum elemtype = indexBuffer->getType();
-	const GLvoid *elemoffset = indexBuffer->getPointer(0);
+	drawVertices(drawcommands);
+}
 
-	// Optimization: we can take these calls out of the loop if we have support.
-	if (GLAD_VERSION_3_2 || GLAD_ARB_draw_elements_base_vertex)
-	{
-		gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[0].x);
-		gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[0].s);
-	}
+void Font::print(const std::string &text, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+{
+	std::vector<GlyphVertex> vertices;
+	std::vector<DrawCommand> drawcommands = generateVertices(text, vertices);
 
-	// We need to draw a new vertex array for every section of the string which
-	// uses a different texture than the previous section.
-	for (auto it = glyphinfolist.begin(); it != glyphinfolist.end(); ++it)
-	{
-		gl.bindTexture(it->texture);
+	Matrix4 t(ceilf(x), ceilf(y), angle, sx, sy, ox, oy, kx, ky);
 
-		if (GLAD_VERSION_3_2 || GLAD_ARB_draw_elements_base_vertex)
-		{
-			// Optimization: setting a base vertex is faster than redoing the
-			// setVertexAttribArray calls before each draw.
-			gl.drawElementsBaseVertex(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset, it->startvertex);
-		}
-		else
-		{
-			gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].x);
-			gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(GlyphVertex), &glyphverts[it->startvertex].s);
+	printv(t, drawcommands, vertices);
+}
 
-			gl.drawElements(GL_TRIANGLES, (it->vertexcount / 4) * 6, elemtype, elemoffset);
-		}
-	}
+void Font::printf(const std::string &text, float x, float y, float wrap, AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+{
+	std::vector<GlyphVertex> vertices;
+	std::vector<DrawCommand> drawcommands = generateVerticesFormatted(text, wrap, align, vertices);
 
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+	Matrix4 t(ceilf(x), ceilf(y), angle, sx, sy, ox, oy, kx, ky);
+
+	printv(t, drawcommands, vertices);
 }
 
 int Font::getWidth(const std::string &str)
@@ -447,7 +631,6 @@ int Font::getWidth(const std::string &str)
 
 	std::istringstream iss(str);
 	std::string line;
-	Glyph *g;
 	int max_width = 0;
 
 	while (getline(iss, line, '\n'))
@@ -455,13 +638,17 @@ int Font::getWidth(const std::string &str)
 		int width = 0;
 		try
 		{
+			uint32 prevglyph = 0;
+
 			utf8::iterator<std::string::const_iterator> i(line.begin(), line.begin(), line.end());
 			utf8::iterator<std::string::const_iterator> end(line.end(), line.begin(), line.end());
 			while (i != end)
 			{
 				uint32 c = *i++;
-				g = findGlyph(c);
-				width += static_cast<int>(g->spacing * mSpacing);
+				const Glyph &g = findGlyph(c);
+				width += g.spacing + getKerning(prevglyph, c);
+
+				prevglyph = c;
 			}
 		}
 		catch(utf8::exception &e)
@@ -478,16 +665,14 @@ int Font::getWidth(const std::string &str)
 
 int Font::getWidth(char character)
 {
-	Glyph *g = findGlyph(character);
-	return g->spacing;
+	const Glyph &g = findGlyph(character);
+	return g.spacing;
 }
 
-std::vector<std::string> Font::getWrap(const std::string &text, float wrap, int *max_width, std::vector<bool> *wrappedlines)
+void Font::getWrap(const std::string &text, float wrap, std::vector<std::string> &lines, std::vector<int> *linewidths, std::vector<bool> *wrappedlines)
 {
 	using namespace std;
-	const float width_space = static_cast<float>(getWidth(' '));
-	vector<string> lines_to_draw;
-	int maxw = 0;
+	const float width_space = (float) getWidth(' ');
 
 	//split text at newlines
 	istringstream iss(text);
@@ -518,12 +703,13 @@ std::vector<std::string> Font::getWrap(const std::string &text, float wrap, int 
 
 				// remove trailing space
 				string tmp = string_builder.str();
-				lines_to_draw.push_back(tmp.substr(0,tmp.size()-1));
+				lines.push_back(tmp.substr(0,tmp.size()-1));
 				string_builder.str("");
 				width = static_cast<float>(getWidth(word));
 				realw -= (int) width;
-				if (realw > maxw)
-					maxw = realw;
+
+				if (linewidths)
+					linewidths->push_back(realw);
 
 				// Indicate that this line was automatically wrapped.
 				if (wrappedlines)
@@ -534,25 +720,21 @@ std::vector<std::string> Font::getWrap(const std::string &text, float wrap, int 
 			oldwidth = width;
 		}
 		// push last line
-		if (width > maxw)
-			maxw = (int) width;
+		if (linewidths)
+			linewidths->push_back(width);
+
 		string tmp = string_builder.str();
-		lines_to_draw.push_back(tmp.substr(0,tmp.size()-1));
+		lines.push_back(tmp.substr(0,tmp.size()-1));
 
 		// Indicate that this line was not automatically wrapped.
 		if (wrappedlines)
 			wrappedlines->push_back(false);
 	}
-
-	if (max_width)
-		 *max_width = maxw;
-
-	return lines_to_draw;
 }
 
 void Font::setLineHeight(float height)
 {
-	this->lineHeight = height;
+	lineHeight = height;
 }
 
 float Font::getLineHeight() const
@@ -560,23 +742,16 @@ float Font::getLineHeight() const
 	return lineHeight;
 }
 
-void Font::setSpacing(float amount)
-{
-	mSpacing = amount;
-}
-
-float Font::getSpacing() const
-{
-	return mSpacing;
-}
-
 void Font::setFilter(const Texture::Filter &f)
 {
+	if (!Texture::validateFilter(f, false))
+		throw love::Exception("Invalid texture filter.");
+
 	filter = f;
 
-	for (auto it = textures.begin(); it != textures.end(); ++it)
+	for (GLuint texture : textures)
 	{
-		gl.bindTexture(*it);
+		gl.bindTexture(texture);
 		gl.setTextureFilter(filter);
 	}
 }
@@ -589,26 +764,19 @@ const Texture::Filter &Font::getFilter()
 bool Font::loadVolatile()
 {
 	createTexture();
+	textureCacheID++;
 	return true;
 }
 
 void Font::unloadVolatile()
 {
 	// nuke everything from orbit
-	std::map<uint32, Glyph *>::iterator it = glyphs.begin();
-	Glyph *g;
-	while (it != glyphs.end())
-	{
-		g = it->second;
-		delete g;
-		glyphs.erase(it++);
-	}
-	std::vector<GLuint>::iterator iter = textures.begin();
-	while (iter != textures.end())
-	{
-		gl.deleteTexture(*iter);
-		iter++;
-	}
+
+	glyphs.clear();
+
+	for (GLuint texture : textures)
+		gl.deleteTexture(texture);
+
 	textures.clear();
 
 	gl.updateTextureMemorySize(textureMemorySize, 0);
@@ -617,12 +785,12 @@ void Font::unloadVolatile()
 
 int Font::getAscent() const
 {
-	return rasterizer->getAscent();
+	return rasterizers[0]->getAscent();
 }
 
 int Font::getDescent() const
 {
-	return rasterizer->getDescent();
+	return rasterizers[0]->getDescent();
 }
 
 float Font::getBaseline() const
@@ -633,13 +801,80 @@ float Font::getBaseline() const
 
 bool Font::hasGlyph(uint32 glyph) const
 {
-	return rasterizer->hasGlyph(glyph);
+	for (const StrongRef<love::font::Rasterizer> &r : rasterizers)
+	{
+		if (r->hasGlyph(glyph))
+			return true;
+	}
+
+	return false;
 }
 
 bool Font::hasGlyphs(const std::string &text) const
 {
-	return rasterizer->hasGlyphs(text);
+	if (text.size() == 0)
+		return false;
+
+	try
+	{
+		utf8::iterator<std::string::const_iterator> i(text.begin(), text.begin(), text.end());
+		utf8::iterator<std::string::const_iterator> end(text.end(), text.begin(), text.end());
+
+		while (i != end)
+		{
+			uint32 codepoint = *i++;
+
+			if (!hasGlyph(codepoint))
+				return false;
+		}
+	}
+	catch (utf8::exception &e)
+	{
+		throw love::Exception("UTF-8 decoding error: %s", e.what());
+	}
+
+	return true;
 }
+
+void Font::setFallbacks(const std::vector<Font *> &fallbacks)
+{
+	for (const Font *f : fallbacks)
+	{
+		if (f->type != this->type)
+			throw love::Exception("Font fallbacks must be of the same font type.");
+	}
+
+	rasterizers.resize(1);
+
+	// NOTE: this won't invalidate already-rasterized glyphs.
+	for (const Font *f : fallbacks)
+		rasterizers.push_back(f->rasterizers[0]);
+}
+
+uint32 Font::getTextureCacheID() const
+{
+	return textureCacheID;
+}
+
+bool Font::getConstant(const char *in, AlignMode &out)
+{
+	return alignModes.find(in, out);
+}
+
+bool Font::getConstant(AlignMode in, const char  *&out)
+{
+	return alignModes.find(in, out);
+}
+
+StringMap<Font::AlignMode, Font::ALIGN_MAX_ENUM>::Entry Font::alignModeEntries[] =
+{
+	{ "left", Font::ALIGN_LEFT },
+	{ "right", Font::ALIGN_RIGHT },
+	{ "center", Font::ALIGN_CENTER },
+	{ "justify", Font::ALIGN_JUSTIFY },
+};
+
+StringMap<Font::AlignMode, Font::ALIGN_MAX_ENUM> Font::alignModes(Font::alignModeEntries, sizeof(Font::alignModeEntries));
 
 } // opengl
 } // graphics

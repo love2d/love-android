@@ -19,6 +19,7 @@
  **/
 
 #include "Keyboard.h"
+#include "window/Window.h"
 
 namespace love
 {
@@ -47,14 +48,31 @@ bool Keyboard::hasKeyRepeat() const
 	return key_repeat;
 }
 
-bool Keyboard::isDown(Key *keylist) const
+bool Keyboard::isDown(const std::vector<Key> &keylist) const
 {
-	const Uint8 *keystate = SDL_GetKeyboardState(nullptr);
+	const Uint8 *state = SDL_GetKeyboardState(nullptr);
 
-	for (Key key = *keylist; key != KEY_MAX_ENUM; key = *(++keylist))
+	for (Key key : keylist)
 	{
 		SDL_Scancode scancode = SDL_GetScancodeFromKey(keymap[key]);
-		if (keystate[scancode])
+		if (state[scancode])
+			return true;
+	}
+
+	return false;
+}
+
+bool Keyboard::isScancodeDown(const std::vector<Scancode> &scancodelist) const
+{
+	const Uint8 *state = SDL_GetKeyboardState(nullptr);
+
+	for (Scancode scancode : scancodelist)
+	{
+		SDL_Scancode sdlscancode = SDL_SCANCODE_UNKNOWN;
+		if (!scancodes.find(scancode, sdlscancode))
+			continue;
+
+		if (state[sdlscancode])
 			return true;
 	}
 
@@ -100,22 +118,41 @@ void Keyboard::setTextInput(bool enable)
 		SDL_StopTextInput();
 }
 
-void Keyboard::setTextInput(bool enable, int x, int y, int w, int h)
+void Keyboard::setTextInput(bool enable, double x, double y, double w, double h)
 {
-	SDL_Rect textrect = {x, y, w, h};
-	SDL_SetTextInputRect(&textrect);
+	// SDL_SetTextInputRect expects coordinates in window-space but setTextInput
+	// takes pixels, so we should convert.
+	window::Window *window = Module::getInstance<window::Window>(M_WINDOW);
+	if (window)
+	{
+		window->pixelToWindowCoords(&x, &y);
+		window->pixelToWindowCoords(&w, &h);
+	}
+
+	SDL_Rect rect = {(int) x, (int) y, (int) w, (int) h};
+	SDL_SetTextInputRect(&rect);
 
 	setTextInput(enable);
 }
 
 bool Keyboard::hasTextInput() const
 {
-	return SDL_IsTextInputActive();
+	return SDL_IsTextInputActive() != SDL_FALSE;
 }
 
 bool Keyboard::hasScreenKeyboard() const
 {
-	return SDL_HasScreenKeyboardSupport();
+	return SDL_HasScreenKeyboardSupport() != SDL_FALSE;
+}
+
+bool Keyboard::getConstant(Scancode in, SDL_Scancode &out)
+{
+	return scancodes.find(in, out);
+}
+
+bool Keyboard::getConstant(SDL_Scancode in, Scancode &out)
+{
+	return scancodes.find(in, out);
 }
 
 const SDL_Keycode *Keyboard::createKeyMap()
@@ -133,6 +170,7 @@ const SDL_Keycode *Keyboard::createKeyMap()
 	k[Keyboard::KEY_EXCLAIM] = SDLK_EXCLAIM;
 	k[Keyboard::KEY_QUOTEDBL] = SDLK_QUOTEDBL;
 	k[Keyboard::KEY_HASH] = SDLK_HASH;
+	k[Keyboard::KEY_PERCENT] = SDLK_PERCENT;
 	k[Keyboard::KEY_DOLLAR] = SDLK_DOLLAR;
 	k[Keyboard::KEY_AMPERSAND] = SDLK_AMPERSAND;
 	k[Keyboard::KEY_QUOTE] = SDLK_QUOTE;
@@ -590,7 +628,7 @@ EnumMap<Keyboard::Scancode, SDL_Scancode, SDL_NUM_SCANCODES>::Entry Keyboard::sc
 	{SCANCODE_KBDILLUMUP, SDL_SCANCODE_KBDILLUMUP},
 	{SCANCODE_EJECT, SDL_SCANCODE_EJECT},
 	{SCANCODE_SLEEP, SDL_SCANCODE_SLEEP},
-	
+
 	{SCANCODE_APP1, SDL_SCANCODE_APP1},
 	{SCANCODE_APP2, SDL_SCANCODE_APP2},
 };

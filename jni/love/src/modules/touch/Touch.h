@@ -41,10 +41,12 @@ public:
 
 	struct TouchInfo
 	{
-		int64 id; // Only unique for the duration of the touch-press.
-		float x; // Normalized to [0, 1].
-		float y; // Normalized to [0, 1].
-		float pressure; // Normalized to [0, 1].
+		int64 id;  // Identifier. Only unique for the duration of the touch-press.
+		double x;  // Position in pixels along the x-axis.
+		double y;  // Position in pixels along the y-axis.
+		double dx; // Amount in pixels moved along the x-axis.
+		double dy; // Amount in pixels moved along the y-axis.
+		double pressure;
 	};
 
 	virtual ~Touch() {}
@@ -53,15 +55,19 @@ public:
 	virtual ModuleType getModuleType() const { return M_TOUCH; }
 
 	/**
-	 * Gets the number of current touch presses.
+	 * Gets a list of the IDs of all currently active touches.
 	 **/
-	virtual int getTouchCount() const = 0;
+	virtual std::vector<int64> getTouches() const = 0;
 
 	/**
-	 * Gets information about a touch press. The index is unstable and should
-	 * not be relied on being the same in between calls.
+	 * Gets the position in pixels of a specific touch, using its ID.
 	 **/
-	virtual TouchInfo getTouch(int index) const = 0;
+	virtual void getPosition(int64 id, double &x, double &y) const = 0;
+
+	/**
+	 * Gets the pressure of a specific touch, using its ID.
+	 **/
+	virtual double getPressure(int64 id) const = 0;
 
 }; // Touch
 

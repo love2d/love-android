@@ -42,7 +42,7 @@ namespace sdl
 JoystickModule::JoystickModule()
 {
 	if (SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0)
-		throw love::Exception("%s", SDL_GetError());
+		throw love::Exception("Could not initialize SDL joystick subsystem (%s)", SDL_GetError());
 
 	// Initialize any joysticks which are already connected.
 	for (int i = 0; i < SDL_NumJoysticks(); i++)
@@ -84,7 +84,7 @@ love::joystick::Joystick *JoystickModule::getJoystick(int joyindex)
 
 int JoystickModule::getIndex(const love::joystick::Joystick *joystick)
 {
-	for (size_t i = 0; i < activeSticks.size(); i++)
+	for (int i = 0; i < (int) activeSticks.size(); i++)
 	{
 		if (activeSticks[i] == joystick)
 			return i;
@@ -132,7 +132,7 @@ love::joystick::Joystick *JoystickModule::addJoystick(int deviceindex)
 
 	if (!joystick)
 	{
-		joystick = new Joystick(joysticks.size());
+		joystick = new Joystick((int) joysticks.size());
 		joysticks.push_back(joystick);
 	}
 
@@ -241,7 +241,7 @@ bool JoystickModule::setGamepadMapping(const std::string &guid, Joystick::Gamepa
 	std::string insertstr = gpinputname + ":" + joyinputstr + ",";
 
 	// We should replace any existing gamepad bind.
-	size_t findpos = mapstr.find(gpinputname + ":");
+	size_t findpos = mapstr.find(std::string(", ") + gpinputname + ":");
 	if (findpos != std::string::npos)
 	{
 		// The bind string ends at the next comma, or the end of the string.

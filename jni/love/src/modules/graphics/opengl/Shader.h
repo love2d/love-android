@@ -25,8 +25,9 @@
 #include "common/Object.h"
 #include "common/StringMap.h"
 #include "graphics/Graphics.h"
+#include "graphics/Texture.h"
+#include "graphics/Volatile.h"
 #include "OpenGL.h"
-#include "Texture.h"
 
 // STL
 #include <string>
@@ -47,12 +48,6 @@ class Shader : public Object, public Volatile
 {
 public:
 
-	// Pointer to currently active Shader.
-	static Shader *current;
-
-	// Pointer to the current default Shader.
-	static Shader *defaultShader;
-
 	enum ShaderStage
 	{
 		STAGE_VERTEX,
@@ -66,6 +61,7 @@ public:
 		BUILTIN_TRANSFORM_MATRIX = 0,
 		BUILTIN_PROJECTION_MATRIX,
 		BUILTIN_TRANSFORM_PROJECTION_MATRIX,
+		BUILTIN_NORMAL_MATRIX,
 		BUILTIN_POINT_SIZE,
 		BUILTIN_SCREEN_SIZE,
 		BUILTIN_MAX_ENUM
@@ -87,6 +83,15 @@ public:
 		std::string vertex;
 		std::string pixel;
 	};
+
+	// Pointer to currently active Shader.
+	static Shader *current;
+
+	// Pointer to the default Shader.
+	static Shader *defaultShader;
+
+	// Default shader code (a shader is always required internally.)
+	static ShaderSource defaultCode[Graphics::RENDERER_MAX_ENUM];
 
 	/**
 	 * Creates a new Shader using a list of source codes.
@@ -170,25 +175,27 @@ public:
 	 **/
 	UniformType getExternVariable(const std::string &name, int &components, int &count);
 
+	GLint getAttribLocation(const std::string &name);
+
 	/**
 	 * Internal use only.
 	 **/
-	bool hasVertexAttrib(OpenGL::VertexAttrib attrib) const;
-	bool hasBuiltinUniform(BuiltinUniform builtin) const;
-	bool sendBuiltinMatrix(BuiltinUniform builtin, int size, const GLfloat *m, int count);
-	bool sendBuiltinFloat(BuiltinUniform builtin, int size, const GLfloat *m, int count);
+	bool hasVertexAttrib(VertexAttribID attrib) const;
+
 	void checkSetScreenParams();
+	void checkSetPointSize(float size);
+	void checkSetBuiltinUniforms();
 
 	const std::map<std::string, Object *> &getBoundRetainables() const;
 
 	static std::string getGLSLVersion();
 	static bool isSupported();
 
-	// Default code used when renderers require code for a shader stage.
-	static ShaderSource defaultCode[Graphics::RENDERER_MAX_ENUM];
-
 	static bool getConstant(const char *in, UniformType &out);
 	static bool getConstant(UniformType in, const char *&out);
+
+	static bool getConstant(const char *in, VertexAttribID &out);
+	static bool getConstant(VertexAttribID in, const char *&out);
 
 private:
 
@@ -233,7 +240,9 @@ private:
 	GLint builtinUniforms[BUILTIN_MAX_ENUM];
 
 	// Location values for any generic vertex attribute variables.
-	GLint builtinAttributes[OpenGL::ATTRIB_MAX_ENUM];
+	GLint builtinAttributes[ATTRIB_MAX_ENUM];
+
+	std::map<std::string, GLint> attributes;
 
 	// Uniform location buffer map
 	std::map<std::string, Uniform> uniforms;
@@ -249,8 +258,10 @@ private:
 	Canvas *lastCanvas;
 	OpenGL::Viewport lastViewport;
 
-	// Max GPU texture units available for sent images
-	static GLint maxTexUnits;
+	float lastPointSize;
+
+	Matrix4 lastTransformMatrix;
+	Matrix4 lastProjectionMatrix;
 
 	// Counts total number of textures bound to each texture unit in all shaders
 	static std::vector<int> textureCounters;
@@ -262,13 +273,13 @@ private:
 	static StringMap<UniformType, UNIFORM_MAX_ENUM> uniformTypes;
 
 	// Names for the generic vertex attributes used by love.
-	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM>::Entry attribNameEntries[];
-	static StringMap<OpenGL::VertexAttrib, OpenGL::ATTRIB_MAX_ENUM> attribNames;
+	static StringMap<VertexAttribID, ATTRIB_MAX_ENUM>::Entry attribNameEntries[];
+	static StringMap<VertexAttribID, ATTRIB_MAX_ENUM> attribNames;
 
+	// Names for the built-in uniform variables.
 	static StringMap<BuiltinUniform, BUILTIN_MAX_ENUM>::Entry builtinNameEntries[];
 	static StringMap<BuiltinUniform, BUILTIN_MAX_ENUM> builtinNames;
-
-}; // Shader
+};
 
 } // opengl
 } // graphics

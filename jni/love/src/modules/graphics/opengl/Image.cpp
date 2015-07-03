@@ -20,9 +20,21 @@
 
 #include "Image.h"
 
+#include "common/int.h"
+
 // STD
 #include <cstring> // For memcpy
 #include <algorithm> // for min/max
+
+#ifdef LOVE_ANDROID
+// log2 is not declared in the math.h shipped with the Android NDK
+#include <cmath>
+inline double log2( double n )  
+{ 
+	// log(n)/log(2) is log2.  
+	return std::log( n ) / std::log( 2 );  
+}
+#endif
 
 namespace love
 {
@@ -35,365 +47,197 @@ int Image::imageCount = 0;
 
 float Image::maxMipmapSharpness = 0.0f;
 
-Texture::FilterMode Image::defaultMipmapFilter = Texture::FILTER_NONE;
+Texture::FilterMode Image::defaultMipmapFilter = Texture::FILTER_LINEAR;
 float Image::defaultMipmapSharpness = 0.0f;
 
-Image::Image(love::image::ImageData *data, Format format)
+Image::Image(love::image::ImageData *data, const Flags &flags)
 	: data(data)
 	, cdata(nullptr)
-	, paddedWidth(width)
-	, paddedHeight(height)
 	, texture(0)
 	, mipmapSharpness(defaultMipmapSharpness)
-	, mipmapsCreated(false)
 	, compressed(false)
-	, format(format)
+	, flags(flags)
 	, usingDefaultTexture(false)
 	, textureMemorySize(0)
 {
 	width = data->getWidth();
 	height = data->getHeight();
+
 	preload();
+	loadVolatile();
 
 	++imageCount;
 }
 
-Image::Image(love::image::CompressedData *cdata, Format format)
+Image::Image(love::image::CompressedImageData *cdata, const Flags &flags)
 	: data(nullptr)
 	, cdata(cdata)
-	, paddedWidth(width)
-	, paddedHeight(height)
 	, texture(0)
 	, mipmapSharpness(defaultMipmapSharpness)
-	, mipmapsCreated(false)
 	, compressed(true)
-	, format(format)
+	, flags(flags)
 	, usingDefaultTexture(false)
 	, textureMemorySize(0)
 {
+	this->flags.sRGB = (flags.sRGB || cdata->isSRGB());
+
 	width = cdata->getWidth(0);
 	height = cdata->getHeight(0);
+
+	if (flags.mipmaps)
+	{
+		// The mipmap texture data comes from the CompressedImageData in this case,
+		// so we should make sure it has all necessary mipmap levels.
+		if (cdata->getMipmapCount() < (int) log2(std::max(width, height)) + 1)
+			throw love::Exception("Image cannot have mipmaps: compressed image data does not have all required mipmap levels.");
+	}
+
 	preload();
+	loadVolatile();
 
 	++imageCount;
 }
 
 Image::~Image()
 {
-	unload();
-
+	unloadVolatile();
 	--imageCount;
-}
-
-love::image::ImageData *Image::getImageData() const
-{
-	return data.get();
-}
-
-love::image::CompressedData *Image::getCompressedData() const
-{
-	return cdata.get();
-}
-
-void Image::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
-{
-	Matrix t;
-	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
-
-	drawv(t, vertices);
-}
-
-void Image::drawq(Quad *quad, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
-{
-	Matrix t;
-	t.setTransformation(x, y, angle, sx, sy, ox, oy, kx, ky);
-
-	drawv(t, quad->getVertices());
-}
-
-void Image::predraw()
-{
-	bind();
-
-	if (width != paddedWidth || height != paddedHeight)
-	{
-		// NPOT image padded to POT size, so the texcoords should be scaled.
-		glMatrixMode(GL_TEXTURE);
-		glPushMatrix();
-		glScalef(float(width) / float(paddedWidth), float(height) / float(paddedHeight), 0.0f);
-		glMatrixMode(GL_MODELVIEW);
-	}
-}
-
-void Image::postdraw()
-{
-	if (width != paddedWidth || height != paddedHeight)
-	{
-		glMatrixMode(GL_TEXTURE);
-		glPopMatrix();
-		glMatrixMode(GL_MODELVIEW);
-	}
-}
-
-GLuint Image::getGLTexture() const
-{
-	return texture;
-}
-
-void Image::uploadCompressedMipmaps()
-{
-	if (!isCompressed() || !cdata.get() || !hasCompressedTextureSupport(cdata->getFormat()))
-		return;
-
-	// NPOT textures don't support mipmapping without full NPOT support.
-	if (hasLimitedNpot() && (width != next_p2(width) || height != next_p2(height)))
-		return;
-
-	bind();
-
-	int count = cdata->getMipmapCount();
-
-	// We have to inform OpenGL if the image doesn't have all mipmap levels.
-	if (GLAD_VERSION_1_2 || GLAD_ES_VERSION_3_0 || GLAD_APPLE_texture_max_level)
-	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, count - 1);
-	}
-	else if (cdata->getWidth(count-1) > 1 || cdata->getHeight(count-1) > 1)
-	{
-		// Telling OpenGL to ignore certain levels isn't always supported.
-		throw love::Exception("Cannot load mipmaps: "
-		      "compressed image does not have all required levels.");
-	}
-
-	size_t totalsize = cdata->getSize(0);
-
-	for (int i = 1; i < count; i++)
-	{
-		totalsize += cdata->getSize(i);
-		glCompressedTexImage2D(GL_TEXTURE_2D,
-		                       i,
-		                       getCompressedFormat(cdata->getFormat()),
-		                       cdata->getWidth(i),
-		                       cdata->getHeight(i),
-		                       0,
-		                       GLsizei(cdata->getSize(i)),
-		                       cdata->getData(i));
-	}
-
-	size_t prevmemsize = textureMemorySize;
-	textureMemorySize = totalsize;
-	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
-}
-
-void Image::createMipmaps()
-{
-	// Only valid for Images created with ImageData.
-	if (!data.get() || isCompressed())
-		return;
-
-	if (!hasMipmapSupport())
-		throw love::Exception("Mipmap filtering is not supported on this system.");
-
-	// Some old drivers claim support for NPOT textures, but fail when creating
-	// mipmaps. We can't detect which systems will do this, so we fail gracefully
-	// for all NPOT images.
-	int w = int(width), h = int(height);
-	if (w != next_p2(w) || h != next_p2(h))
-	{
-		throw love::Exception("Cannot create mipmaps: "
-		      "image does not have power of two dimensions.");
-	}
-
-	bind();
-
-	// Prevent other threads from changing the ImageData while we upload it.
-	love::thread::Lock lock(data->getMutex());
-
-	if (hasNpot() && (GLAD_ES_VERSION_2_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object))
-	{
-		if (gl.getVendor() == OpenGL::VENDOR_ATI_AMD)
-		{
-			// AMD/ATI drivers have several bugs when generating mipmaps,
-			// re-uploading the entire base image seems to be required.
-			uploadTexture();
-
-			// More bugs: http://www.opengl.org/wiki/Common_Mistakes#Automatic_mipmap_generation
-			glEnable(GL_TEXTURE_2D);
-		}
-
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-		glTexSubImage2D(GL_TEXTURE_2D,
-		                0,
-		                0,
-		                0,
-		                (GLsizei)width,
-		                (GLsizei)height,
-		                GL_RGBA,
-		                GL_UNSIGNED_BYTE,
-		                data->getData());
-		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
-	}
-
-	size_t prevmemsize = textureMemorySize;
-	textureMemorySize = paddedWidth * paddedHeight * 4 * 1.3333;
-	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
-}
-
-void Image::checkMipmapsCreated()
-{
-	if (mipmapsCreated || filter.mipmap == FILTER_NONE || usingDefaultTexture)
-		return;
-
-	if (isCompressed() && cdata.get() && hasCompressedTextureSupport(cdata->getFormat()))
-		uploadCompressedMipmaps();
-	else if (data.get())
-		createMipmaps();
-	else
-		return;
-
-	mipmapsCreated = true;
-}
-
-void Image::setFilter(const Texture::Filter &f)
-{
-	const Filter oldfilter = filter;
-	filter = f;
-
-	// We don't want filtering or (attempted) mipmaps on the default texture.
-	if (usingDefaultTexture)
-	{
-		filter.mipmap = FILTER_NONE;
-		filter.min = filter.mag = FILTER_NEAREST;
-	}
-
-	if (hasLimitedNpot() && (width != next_p2(width) || height != next_p2(height)))
-	{
-		// If we only have limited NPOT support then mipmapping isn't supported.
-		filter.mipmap = FILTER_NONE;
-	}
-
-	bind();
-	gl.setTextureFilter(filter);
-
-	try
-	{
-		checkMipmapsCreated();
-	}
-	catch (love::Exception &)
-	{
-		// Don't keep the new mipmap filter if we can't create mipmaps.
-		filter = oldfilter;
-		gl.setTextureFilter(filter);
-		throw;
-	}
-}
-
-bool Image::setWrap(const Texture::Wrap &w)
-{
-	bool success = true;
-	wrap = w;
-
-	if (hasLimitedNpot() && (width != next_p2(width) || height != next_p2(height)))
-	{
-		if (wrap.s != WRAP_CLAMP || wrap.t != WRAP_CLAMP)
-			success = false;
-
-		// If we only have limited NPOT support then the wrap mode must be CLAMP.
-		wrap.s = wrap.t = WRAP_CLAMP;
-	}
-
-	bind();
-	gl.setTextureWrap(w);
-
-	return success;
-}
-
-void Image::setMipmapSharpness(float sharpness)
-{
-	if (hasMipmapSharpnessSupport())
-	{
-		// LOD bias has the range (-maxbias, maxbias)
-		mipmapSharpness = std::min(std::max(sharpness, -maxMipmapSharpness + 0.01f), maxMipmapSharpness - 0.01f);
-
-		bind();
-
-		// negative bias is sharper
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -mipmapSharpness);
-	}
-	else
-		mipmapSharpness = 0.0f;
-}
-
-float Image::getMipmapSharpness() const
-{
-	return mipmapSharpness;
-}
-
-void Image::bind() const
-{
-	if (texture == 0)
-		return;
-
-	gl.bindTexture(texture);
 }
 
 void Image::preload()
 {
-	memset(vertices, 255, sizeof(Vertex)*4);
+	for (int i = 0; i < 4; i++)
+		vertices[i].r = vertices[i].g = vertices[i].b = vertices[i].a = 255;
 
-	vertices[0].x = 0;
-	vertices[0].y = 0;
-	vertices[1].x = 0;
+	// Vertices are ordered for use with triangle strips:
+	// 0----2
+	// |  / |
+	// | /  |
+	// 1----3
+	vertices[0].x = 0.0f;
+	vertices[0].y = 0.0f;
+	vertices[1].x = 0.0f;
 	vertices[1].y = (float) height;
 	vertices[2].x = (float) width;
-	vertices[2].y = (float) height;
+	vertices[2].y = 0.0f;
 	vertices[3].x = (float) width;
-	vertices[3].y = 0;
+	vertices[3].y = (float) height;
 
-	vertices[0].s = 0;
-	vertices[0].t = 0;
-	vertices[1].s = 0;
-	vertices[1].t = 1;
-	vertices[2].s = 1;
-	vertices[2].t = 1;
-	vertices[3].s = 1;
-	vertices[3].t = 0;
+	vertices[0].s = 0.0f;
+	vertices[0].t = 0.0f;
+	vertices[1].s = 0.0f;
+	vertices[1].t = 1.0f;
+	vertices[2].s = 1.0f;
+	vertices[2].t = 0.0f;
+	vertices[3].s = 1.0f;
+	vertices[3].t = 1.0f;
 
-	filter.mipmap = defaultMipmapFilter;
+	if (flags.mipmaps)
+		filter.mipmap = defaultMipmapFilter;
 }
 
-bool Image::load()
+void Image::generateMipmaps()
 {
-	return loadVolatile();
+	// The GL_GENERATE_MIPMAP texparameter is set in loadVolatile if we don't
+	// have support for glGenerateMipmap.
+	if (flags.mipmaps && !isCompressed() &&
+		(GLAD_ES_VERSION_2_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object))
+	{
+		// Driver bug: http://www.opengl.org/wiki/Common_Mistakes#Automatic_mipmap_generation
+#if defined(LOVE_WINDOWS) || defined(LOVE_LINUX)
+		if (gl.getVendor() == OpenGL::VENDOR_AMD)
+			glEnable(GL_TEXTURE_2D);
+#endif
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 }
 
-void Image::unload()
+void Image::loadDefaultTexture()
 {
-	return unloadVolatile();
+	usingDefaultTexture = true;
+
+	gl.bindTexture(texture);
+	setFilter(filter);
+
+	// A nice friendly checkerboard to signify invalid textures...
+	GLubyte px[] = {0xFF,0xFF,0xFF,0xFF, 0xFF,0xC0,0xC0,0xFF,
+	                0xFF,0xC0,0xC0,0xFF, 0xFF,0xFF,0xFF,0xFF};
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
+}
+
+void Image::loadFromCompressedData()
+{
+	GLenum iformat = getCompressedFormat(cdata->getFormat());
+	int count = flags.mipmaps ? cdata->getMipmapCount() : 1;
+
+	for (int i = 0; i < count; i++)
+	{
+		glCompressedTexImage2D(GL_TEXTURE_2D, i, iformat,
+		                       cdata->getWidth(i), cdata->getHeight(i), 0,
+		                       (GLsizei) cdata->getSize(i), cdata->getData(i));
+	}
+}
+
+void Image::loadFromImageData()
+{
+	GLenum iformat = flags.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+	GLenum format  = GL_RGBA;
+
+	// in GLES2, the internalformat and format params of TexImage have to match.
+	if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
+	{
+		format  = flags.sRGB ? GL_SRGB_ALPHA : GL_RGBA;
+		iformat = format;
+	}
+
+	{
+		love::thread::Lock lock(data->getMutex());
+		glTexImage2D(GL_TEXTURE_2D, 0, iformat, width, height, 0, format,
+		             GL_UNSIGNED_BYTE, data->getData());
+	}
+
+	generateMipmaps();
 }
 
 bool Image::loadVolatile()
 {
-	if (format == FORMAT_SRGB && !hasSRGBSupport())
-		throw love::Exception("sRGB images are not supported on this system.");
+	OpenGL::TempDebugGroup debuggroup("Image load");
 
-	if (isCompressed() && cdata.get() && !hasCompressedTextureSupport(cdata->getFormat()))
+	if (isCompressed() && !hasCompressedTextureSupport(cdata->getFormat(), flags.sRGB))
 	{
 		const char *str;
-		if (image::CompressedData::getConstant(cdata->getFormat(), str))
+		if (image::CompressedImageData::getConstant(cdata->getFormat(), str))
 		{
 			throw love::Exception("Cannot create image: "
-			      "%s compressed images are not supported on this system.", str);
+			                      "%s%s compressed images are not supported on this system.", flags.sRGB ? "sRGB " : "", str);
 		}
 		else
 			throw love::Exception("cannot create image: format is not supported on this system.");
 	}
+	else if (!isCompressed())
+	{
+		if (flags.sRGB && !hasSRGBSupport())
+			throw love::Exception("sRGB images are not supported on this system.");
 
-	if (hasMipmapSharpnessSupport() && maxMipmapSharpness == 0.0f)
+		// GL_EXT_sRGB doesn't support glGenerateMipmap for sRGB textures.
+		if (flags.sRGB && (GLAD_ES_VERSION_2_0 && GLAD_EXT_sRGB && !GLAD_ES_VERSION_3_0))
+		{
+			flags.mipmaps = false;
+			filter.mipmap = FILTER_NONE;
+		}
+	}
+
+	// NPOT textures don't support mipmapping without full NPOT support.
+	if ((GLAD_ES_VERSION_2_0 && !(GLAD_ES_VERSION_3_0 || GLAD_OES_texture_npot))
+		&& (width != next_p2(width) || height != next_p2(height)))
+	{
+		flags.mipmaps = false;
+		filter.mipmap = FILTER_NONE;
+	}
+
+	if (maxMipmapSharpness == 0.0f && GLAD_VERSION_1_4)
 		glGetFloatv(GL_MAX_TEXTURE_LOD_BIAS, &maxMipmapSharpness);
 
 	glGenTextures(1, &texture);
@@ -403,216 +247,234 @@ bool Image::loadVolatile()
 	setWrap(wrap);
 	setMipmapSharpness(mipmapSharpness);
 
-	paddedWidth = width;
-	paddedHeight = height;
-
-	if (!hasNpot())
-	{
-		// NPOT textures will be padded to POT dimensions if necessary.
-		paddedWidth = next_p2(width);
-		paddedHeight = next_p2(height);
-	}
-
 	// Use a default texture if the size is too big for the system.
-	if (paddedWidth > gl.getMaxTextureSize() || paddedHeight > gl.getMaxTextureSize())
+	if (width > gl.getMaxTextureSize() || height > gl.getMaxTextureSize())
 	{
-		uploadDefaultTexture();
+		loadDefaultTexture();
 		return true;
 	}
 
-	// Mutex lock will potentially cover texture loading and mipmap creation.
-	love::thread::EmptyLock lock;
-	if (data.get())
-		lock.setLock(data->getMutex());
+	if ((isCompressed() || !flags.mipmaps) && (GLAD_ES_VERSION_3_0 || GLAD_VERSION_1_0))
+	{
+		int count = (flags.mipmaps && isCompressed()) ? cdata->getMipmapCount() : 1;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, count - 1);
+	}
+
+	if (flags.mipmaps && !isCompressed() &&
+		!(GLAD_ES_VERSION_2_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object))
+	{
+		// Auto-generate mipmaps every time the texture is modified, if
+		// glGenerateMipmap isn't supported.
+		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	}
 
 	while (glGetError() != GL_NO_ERROR); // Clear errors.
 
-	if (hasNpot() || (width == paddedWidth && height == paddedHeight))
-		uploadTexture();
-	else
-		uploadTexturePadded();
+	try
+	{
+		if (isCompressed())
+			loadFromCompressedData();
+		else
+			loadFromImageData();
 
-	GLenum glerr = glGetError();
-	if (glerr != GL_NO_ERROR)
-		throw love::Exception("Cannot create image (error code 0x%x)", glerr);
+		GLenum glerr = glGetError();
+		if (glerr != GL_NO_ERROR)
+			throw love::Exception("Cannot create image (error code 0x%x)", glerr);
+	}
+	catch (love::Exception &)
+	{
+		gl.deleteTexture(texture);
+		texture = 0;
+		throw;
+	}
+
+	size_t prevmemsize = textureMemorySize;
 
 	if (isCompressed())
-		textureMemorySize = cdata->getSize(0);
+	{
+		textureMemorySize = 0;
+		for (int i = 0; i < (flags.mipmaps ? cdata->getMipmapCount() : 1); i++)
+			textureMemorySize += cdata->getSize(i);
+	}
 	else
-		textureMemorySize = paddedWidth * paddedHeight * 4;
+	{
+		textureMemorySize = width * height * 4;
+		if (flags.mipmaps)
+			textureMemorySize *= 1.333;
+	}
 
-	gl.updateTextureMemorySize(0, textureMemorySize);
+	gl.updateTextureMemorySize(prevmemsize, textureMemorySize);
 
 	usingDefaultTexture = false;
-	mipmapsCreated = false;
-	checkMipmapsCreated();
-
 	return true;
-}
-
-void Image::uploadTexturePadded()
-{
-	if (isCompressed() && cdata.get())
-	{
-		// Padded textures don't really work if they're compressed...
-		throw love::Exception("Cannot create image: "
-		                      "compressed NPOT images are not supported on this system.");
-	}
-	else if (data.get())
-	{
-		GLenum xformat = GL_RGBA;
-		GLenum iformat = (format == FORMAT_SRGB) ? GL_SRGB_ALPHA : GL_RGBA;
-
-		if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
-			xformat = iformat;
-
-		glTexImage2D(GL_TEXTURE_2D,
-		             0,
-		             iformat,
-		             (GLsizei)paddedWidth,
-		             (GLsizei)paddedHeight,
-		             0,
-		             xformat,
-		             GL_UNSIGNED_BYTE,
-		             0);
-
-		glTexSubImage2D(GL_TEXTURE_2D,
-		                0,
-		                0, 0,
-		                (GLsizei)width,
-		                (GLsizei)height,
-		                xformat,
-		                GL_UNSIGNED_BYTE,
-		                data->getData());
-	}
-}
-
-void Image::uploadTexture()
-{
-	if (isCompressed() && cdata.get())
-	{
-		GLenum format = getCompressedFormat(cdata->getFormat());
-		glCompressedTexImage2D(GL_TEXTURE_2D,
-		                       0,
-		                       format,
-		                       cdata->getWidth(0),
-		                       cdata->getHeight(0),
-		                       0,
-		                       GLsizei(cdata->getSize(0)),
-		                       cdata->getData(0));
-	}
-	else if (data.get())
-	{
-		GLenum xformat = GL_RGBA;
-		GLenum iformat = (format == FORMAT_SRGB) ? GL_SRGB_ALPHA : GL_RGBA;
-
-		// The internal and external format parameters must match in OpenGL ES 2.
-		if (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0)
-			xformat = iformat;
-
-		glTexImage2D(GL_TEXTURE_2D,
-		             0,
-		             iformat,
-		             (GLsizei)width,
-		             (GLsizei)height,
-		             0,
-		             xformat,
-		             GL_UNSIGNED_BYTE,
-		             data->getData());
-	}
 }
 
 void Image::unloadVolatile()
 {
-	// Delete the hardware texture.
-	if (texture != 0)
-	{
-		gl.deleteTexture(texture);
-		texture = 0;
+	if (texture == 0)
+		return;
 
-		gl.updateTextureMemorySize(textureMemorySize, 0);
-		textureMemorySize = 0;
-	}
+	gl.deleteTexture(texture);
+	texture = 0;
+
+	gl.updateTextureMemorySize(textureMemorySize, 0);
+	textureMemorySize = 0;
 }
 
-bool Image::refresh()
+bool Image::refresh(int xoffset, int yoffset, int w, int h)
 {
 	// No effect if the texture hasn't been created yet.
-	if (texture == 0)
+	if (texture == 0 || usingDefaultTexture)
 		return false;
 
-	if (usingDefaultTexture)
+	if (xoffset < 0 || yoffset < 0 || w <= 0 || h <= 0 ||
+		(xoffset + w) > width || (yoffset + h) > height)
 	{
-		uploadDefaultTexture();
-		return true;
+		throw love::Exception("Invalid rectangle dimensions.");
 	}
 
-	// We want this lock to potentially cover mipmap creation as well.
-	love::thread::EmptyLock lock;
+	gl.bindTexture(texture);
 
-	bind();
-
-	if (data.get() && !isCompressed())
-		lock.setLock(data->getMutex());
-
-	while (glGetError() != GL_NO_ERROR); // Clear errors.
-
-	if (hasNpot() || (width == paddedWidth && height == paddedHeight))
-		uploadTexture();
+	if (isCompressed())
+		loadFromCompressedData();
 	else
-		uploadTexturePadded();
+	{
+		const image::pixel *pdata = (const image::pixel *) data->getData();
+		pdata += yoffset * data->getWidth() + xoffset;
 
-	if (glGetError() != GL_NO_ERROR)
-		uploadDefaultTexture();
-	else
-		usingDefaultTexture = false;
+		GLenum format = GL_RGBA;
 
-	mipmapsCreated = false;
-	checkMipmapsCreated();
+		// In ES2, the format parameter of TexSubImage must match the internal
+		// format of the texture.
+		if (flags.sRGB && (GLAD_ES_VERSION_2_0 && !GLAD_ES_VERSION_3_0))
+			format = GL_SRGB_ALPHA;
+
+		{
+			thread::Lock lock(data->getMutex());
+			glTexSubImage2D(GL_TEXTURE_2D, 0, xoffset, yoffset, w, h, format,
+			                GL_UNSIGNED_BYTE, pdata);
+		}
+
+		generateMipmaps();
+	}
 
 	return true;
 }
 
-Image::Format Image::getFormat() const
+void Image::drawv(const Matrix4 &t, const Vertex *v)
 {
-	return format;
-}
+	OpenGL::TempDebugGroup debuggroup("Image draw");
 
-void Image::uploadDefaultTexture()
-{
-	usingDefaultTexture = true;
-
-	bind();
-	setFilter(filter);
-
-	// A nice friendly checkerboard to signify invalid textures...
-	GLubyte px[] = {0xFF,0xFF,0xFF,0xFF, 0xC0,0xC0,0xC0,0xFF,
-	                0xC0,0xC0,0xC0,0xFF, 0xFF,0xFF,0xFF,0xFF};
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
-}
-
-void Image::drawv(const Matrix &t, const Vertex *v)
-{
 	OpenGL::TempTransform transform(gl);
 	transform.get() *= t;
 
-	predraw();
+	gl.bindTexture(texture);
+
+	gl.useVertexAttribArrays(ATTRIBFLAG_POS | ATTRIBFLAG_TEXCOORD);
+
+	glVertexAttribPointer(ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), &v[0].x);
+	glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), &v[0].s);
 
 	gl.prepareDraw();
+	gl.drawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
 
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.enableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+void Image::draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+{
+	Matrix4 t(x, y, angle, sx, sy, ox, oy, kx, ky);
 
-	gl.setVertexAttribArray(OpenGL::ATTRIB_POS, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *)&v[0].x);
-	gl.setVertexAttribArray(OpenGL::ATTRIB_TEXCOORD, 2, GL_FLOAT, sizeof(Vertex), (GLvoid *)&v[0].s);
+	drawv(t, vertices);
+}
 
-	gl.drawArrays(GL_TRIANGLE_FAN, 0, 4);
+void Image::drawq(Quad *quad, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky)
+{
+	Matrix4 t(x, y, angle, sx, sy, ox, oy, kx, ky);
 
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_POS);
-	gl.disableVertexAttribArray(OpenGL::ATTRIB_TEXCOORD);
+	drawv(t, quad->getVertices());
+}
 
-	postdraw();
+const void *Image::getHandle() const
+{
+	return &texture;
+}
+
+love::image::ImageData *Image::getImageData() const
+{
+	return data.get();
+}
+
+love::image::CompressedImageData *Image::getCompressedData() const
+{
+	return cdata.get();
+}
+
+void Image::setFilter(const Texture::Filter &f)
+{
+	if (!validateFilter(f, flags.mipmaps))
+	{
+		if (f.mipmap != FILTER_NONE && !flags.mipmaps)
+			throw love::Exception("Non-mipmapped image cannot have mipmap filtering.");
+		else
+			throw love::Exception("Invalid texture filter.");
+	}
+
+	filter = f;
+
+	// We don't want filtering or (attempted) mipmaps on the default texture.
+	if (usingDefaultTexture)
+	{
+		filter.mipmap = FILTER_NONE;
+		filter.min = filter.mag = FILTER_NEAREST;
+	}
+
+	gl.bindTexture(texture);
+	gl.setTextureFilter(filter);
+}
+
+bool Image::setWrap(const Texture::Wrap &w)
+{
+	bool success = true;
+	wrap = w;
+
+	if ((GLAD_ES_VERSION_2_0 && !(GLAD_ES_VERSION_3_0 || GLAD_OES_texture_npot))
+		&& (width != next_p2(width) || height != next_p2(height)))
+	{
+		if (wrap.s != WRAP_CLAMP || wrap.t != WRAP_CLAMP)
+			success = false;
+
+		// If we only have limited NPOT support then the wrap mode must be CLAMP.
+		wrap.s = wrap.t = WRAP_CLAMP;
+	}
+
+	gl.bindTexture(texture);
+	gl.setTextureWrap(w);
+
+	return success;
+}
+
+void Image::setMipmapSharpness(float sharpness)
+{
+	// OpenGL ES doesn't support LOD bias via glTexParameter.
+	if (!GLAD_VERSION_1_4)
+		return;
+
+	// LOD bias has the range (-maxbias, maxbias)
+	mipmapSharpness = std::min(std::max(sharpness, -maxMipmapSharpness + 0.01f), maxMipmapSharpness - 0.01f);
+
+	gl.bindTexture(texture);
+
+	// negative bias is sharper
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -mipmapSharpness);
+}
+
+float Image::getMipmapSharpness() const
+{
+	return mipmapSharpness;
+}
+
+const Image::Flags &Image::getFlags() const
+{
+	return flags;
 }
 
 void Image::setDefaultMipmapSharpness(float sharpness)
@@ -640,116 +502,142 @@ bool Image::isCompressed() const
 	return compressed;
 }
 
-GLenum Image::getCompressedFormat(image::CompressedData::Format cformat) const
+GLenum Image::getCompressedFormat(image::CompressedImageData::Format cformat) const
 {
-	bool srgb = format == FORMAT_SRGB;
-
 	switch (cformat)
 	{
-	case image::CompressedData::FORMAT_DXT1:
-		if (srgb)
+	case image::CompressedImageData::FORMAT_DXT1:
+		if (flags.sRGB)
 			return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
 		else
 			return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-	case image::CompressedData::FORMAT_DXT3:
-		if (srgb)
+	case image::CompressedImageData::FORMAT_DXT3:
+		if (flags.sRGB)
 			return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
 		else
 			return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-	case image::CompressedData::FORMAT_DXT5:
-		if (srgb)
+	case image::CompressedImageData::FORMAT_DXT5:
+		if (flags.sRGB)
 			return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
 		else
 			return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-	case image::CompressedData::FORMAT_BC4:
+	case image::CompressedImageData::FORMAT_BC4:
 		return GL_COMPRESSED_RED_RGTC1;
-	case image::CompressedData::FORMAT_BC4s:
+	case image::CompressedImageData::FORMAT_BC4s:
 		return GL_COMPRESSED_SIGNED_RED_RGTC1;
-	case image::CompressedData::FORMAT_BC5:
+	case image::CompressedImageData::FORMAT_BC5:
 		return GL_COMPRESSED_RG_RGTC2;
-	case image::CompressedData::FORMAT_BC5s:
+	case image::CompressedImageData::FORMAT_BC5s:
 		return GL_COMPRESSED_SIGNED_RG_RGTC2;
-	case image::CompressedData::FORMAT_BC6H:
-		return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
-	case image::CompressedData::FORMAT_BC6Hs:
-		return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
-	case image::CompressedData::FORMAT_BC7:
-		if (srgb)
-			return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
+	case image::CompressedImageData::FORMAT_BC6H:
+		return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT;
+	case image::CompressedImageData::FORMAT_BC6Hs:
+		return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT;
+	case image::CompressedImageData::FORMAT_BC7:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 		else
-			return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
-	case image::CompressedData::FORMAT_BC7SRGB:
-		return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
-	case image::CompressedData::FORMAT_ETC1:
+			return GL_COMPRESSED_RGBA_BPTC_UNORM;
+	case image::CompressedImageData::FORMAT_ETC1:
 		// The ETC2 format can load ETC1 textures.
-		if (GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility)
+		if (GLAD_ES_VERSION_3_0 || GLAD_VERSION_4_3 || GLAD_ARB_ES3_compatibility)
 			return GL_COMPRESSED_RGB8_ETC2;
 		else
 			return GL_ETC1_RGB8_OES;
-	case image::CompressedData::FORMAT_PVR1_RGB2:
-		return GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG;
-	case image::CompressedData::FORMAT_PVR1_RGB4:
-		return GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG;
-	case image::CompressedData::FORMAT_PVR1_RGBA2:
-		return GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG;
-	case image::CompressedData::FORMAT_PVR1_RGBA4:
-		return GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG;
-	default:
-		if (srgb)
-			return GL_SRGB_ALPHA;
+	case image::CompressedImageData::FORMAT_ETC2_RGB:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB8_ETC2;
 		else
-			return GL_RGBA;
+			return GL_COMPRESSED_RGB8_ETC2;
+	case image::CompressedImageData::FORMAT_ETC2_RGBA:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
+		else
+			return GL_COMPRESSED_RGBA8_ETC2_EAC;
+	case image::CompressedImageData::FORMAT_ETC2_RGBA1:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+		else
+			return GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+	case image::CompressedImageData::FORMAT_EAC_R:
+		return GL_COMPRESSED_R11_EAC;
+	case image::CompressedImageData::FORMAT_EAC_Rs:
+		return GL_COMPRESSED_SIGNED_R11_EAC;
+	case image::CompressedImageData::FORMAT_EAC_RG:
+		return GL_COMPRESSED_RG11_EAC;
+	case image::CompressedImageData::FORMAT_EAC_RGs:
+		return GL_COMPRESSED_SIGNED_RG11_EAC;
+	case image::CompressedImageData::FORMAT_PVR1_RGB2:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT;
+		else
+			return GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG;
+	case image::CompressedImageData::FORMAT_PVR1_RGB4:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT;
+		else
+			return GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG;
+	case image::CompressedImageData::FORMAT_PVR1_RGBA2:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT;
+		else
+			return GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG;
+	case image::CompressedImageData::FORMAT_PVR1_RGBA4:
+		if (flags.sRGB)
+			return GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT;
+		else
+			return GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG;
+	default:
+		if (flags.sRGB)
+			return GL_SRGB8_ALPHA8;
+		else
+			return GL_RGBA8;
 	}
-}
-
-bool Image::hasNpot()
-{
-	return GLAD_ES_VERSION_2_0 || GLAD_VERSION_2_0 || GLAD_ARB_texture_non_power_of_two;
 }
 
 bool Image::hasAnisotropicFilteringSupport()
 {
-	return GLAD_EXT_texture_filter_anisotropic;
+	return GLAD_EXT_texture_filter_anisotropic != GL_FALSE;
 }
 
-bool Image::hasMipmapSupport()
-{
-	return GLAD_ES_VERSION_2_0 || GLAD_VERSION_1_4 || GLAD_SGIS_generate_mipmap;
-}
-
-bool Image::hasMipmapSharpnessSupport()
-{
-	return GLAD_VERSION_1_4;
-}
-
-bool Image::hasCompressedTextureSupport(image::CompressedData::Format format)
+bool Image::hasCompressedTextureSupport(image::CompressedImageData::Format format, bool sRGB)
 {
 	switch (format)
 	{
-	case image::CompressedData::FORMAT_DXT1:
+	case image::CompressedImageData::FORMAT_DXT1:
 		return GLAD_EXT_texture_compression_s3tc || GLAD_EXT_texture_compression_dxt1;
-	case image::CompressedData::FORMAT_DXT3:
+	case image::CompressedImageData::FORMAT_DXT3:
 		return GLAD_EXT_texture_compression_s3tc || GLAD_ANGLE_texture_compression_dxt3;
-	case image::CompressedData::FORMAT_DXT5:
+	case image::CompressedImageData::FORMAT_DXT5:
 		return GLAD_EXT_texture_compression_s3tc || GLAD_ANGLE_texture_compression_dxt5;
-	case image::CompressedData::FORMAT_BC4:
-	case image::CompressedData::FORMAT_BC4s:
-	case image::CompressedData::FORMAT_BC5:
-	case image::CompressedData::FORMAT_BC5s:
+	case image::CompressedImageData::FORMAT_BC4:
+	case image::CompressedImageData::FORMAT_BC4s:
+	case image::CompressedImageData::FORMAT_BC5:
+	case image::CompressedImageData::FORMAT_BC5s:
 		return (GLAD_VERSION_3_0 || GLAD_ARB_texture_compression_rgtc || GLAD_EXT_texture_compression_rgtc);
-	case image::CompressedData::FORMAT_BC6H:
-	case image::CompressedData::FORMAT_BC6Hs:
-	case image::CompressedData::FORMAT_BC7:
-	case image::CompressedData::FORMAT_BC7SRGB:
+	case image::CompressedImageData::FORMAT_BC6H:
+	case image::CompressedImageData::FORMAT_BC6Hs:
+	case image::CompressedImageData::FORMAT_BC7:
 		return GLAD_VERSION_4_2 || GLAD_ARB_texture_compression_bptc;
-	case image::CompressedData::FORMAT_ETC1:
+	case image::CompressedImageData::FORMAT_ETC1:
 		// ETC2 support guarantees ETC1 support as well.
-		return GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_0 || GLAD_ARB_ES3_compatibility || GLAD_OES_compressed_ETC1_RGB8_texture;
-	case image::CompressedData::FORMAT_PVR1_RGB2:
-	case image::CompressedData::FORMAT_PVR1_RGB4:
-	case image::CompressedData::FORMAT_PVR1_RGBA2:
-	case image::CompressedData::FORMAT_PVR1_RGBA4:
-		return GLAD_IMG_texture_compression_pvrtc;
+		return GLAD_ES_VERSION_3_0 || GLAD_VERSION_4_3 || GLAD_ARB_ES3_compatibility || GLAD_OES_compressed_ETC1_RGB8_texture;
+	case image::CompressedImageData::FORMAT_ETC2_RGB:
+	case image::CompressedImageData::FORMAT_ETC2_RGBA:
+	case image::CompressedImageData::FORMAT_ETC2_RGBA1:
+	case image::CompressedImageData::FORMAT_EAC_R:
+	case image::CompressedImageData::FORMAT_EAC_Rs:
+	case image::CompressedImageData::FORMAT_EAC_RG:
+	case image::CompressedImageData::FORMAT_EAC_RGs:
+		return GLAD_ES_VERSION_3_0 || GLAD_VERSION_4_3 || GLAD_ARB_ES3_compatibility;
+	case image::CompressedImageData::FORMAT_PVR1_RGB2:
+	case image::CompressedImageData::FORMAT_PVR1_RGB4:
+	case image::CompressedImageData::FORMAT_PVR1_RGBA2:
+	case image::CompressedImageData::FORMAT_PVR1_RGBA4:
+		if (sRGB)
+			return GLAD_EXT_pvrtc_sRGB;
+		else
+			return GLAD_IMG_texture_compression_pvrtc;
 	default:
 		return false;
 	}
@@ -757,26 +645,26 @@ bool Image::hasCompressedTextureSupport(image::CompressedData::Format format)
 
 bool Image::hasSRGBSupport()
 {
-	return GLAD_VERSION_2_1 || GLAD_EXT_texture_sRGB || GLAD_EXT_sRGB;
+	return GLAD_ES_VERSION_3_0 || GLAD_EXT_sRGB || GLAD_VERSION_2_1 || GLAD_EXT_texture_sRGB;
 }
 
-bool Image::getConstant(const char *in, Format &out)
+bool Image::getConstant(const char *in, FlagType &out)
 {
-	return formats.find(in, out);
+	return flagNames.find(in, out);
 }
 
-bool Image::getConstant(Format in, const char *&out)
+bool Image::getConstant(FlagType in, const char *&out)
 {
-	return formats.find(in, out);
+	return flagNames.find(in, out);
 }
 
-StringMap<Image::Format, Image::FORMAT_MAX_ENUM>::Entry Image::formatEntries[] =
+StringMap<Image::FlagType, Image::FLAG_TYPE_MAX_ENUM>::Entry Image::flagNameEntries[] =
 {
-	{"normal", Image::FORMAT_NORMAL},
-	{"srgb", Image::FORMAT_SRGB},
+	{"mipmaps", Image::FLAG_TYPE_MIPMAPS},
+	{"srgb", Image::FLAG_TYPE_SRGB},
 };
 
-StringMap<Image::Format, Image::FORMAT_MAX_ENUM> Image::formats(Image::formatEntries, sizeof(Image::formatEntries));
+StringMap<Image::FlagType, Image::FLAG_TYPE_MAX_ENUM> Image::flagNames(Image::flagNameEntries, sizeof(Image::flagNameEntries));
 
 } // opengl
 } // graphics

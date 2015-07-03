@@ -24,7 +24,7 @@
 // LOVE
 #include "common/runtime.h"
 #include "Image.h"
-#include "wrap_Texture.h"
+#include "graphics/wrap_Texture.h"
 
 namespace love
 {
@@ -39,6 +39,7 @@ int w_Image_getMipmapFilter(lua_State *L);
 int w_Image_isCompressed(lua_State *L);
 int w_Image_refresh(lua_State *L);
 int w_Image_getData(lua_State *L);
+int w_Image_getFlags(lua_State *L);
 extern "C" int luaopen_image(lua_State *L);
 
 } // opengl

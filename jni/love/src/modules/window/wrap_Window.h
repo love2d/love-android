@@ -37,9 +37,6 @@ int w_getFullscreenModes(lua_State *L);
 int w_setFullscreen(lua_State *L);
 int w_getFullscreen(lua_State *L);
 int w_isCreated(lua_State *L);
-int w_getWidth(lua_State *L);
-int w_getHeight(lua_State *L);
-int w_getDimensions(lua_State *L);
 int w_getDesktopDimensions(lua_State *L);
 int w_setPosition(lua_State *L);
 int w_getPosition(lua_State *L);
@@ -51,12 +48,12 @@ int w_hasFocus(lua_State *L);
 int w_hasMouseFocus(lua_State *L);
 int w_isVisible(lua_State *L);
 int w_getPixelScale(lua_State *L);
-int w_isTouchScreen(lua_State *L);
 int w_toPixels(lua_State *L);
 int w_fromPixels(lua_State *L);
 int w_minimize(lua_State *L);
 int w_maximize(lua_State *L);
 int w_showMessageBox(lua_State *L);
+int w_requestAttention(lua_State *L);
 extern "C" LOVE_EXPORT int luaopen_love_window(lua_State *L);
 
 } // window

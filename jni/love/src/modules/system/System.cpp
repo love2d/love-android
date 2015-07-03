@@ -24,6 +24,8 @@
 
 #if defined(LOVE_MACOSX)
 #include <CoreServices/CoreServices.h>
+#elif defined(LOVE_IOS)
+#include "common/iOS.h"
 #elif defined(LOVE_ANDROID)
 #include "common/android.h"
 #elif defined(LOVE_LINUX)
@@ -62,6 +64,8 @@ std::string System::getOS() const
 {
 #if defined(LOVE_MACOSX)
 	return "OS X";
+#elif defined(LOVE_IOS)
+	return "iOS";
 #elif defined(LOVE_WINDOWS)
 	return "Windows";
 #elif LOVE_ANDROID
@@ -84,7 +88,6 @@ bool System::openURL(const std::string &url) const
 #if defined(LOVE_MACOSX)
 
 	bool success = false;
-	// We could be lazy and use system("open " + url), but this is safer.
 	CFURLRef cfurl = CFURLCreateWithBytes(nullptr,
 	                                      (const UInt8 *) url.c_str(),
 	                                      url.length(),
@@ -94,6 +97,10 @@ bool System::openURL(const std::string &url) const
 	success = LSOpenCFURLRef(cfurl, nullptr) == noErr;
 	CFRelease(cfurl);
 	return success;
+
+#elif defined(LOVE_IOS)
+
+	return love::ios::openURL(url);
 
 #elif defined(LOVE_ANDROID)
 

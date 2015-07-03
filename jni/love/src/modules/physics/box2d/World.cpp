@@ -35,20 +35,20 @@ namespace box2d
 {
 
 World::ContactCallback::ContactCallback()
-	: ref(0)
+	: ref(nullptr)
 {
 }
 
 World::ContactCallback::~ContactCallback()
 {
-	if (ref != 0)
+	if (ref != nullptr)
 		delete ref;
 }
 
 void World::ContactCallback::process(b2Contact *contact, const b2ContactImpulse *impulse)
 {
 	// Process contacts.
-	if (ref != 0)
+	if (ref != nullptr)
 	{
 		lua_State *L = ref->getL();
 		ref->push();
@@ -56,8 +56,8 @@ void World::ContactCallback::process(b2Contact *contact, const b2ContactImpulse 
 		// Push first fixture.
 		{
 			Fixture *a = (Fixture *)Memoizer::find(contact->GetFixtureA());
-			if (a != 0)
-				luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, a);
+			if (a != nullptr)
+				luax_pushtype(L, PHYSICS_FIXTURE_ID, a);
 			else
 				throw love::Exception("A fixture has escaped Memoizer!");
 		}
@@ -65,8 +65,8 @@ void World::ContactCallback::process(b2Contact *contact, const b2ContactImpulse 
 		// Push second fixture.
 		{
 			Fixture *b = (Fixture *)Memoizer::find(contact->GetFixtureB());
-			if (b != 0)
-				luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, b);
+			if (b != nullptr)
+				luax_pushtype(L, PHYSICS_FIXTURE_ID, b);
 			else
 				throw love::Exception("A fixture has escaped Memoizer!");
 		}
@@ -77,7 +77,7 @@ void World::ContactCallback::process(b2Contact *contact, const b2ContactImpulse 
 		else
 			cobj->retain();
 
-		luax_pushtype(L, "Contact", (PHYSICS_CONTACT_T), cobj);
+		luax_pushtype(L, PHYSICS_CONTACT_ID, cobj);
 		cobj->release();
 
 		int args = 3;
@@ -96,13 +96,13 @@ void World::ContactCallback::process(b2Contact *contact, const b2ContactImpulse 
 }
 
 World::ContactFilter::ContactFilter()
-	: ref(0)
+	: ref(nullptr)
 {
 }
 
 World::ContactFilter::~ContactFilter()
 {
-	if (ref != 0)
+	if (ref != nullptr)
 		delete ref;
 }
 
@@ -124,12 +124,12 @@ bool World::ContactFilter::process(Fixture *a, Fixture *b)
 		(filterB[1] & filterA[0]) == 0)
 		return false; // A and B aren't set to collide
 
-	if (ref != 0)
+	if (ref != nullptr)
 	{
 		lua_State *L = ref->getL();
 		ref->push();
-		luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, a);
-		luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, b);
+		luax_pushtype(L, PHYSICS_FIXTURE_ID, a);
+		luax_pushtype(L, PHYSICS_FIXTURE_ID, b);
 		lua_call(L, 2, 1);
 		return luax_toboolean(L, -1);
 	}
@@ -137,26 +137,26 @@ bool World::ContactFilter::process(Fixture *a, Fixture *b)
 }
 
 World::QueryCallback::QueryCallback()
-	: ref(0)
+	: ref(nullptr)
 {
 }
 
 World::QueryCallback::~QueryCallback()
 {
-	if (ref != 0)
+	if (ref != nullptr)
 		delete ref;
 }
 
 bool World::QueryCallback::ReportFixture(b2Fixture *fixture)
 {
-	if (ref != 0)
+	if (ref != nullptr)
 	{
 		lua_State *L = ref->getL();
 		ref->push();
 		Fixture *f = (Fixture *)Memoizer::find(fixture);
 		if (!f)
 			throw love::Exception("A fixture has escaped Memoizer!");
-		luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, f);
+		luax_pushtype(L, PHYSICS_FIXTURE_ID, f);
 		lua_call(L, 1, 1);
 		return luax_toboolean(L, -1);
 	}
@@ -164,26 +164,26 @@ bool World::QueryCallback::ReportFixture(b2Fixture *fixture)
 }
 
 World::RayCastCallback::RayCastCallback()
-	: ref(0)
+	: ref(nullptr)
 {
 }
 
 World::RayCastCallback::~RayCastCallback()
 {
-	if (ref != 0)
+	if (ref != nullptr)
 		delete ref;
 }
 
 float32 World::RayCastCallback::ReportFixture(b2Fixture *fixture, const b2Vec2 &point, const b2Vec2 &normal, float32 fraction)
 {
-	if (ref != 0)
+	if (ref != nullptr)
 	{
 		lua_State *L = ref->getL();
 		ref->push();
 		Fixture *f = (Fixture *)Memoizer::find(fixture);
 		if (!f)
 			throw love::Exception("A fixture has escaped Memoizer!");
-		luax_pushtype(L, "Fixture", PHYSICS_FIXTURE_T, f);
+		luax_pushtype(L, PHYSICS_FIXTURE_ID, f);
 		b2Vec2 scaledPoint = Physics::scaleUp(point);
 		lua_pushnumber(L, scaledPoint.x);
 		lua_pushnumber(L, scaledPoint.y);
@@ -213,7 +213,8 @@ void World::SayGoodbye(b2Joint *joint)
 }
 
 World::World()
-	: world(NULL), destructWorld(false)
+	: world(nullptr)
+	, destructWorld(false)
 {
 	world = new b2World(b2Vec2(0,0));
 	this->retain(); // The Box2D world holds a reference to this World.
@@ -227,7 +228,8 @@ World::World()
 }
 
 World::World(b2Vec2 gravity, bool sleep)
-	: world(NULL), destructWorld(false)
+	: world(nullptr)
+	, destructWorld(false)
 {
 	world = new b2World(Physics::scaleDown(gravity));
 	// The Box2D world holds a reference to this World.
@@ -252,7 +254,7 @@ void World::update(float dt)
 	// Destroy all objects marked during the time step.
 	for (Body *b : destructBodies)
 	{
-		if (b->body != 0) b->destroy();
+		if (b->body != nullptr) b->destroy();
 		// Release for reference in vector.
 		b->release();
 	}
@@ -314,32 +316,53 @@ bool World::ShouldCollide(b2Fixture *fixtureA, b2Fixture *fixtureB)
 
 bool World::isValid() const
 {
-	return world != 0;
+	return world != nullptr;
 }
 
 int World::setCallbacks(lua_State *L)
 {
-	int n = lua_gettop(L);
-	luax_assert_argc(L, 1, 4);
+	int nargs = lua_gettop(L);
 
-	switch (n)
+	for (int i = 1; i <= 4; i++)
 	{
-	case 4:
-		if (postsolve.ref)
-			delete postsolve.ref;
-		postsolve.ref = luax_refif(L, LUA_TFUNCTION);
-	case 3:
-		if (presolve.ref)
-			delete presolve.ref;
-		presolve.ref = luax_refif(L, LUA_TFUNCTION);
-	case 2:
-		if (end.ref)
-			delete end.ref;
-		end.ref = luax_refif(L, LUA_TFUNCTION);
-	case 1:
-		if (begin.ref)
-			delete begin.ref;
+		if (!lua_isnoneornil(L, i))
+			luaL_checktype(L, i, LUA_TFUNCTION);
+	}
+
+	delete begin.ref;
+	begin.ref = nullptr;
+
+	delete end.ref;
+	end.ref = nullptr;
+
+	delete presolve.ref;
+	presolve.ref = nullptr;
+
+	delete postsolve.ref;
+	postsolve.ref = nullptr;
+
+	if (nargs >= 1)
+	{
+		lua_pushvalue(L, 1);
 		begin.ref = luax_refif(L, LUA_TFUNCTION);
+	}
+
+	if (nargs >= 2)
+	{
+		lua_pushvalue(L, 2);
+		end.ref = luax_refif(L, LUA_TFUNCTION);
+	}
+
+	if (nargs >= 3)
+	{
+		lua_pushvalue(L, 3);
+		presolve.ref = luax_refif(L, LUA_TFUNCTION);
+	}
+
+	if (nargs >= 4)
+	{
+		lua_pushvalue(L, 4);
+		postsolve.ref = luax_refif(L, LUA_TFUNCTION);
 	}
 
 	return 0;
@@ -356,7 +379,9 @@ int World::getCallbacks(lua_State *L)
 
 int World::setContactFilter(lua_State *L)
 {
-	luax_assert_argc(L, 1);
+	if (!lua_isnoneornil(L, 1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+
 	if (filter.ref)
 		delete filter.ref;
 	filter.ref = luax_refif(L, LUA_TFUNCTION);
@@ -431,7 +456,7 @@ int World::getBodyList(lua_State *L) const
 		Body *body = (Body *)Memoizer::find(b);
 		if (!body)
 			throw love::Exception("A body has escaped Memoizer!");
-		luax_pushtype(L, "Body", PHYSICS_BODY_T, body);
+		luax_pushtype(L, PHYSICS_BODY_ID, body);
 		lua_rawseti(L, -2, i);
 		i++;
 	}
@@ -449,7 +474,7 @@ int World::getJointList(lua_State *L) const
 		if (!j) break;
 		Joint *joint = (Joint *)Memoizer::find(j);
 		if (!joint) throw love::Exception("A joint has escaped Memoizer!");
-		luax_pushtype(L, "Joint", PHYSICS_JOINT_T, joint);
+		luax_pushtype(L, PHYSICS_JOINT_ID, joint);
 		lua_rawseti(L, -2, i);
 		i++;
 	}
@@ -470,7 +495,7 @@ int World::getContactList(lua_State *L) const
 			contact = new Contact(c);
 		else
 			contact->retain();
-		luax_pushtype(L, "Contact", PHYSICS_CONTACT_T, contact);
+		luax_pushtype(L, PHYSICS_CONTACT_ID, contact);
 		contact->release();
 		lua_rawseti(L, -2, i);
 		i++;
@@ -486,7 +511,6 @@ b2Body *World::getGroundBody() const
 
 int World::queryBoundingBox(lua_State *L)
 {
-	luax_assert_argc(L, 5);
 	b2AABB box;
 	float lx = (float)luaL_checknumber(L, 1);
 	float ly = (float)luaL_checknumber(L, 2);
@@ -494,6 +518,7 @@ int World::queryBoundingBox(lua_State *L)
 	float uy = (float)luaL_checknumber(L, 4);
 	box.lowerBound = Physics::scaleDown(b2Vec2(lx, ly));
 	box.upperBound = Physics::scaleDown(b2Vec2(ux, uy));
+	luaL_checktype(L, 5, LUA_TFUNCTION);
 	if (query.ref) delete query.ref;
 	query.ref = luax_refif(L, LUA_TFUNCTION);
 	world->QueryAABB(&query, box);
@@ -502,13 +527,13 @@ int World::queryBoundingBox(lua_State *L)
 
 int World::rayCast(lua_State *L)
 {
-	luax_assert_argc(L, 5);
 	float x1 = (float)luaL_checknumber(L, 1);
 	float y1 = (float)luaL_checknumber(L, 2);
 	float x2 = (float)luaL_checknumber(L, 3);
 	float y2 = (float)luaL_checknumber(L, 4);
 	b2Vec2 v1 = Physics::scaleDown(b2Vec2(x1, y1));
 	b2Vec2 v2 = Physics::scaleDown(b2Vec2(x2, y2));
+	luaL_checktype(L, 5, LUA_TFUNCTION);
 	if (raycast.ref)
 		delete raycast.ref;
 	raycast.ref = luax_refif(L, LUA_TFUNCTION);
@@ -541,7 +566,7 @@ void World::destroy()
 	world->DestroyBody(groundBody);
 	Memoizer::remove(world);
 	delete world;
-	world = 0;
+	world = nullptr;
 
 	// Box2D world destroyed. Release its reference.
 	this->release();
