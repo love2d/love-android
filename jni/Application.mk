@@ -6,5 +6,6 @@ APP_ABI := armeabi armeabi-v7a
 APP_CPPFLAGS := -frtti
 APP_LDFLAGS := -llog -landroid -lz
 APP_PLATFORM := 10
+NDK_TOOLCHAIN_VERSION := 4.8
 
 # APP_OPTIM := debug
