@@ -419,20 +419,14 @@ public:
 
 	/**
 	 * Sets the color of the particles.
-	 * @param color The color.
-	 **/
-	void setColor(const Color &color);
-
-	/**
-	 * Sets the color of the particles.
 	 * @param newColors Array of colors
 	 **/
-	void setColor(const std::vector<Color> &newColors);
+	void setColor(const std::vector<Colorf> &newColors);
 
 	/**
 	 * Returns the color of the particles.
 	 **/
-	std::vector<Color> getColor() const;
+	std::vector<Colorf> getColor() const;
 
 	/**
 	 * Sets a list of Quads to use for particles over their lifetime.
@@ -534,8 +528,7 @@ protected:
 		float lifetime;
 		float life;
 
-		float position[2];
-		float direction;
+		love::Vector position;
 
 		// Particles gravitate towards this point.
 		love::Vector origin;

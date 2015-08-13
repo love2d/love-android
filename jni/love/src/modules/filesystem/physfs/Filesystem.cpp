@@ -175,25 +175,13 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 		save_identity = "unnamed";
 	
 	std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
-
 	std::string save_directory = internal_storage_path + "/save";
 
 	save_path_full = std::string(SDL_AndroidGetInternalStoragePath()) + std::string("/save/") + save_identity;
 
-	if (love::android::directoryExists(save_path_full.c_str()))
-		SDL_Log("dir exists");
-	else
-		SDL_Log("does not exist");
-
-	if (!love::android::directoryExists(save_path_full.c_str()))
-	{
-		if (!love::android::mkdir(save_path_full.c_str()))
-			SDL_Log("Error: Could not create save directory %s!", save_path_full.c_str());
-		else
-			SDL_Log("Save directory %s successfuly created!", save_path_full.c_str());
-	}
-	else
-		SDL_Log("Save directory %s exists!", save_path_full.c_str());
+	if (!love::android::directoryExists(save_path_full.c_str()) &&
+			!love::android::mkdir(save_path_full.c_str()))
+		SDL_Log("Error: Could not create save directory %s!", save_path_full.c_str());
 #endif
 
 	// We now have something like:
@@ -253,9 +241,7 @@ bool Filesystem::setSource(const char *source)
 
 	if (archive_loaded)
 	{
-		if (PHYSFS_mountMemory(game_archive_ptr, game_archive_size, love::android::freeGameArchiveMemory, "archive.zip", "/", 0))
-			SDL_Log("Mounting of in-memory game archive successful!");
-		else
+		if (!PHYSFS_mountMemory(game_archive_ptr, game_archive_size, love::android::freeGameArchiveMemory, "archive.zip", "/", 0))
 		{
 			SDL_Log("Mounting of in-memory game archive failed!");
 			love::android::freeGameArchiveMemory(game_archive_ptr);
@@ -278,7 +264,6 @@ bool Filesystem::setSource(const char *source)
 
 		if (sdcard_main)
 		{
-			SDL_Log("using game from %s", game_path.c_str());
 			new_search_path = game_path;
 			sdcard_main->close(sdcard_main);
 

@@ -35,65 +35,67 @@ namespace love
 namespace android
 {
 
-void setImmersive (bool immersive_active) {
+void setImmersive(bool immersive_active)
+{
 	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
 
 	jobject activity = (jobject) SDL_AndroidGetActivity();
 
-	jclass clazz (env->GetObjectClass(activity));
-	jmethodID method_id = env->GetMethodID (clazz, "setImmersiveMode", "(Z)V");
+	jclass clazz(env->GetObjectClass(activity));
+	jmethodID method_id = env->GetMethodID(clazz, "setImmersiveMode", "(Z)V");
 
-	env->CallVoidMethod (activity, method_id, immersive_active);
+	env->CallVoidMethod(activity, method_id, immersive_active);
 
-	env->DeleteLocalRef (activity);
-	env->DeleteLocalRef (clazz);
+	env->DeleteLocalRef(activity);
+	env->DeleteLocalRef(clazz);
 }
 
-bool getImmersive () {
+bool getImmersive()
+{
 	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
 
 	jobject activity = (jobject) SDL_AndroidGetActivity();
 
-	jclass clazz (env->GetObjectClass(activity));
-	jmethodID method_id = env->GetMethodID (clazz, "getImmersiveMode", "()Z");
+	jclass clazz(env->GetObjectClass(activity));
+	jmethodID method_id = env->GetMethodID(clazz, "getImmersiveMode", "()Z");
 
-	jboolean immersive_active = env->CallBooleanMethod (activity, method_id);
+	jboolean immersive_active = env->CallBooleanMethod(activity, method_id);
 
-	env->DeleteLocalRef (activity);
-	env->DeleteLocalRef (clazz);
+	env->DeleteLocalRef(activity);
+	env->DeleteLocalRef(clazz);
 
-	if (immersive_active)
-		return true;
-	return false;
+	return immersive_active;
 }
 
 double getScreenScale()
 {
-  static double result = -1.;
+	static double result = -1.;
 
-  if (result == -1.) {
-    JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
-    jclass activity = env->FindClass("org/love2d/android/GameActivity");
+	if (result == -1.)
+	{
+		JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+		jclass activity = env->FindClass("org/love2d/android/GameActivity");
 
-    jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
-    jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
-    jclass metricsClass = env->GetObjectClass(metrics);
+		jmethodID getMetrics = env->GetStaticMethodID(activity, "getMetrics", "()Landroid/util/DisplayMetrics;");
+		jobject metrics = env->CallStaticObjectMethod(activity, getMetrics);
+		jclass metricsClass = env->GetObjectClass(metrics);
 
-    result = env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
+		result = env->GetFloatField(metrics, env->GetFieldID(metricsClass, "density", "F"));
 
-    env->DeleteLocalRef (metricsClass);
-    env->DeleteLocalRef (metrics);
-    env->DeleteLocalRef (activity);
-  }
+		env->DeleteLocalRef(metricsClass);
+		env->DeleteLocalRef(metrics);
+		env->DeleteLocalRef(activity);
+	}
 
-  return result;
+	return result;
 }
 
 const char* getSelectedGameFile()
 {
 	static const char *path = NULL;
 
-	if (path) {
+	if (path)
+	{
 		delete path;
 		path = NULL;
 	}
@@ -110,8 +112,8 @@ const char* getSelectedGameFile()
 		env->ReleaseStringUTFChars(gamePath, utf);
 	}
 
-	env->DeleteLocalRef (gamePath);
-	env->DeleteLocalRef (activity);
+	env->DeleteLocalRef(gamePath);
+	env->DeleteLocalRef(activity);
 
 	return path;
 }
@@ -122,16 +124,16 @@ bool openURL(const std::string &url)
 	jclass activity = env->FindClass("org/love2d/android/GameActivity");
 
 	jmethodID openURL= env->GetStaticMethodID(activity, "openURL", "(Ljava/lang/String;)V");
-	jstring url_jstring = (jstring) env->NewStringUTF (url.c_str());
+	jstring url_jstring = (jstring) env->NewStringUTF(url.c_str());
 
-	env->CallStaticVoidMethod (activity, openURL, url_jstring); 	
+	env->CallStaticVoidMethod(activity, openURL, url_jstring);
 
-	env->DeleteLocalRef (url_jstring);
-	env->DeleteLocalRef (activity);
+	env->DeleteLocalRef(url_jstring);
+	env->DeleteLocalRef(activity);
 	return true;
 }
 
-void vibrate (double seconds)
+void vibrate(double seconds)
 {
 	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
 	jclass activity = env->FindClass("org/love2d/android/GameActivity");
@@ -139,100 +141,86 @@ void vibrate (double seconds)
 	jmethodID vibrate_method = env->GetStaticMethodID(activity, "vibrate", "(D)V");
 	env->CallStaticVoidMethod(activity, vibrate_method, seconds);
 
-	env->DeleteLocalRef (activity);
+	env->DeleteLocalRef(activity);
 }
 
 /*
  * Helper functions for the filesystem module
  */
-void freeGameArchiveMemory (void *ptr) {
-	SDL_Log ("Freeing memory for in-memory LÖVE archive 0x%x", (int) ptr);
+void freeGameArchiveMemory(void *ptr)
+{
 	char *game_love_data = static_cast<char*>(ptr);
 	delete[] game_love_data;
 }
 
-bool loadGameArchiveToMemory (const char* filename, char **ptr, size_t *size) {
-	SDL_Log ("Trying to mount %s", filename);
+bool loadGameArchiveToMemory(const char* filename, char **ptr, size_t *size)
+{
 	SDL_RWops *asset_game_file = SDL_RWFromFile(filename, "rb");
 	if (!asset_game_file) {
-		SDL_Log ("Could not find %s", filename);
+		SDL_Log("Could not find %s", filename);
 		return false;
 	}
 
 	Sint64 file_size = asset_game_file->size(asset_game_file);
-
 	if (file_size <= 0) {
-		SDL_Log ("Could not load game from %s. File has invalid file size: %d.", filename, (int) file_size);
+		SDL_Log("Could not load game from %s. File has invalid file size: %d.", filename, (int) file_size);
 		return false;
 	}
 
-	(*ptr) = new char[file_size];
-	SDL_Log ("Allocated memory for in-memory LÖVE archive at: 0x%x", (int) (*ptr));
-
-	if (!(*ptr)) {
-		SDL_Log ("Could not allocate memory for in-memory game archive");
+	*ptr = new char[file_size];
+	if (!*ptr) {
+		SDL_Log("Could not allocate memory for in-memory game archive");
 		return false;
 	}
 
-	size_t bytes_copied = asset_game_file->read(asset_game_file, (void*) (*ptr), sizeof(char), (size_t) file_size);
-
+	size_t bytes_copied = asset_game_file->read(asset_game_file, (void*) *ptr, sizeof(char), (size_t) file_size);
 	if (bytes_copied != file_size) {
-		SDL_Log ("Only copied %d of %d bytes into in-memory game archive!", (unsigned int) bytes_copied, (unsigned int) file_size);
-		delete[] (*ptr);
+		SDL_Log("Incomplete copy of in-memory game archive!");
+		delete[] *ptr;
 		return false;
 	}
-
-	SDL_Log ("Copied %d of %d bytes into in-memory game archive", (unsigned int) bytes_copied, (unsigned int) file_size);
 
 	*size = (size_t) file_size;
-
 	return true;
 }
 
-bool directoryExists(const char* path) {
-	SDL_Log ("Checking directory exists for %s", path);
+bool directoryExists(const char *path)
+{
 	struct stat s;
 	int err = stat(path, &s);
-	if (err == -1) {
-		if (errno == ENOENT)
-			return false;
-		else {
-			SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror (errno));
-			return false;
-		}
-	} else if(S_ISDIR(s.st_mode)) {
-		SDL_Log ("Directory %s exists!", path);
-		return true;
+	if (err == -1)
+	{
+		if (errno != ENOENT)
+			SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror(errno));
+		return false;
 	}
-	return false;
+
+	return S_ISDIR(s.st_mode);
 }
 
-bool mkdir (const char* path) {
+bool mkdir(const char* path)
+{
 	int err = ::mkdir (path, 0770);
-	if (err == -1) {
+	if (err == -1)
+	{
 		SDL_Log ("Error: Could not create directory %s", path);
-			return false;
+		return false;
 	}
 
 	return true;
 }
 
-bool createStorageDirectories () {
+bool createStorageDirectories()
+{
 	std::string internal_storage_path = SDL_AndroidGetInternalStoragePath();
 
 	std::string save_directory = internal_storage_path + "/save";
-	if (!directoryExists (save_directory.c_str())) {
-		if (!mkdir(save_directory.c_str()))
-			return false;
-	}
+	if (!directoryExists(save_directory.c_str()) && !mkdir(save_directory.c_str()))
+		return false;
 
 	std::string game_directory = internal_storage_path + "/game";
-	if (!directoryExists (game_directory.c_str())) {
-		if (!mkdir(game_directory.c_str()))
-			return false;
-	}
-
-	SDL_Log ("Creating storage directories successful!");
+	if (!directoryExists (game_directory.c_str()) && !mkdir(game_directory.c_str()))
+		return false;
 
 	return true;
 }

@@ -18,13 +18,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#include "modules/love/love.h"
-
-#ifndef LOVE_ANDROID
 #include "common/version.h"
-#endif
-#include <string>
-
+#include "modules/love/love.h"
 #include <SDL.h>
 
 #ifdef LOVE_BUILD_EXE
@@ -46,6 +41,10 @@ extern "C" {
 
 #ifdef LOVE_IOS
 #include "common/iOS.h"
+#endif
+
+#ifdef LOVE_ANDROID
+#include "common/android.h"
 #endif
 
 #ifdef LOVE_WINDOWS
@@ -192,7 +191,7 @@ static int l_print_sdl_log(lua_State *L)
 			break;
 		default:
 			out_string += lua_typename(L, lua_type(L, i));
-			sprintf(pointer_buf, ": 0x%lx", (size_t) lua_topointer(L, i));
+			sprintf(pointer_buf, ": 0x%lx", (long unsigned int) lua_topointer(L, i));
 			out_string += pointer_buf;
 			break;
 		}
@@ -238,17 +237,12 @@ int main(int argc, char **argv)
 	argv = hack_argv;
 #endif // LOVE_LEGENDARY_APP_ARGV_HACK
 
-#ifndef LOVE_ANDROID
-	// TODO: LOVE for Android creates a single library instead of executable
-	// and library. Therefore this check is not required, but causes a
-	// duplicate definition of the love::VERSION symbol.
-	if (strcmp(love::VERSION, love_version()) != 0)
+	if (strcmp(LOVE_VERSION_STRING, love_version()) != 0)
 	{
 		printf("Version mismatch detected!\nLOVE binary is version %s\n"
 				"LOVE library is version %s\n", LOVE_VERSION_STRING, love_version());
 		return 1;
 	}
-#endif
 
 	// Oh, you just want the version? Okay!
 	if (argc > 1 && strcmp(argv[1], "--version") == 0)

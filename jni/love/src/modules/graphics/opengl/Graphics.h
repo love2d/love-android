@@ -66,7 +66,7 @@ public:
 	const char *getName() const;
 
 	virtual void setViewportSize(int width, int height);
-	virtual bool setMode(int width, int height, bool &sRGB);
+	virtual bool setMode(int width, int height);
 	virtual void unSetMode();
 
 	virtual void setActive(bool active);
@@ -84,12 +84,12 @@ public:
 	/**
 	 * Clears the screen to a specific color.
 	 **/
-	void clear(Color c);
+	void clear(Colorf c);
 
 	/**
 	 * Clears each active canvas to a different color.
 	 **/
-	void clear(const std::vector<Color> &colors);
+	void clear(const std::vector<Colorf> &colors);
 
 	/**
 	 * Discards the contents of the screen.
@@ -183,26 +183,28 @@ public:
 
 	Text *newText(Font *font, const std::string &text = "");
 
+	bool isGammaCorrect() const;
+
 	/**
 	 * Sets the foreground color.
 	 * @param c The new foreground color.
 	 **/
-	void setColor(Color c);
+	void setColor(Colorf c);
 
 	/**
 	 * Gets current color.
 	 **/
-	Color getColor() const;
+	Colorf getColor() const;
 
 	/**
 	 * Sets the background Color.
 	 **/
-	void setBackgroundColor(Color c);
+	void setBackgroundColor(Colorf c);
 
 	/**
 	 * Gets the current background color.
 	 **/
-	Color getBackgroundColor() const;
+	Colorf getBackgroundColor() const;
 
 	void setFont(Font *font);
 	Font *getFont();
@@ -463,44 +465,38 @@ private:
 
 	struct DisplayState
 	{
-		Color color;
-		Color backgroundColor;
+		Colorf color = Colorf(255.0, 255.0, 255.0, 255.0);
+		Colorf backgroundColor = Colorf(0.0, 0.0, 0.0, 255.0);
 
-		BlendMode blendMode;
-		bool blendMultiplyAlpha;
+		BlendMode blendMode = BLEND_ALPHA;
+		bool blendMultiplyAlpha = true;
 
-		float lineWidth;
-		LineStyle lineStyle;
-		LineJoin lineJoin;
+		float lineWidth = 1.0f;
+		LineStyle lineStyle = LINE_SMOOTH;
+		LineJoin lineJoin = LINE_JOIN_MITER;
 
-		float pointSize;
+		float pointSize = 1.0f;
 
-		bool scissor;
-		OpenGL::Viewport scissorBox;
+		bool scissor = false;
+		OpenGL::Viewport scissorBox = OpenGL::Viewport();
 
 		// Stencil.
-		bool stencilTest;
-		bool stencilInvert;
+		bool stencilTest = false;
+		bool stencilInvert = false;
 
 		StrongRef<Font> font;
 		StrongRef<Shader> shader;
 
 		std::vector<StrongRef<Canvas>> canvases;
 
-		ColorMask colorMask;
+		ColorMask colorMask = ColorMask(true, true, true, true);
 
-		bool wireframe;
+		bool wireframe = false;
 
-		Texture::Filter defaultFilter;
+		Texture::Filter defaultFilter = Texture::Filter();
 
-		Texture::FilterMode defaultMipmapFilter;
-		float defaultMipmapSharpness;
-
-		DisplayState();
-		DisplayState(const DisplayState &other);
-		~DisplayState();
-
-		DisplayState &operator = (const DisplayState &other);
+		Texture::FilterMode defaultMipmapFilter = Texture::FILTER_NEAREST;
+		float defaultMipmapSharpness = 0.0f;
 	};
 
 	void restoreState(const DisplayState &s);

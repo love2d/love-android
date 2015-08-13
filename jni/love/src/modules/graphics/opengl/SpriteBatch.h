@@ -103,7 +103,7 @@ public:
 
 private:
 
-	void addv(const Vertex *v, const Matrix4 &m, int index);
+	void addv(const Vertex *v, const Matrix3 &m, int index);
 
 	/**
 	 * Set the color for vertices.
@@ -128,10 +128,6 @@ private:
 
 	GLBuffer *array_buf;
 	QuadIndices quad_indices;
-
-	// The portion of the vertex buffer that's been modified while mapped.
-	size_t buffer_used_offset;
-	size_t buffer_used_size;
 
 }; // SpriteBatch
 

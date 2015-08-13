@@ -48,8 +48,6 @@ SpriteBatch::SpriteBatch(Texture *texture, int size, Mesh::Usage usage)
 	, color(0)
 	, array_buf(nullptr)
 	, quad_indices(size)
-	, buffer_used_offset(0)
-	, buffer_used_size(0)
 {
 	if (size <= 0)
 		throw love::Exception("Invalid SpriteBatch size.");
@@ -60,7 +58,7 @@ SpriteBatch::SpriteBatch(Texture *texture, int size, Mesh::Usage usage)
 
 	try
 	{
-		array_buf = new GLBuffer(vertex_size, nullptr, GL_ARRAY_BUFFER, gl_usage);
+		array_buf = new GLBuffer(vertex_size, nullptr, GL_ARRAY_BUFFER, gl_usage, GLBuffer::MAP_EXPLICIT_RANGE_MODIFY);
 	}
 	catch (love::Exception &)
 	{
@@ -86,7 +84,7 @@ int SpriteBatch::add(float x, float y, float a, float sx, float sy, float ox, fl
 	if ((index == -1 && next >= size) || index < -1 || index >= size)
 		return -1;
 
-	Matrix4 t(x, y, a, sx, sy, ox, oy, kx, ky);
+	Matrix3 t(x, y, a, sx, sy, ox, oy, kx, ky);
 
 	addv(texture->getVertices(), t, (index == -1) ? next : index);
 
@@ -103,7 +101,7 @@ int SpriteBatch::addq(Quad *quad, float x, float y, float a, float sx, float sy,
 	if ((index == -1 && next >= size) || index < -1 || index >= next)
 		return -1;
 
-	Matrix4 t(x, y, a, sx, sy, ox, oy, kx, ky);
+	Matrix3 t(x, y, a, sx, sy, ox, oy, kx, ky);
 
 	addv(quad->getVertices(), t, (index == -1) ? next : index);
 
@@ -123,9 +121,7 @@ void SpriteBatch::clear()
 void SpriteBatch::flush()
 {
 	GLBuffer::Bind bind(*array_buf);
-	array_buf->unmap(buffer_used_offset, buffer_used_size);
-
-	buffer_used_offset = buffer_used_size = 0;
+	array_buf->unmap();
 }
 
 void SpriteBatch::setTexture(Texture *newtexture)
@@ -182,7 +178,7 @@ void SpriteBatch::setBufferSize(int newsize)
 
 	try
 	{
-		new_array_buf = new GLBuffer(vertex_size, nullptr, array_buf->getTarget(), array_buf->getUsage());
+		new_array_buf = new GLBuffer(vertex_size, nullptr, array_buf->getTarget(), array_buf->getUsage(), array_buf->getMapFlags());
 
 		// Copy as much of the old data into the new GLBuffer as can fit.
 		GLBuffer::Bind bind(*new_array_buf);
@@ -222,10 +218,8 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 
 	OpenGL::TempDebugGroup debuggroup("SpriteBatch draw");
 
-	Matrix4 t(x, y, angle, sx, sy, ox, oy, kx, ky);
-
 	OpenGL::TempTransform transform(gl);
-	transform.get() *= t;
+	transform.get() *= Matrix4(x, y, angle, sx, sy, ox, oy, kx, ky);
 
 	gl.bindTexture(*(GLuint *) texture->getHandle());
 
@@ -233,8 +227,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 	GLBuffer::Bind element_bind(*quad_indices.getBuffer());
 
 	// Make sure the VBO isn't mapped when we draw (sends data to GPU if needed.)
-	array_buf->unmap(buffer_used_offset, buffer_used_size);
-	buffer_used_offset = buffer_used_size = 0;
+	array_buf->unmap();
 
 	uint32 enabledattribs = ATTRIBFLAG_POS | ATTRIBFLAG_TEXCOORD;
 
@@ -254,7 +247,7 @@ void SpriteBatch::draw(float x, float y, float angle, float sx, float sy, float 
 	gl.drawElements(GL_TRIANGLES, (GLsizei) quad_indices.getIndexCount(next), quad_indices.getType(), quad_indices.getPointer(0));
 }
 
-void SpriteBatch::addv(const Vertex *v, const Matrix4 &m, int index)
+void SpriteBatch::addv(const Vertex *v, const Matrix3 &m, int index)
 {
 	// Needed for colors.
 	Vertex sprite[4] = {v[0], v[1], v[2], v[3]};
@@ -272,9 +265,6 @@ void SpriteBatch::addv(const Vertex *v, const Matrix4 &m, int index)
 	array_buf->map();
 
 	array_buf->fill(index * sprite_size, sprite_size, sprite);
-
-	buffer_used_offset = std::min(buffer_used_offset, index * sprite_size);
-	buffer_used_size = std::max(buffer_used_size, (index + 1) * sprite_size - buffer_used_offset);
 }
 
 void SpriteBatch::setColorv(Vertex *v, const Color &color)
