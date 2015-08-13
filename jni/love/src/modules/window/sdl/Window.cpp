@@ -56,7 +56,7 @@ namespace sdl
 {
 
 Window::Window()
-	: created(false)
+	: open(false)
 	, mouseGrabbed(false)
 	, window(nullptr)
 	, context(nullptr)
@@ -69,17 +69,7 @@ Window::Window()
 
 Window::~Window()
 {
-	if (context)
-	{
-		graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
-		if (gfx != nullptr)
-			gfx->unSetMode();
-
-		SDL_GL_DeleteContext(context);
-	}
-
-	if (window)
-		SDL_DestroyWindow(window);
+	close();
 
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -103,6 +93,13 @@ void Window::setGLFramebufferAttributes(int msaa, bool sRGB)
 	// practice the framebuffer will be sRGB-capable even if it's not requested.
 #if !defined(LOVE_LINUX)
 	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, sRGB ? 1 : 0);
+#endif
+
+#if defined(LOVE_WINDOWS)
+	// Avoid the Microsoft OpenGL 1.1 software renderer on Windows. Apparently
+	// older Intel drivers like to use it as a fallback when requesting some
+	// unsupported framebuffer attribute values, rather than properly failing.
+	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 #endif
 }
 
@@ -349,22 +346,12 @@ bool Window::createWindowAndContext(int x, int y, int w, int h, Uint32 windowfla
 			}
 		}
 
-		if (context)
-		{
-			SDL_GL_DeleteContext(context);
-			context = nullptr;
-		}
-
-		if (window)
-		{
-			SDL_DestroyWindow(window);
-			SDL_FlushEvent(SDL_WINDOWEVENT);
-			window = nullptr;
-		}
+		close();
 
 		return false;
 	}
 
+	open = true;
 	return true;
 }
 
@@ -448,32 +435,10 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 			x = y = SDL_WINDOWPOS_UNDEFINED_DISPLAY(f.display);
 	}
 
-	graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
-	if (gfx != nullptr)
-		gfx->unSetMode();
-
-	if (context)
-	{
-		SDL_GL_DeleteContext(context);
-		context = nullptr;
-	}
-
-	if (window)
-	{
-		SDL_DestroyWindow(window);
-		window = nullptr;
-
-		// The old window may have generated pending events which are no longer
-		// relevant. Destroy them all!
-		SDL_FlushEvent(SDL_WINDOWEVENT);
-	}
-
-	created = false;
+	close();
 
 	if (!createWindowAndContext(x, y, width, height, sdlflags, f.msaa, f.sRGB))
 		return false;
-
-	created = true;
 
 	// Make sure the window keeps any previously set icon.
 	setIcon(curMode.icon.get());
@@ -493,6 +458,7 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	updateSettings(f);
 
+	auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 	if (gfx != nullptr)
 		gfx->setMode(curMode.pixelwidth, curMode.pixelheight, curMode.settings.sRGB);
 
@@ -513,7 +479,7 @@ bool Window::onSizeChanged(int width, int height)
 
 	SDL_GL_GetDrawableSize(window, &curMode.pixelwidth, &curMode.pixelheight);
 
-	graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+	auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 	if (gfx != nullptr)
 		gfx->setViewportSize(curMode.pixelwidth, curMode.pixelheight);
 
@@ -601,6 +567,31 @@ void Window::getWindow(int &width, int &height, WindowSettings &settings)
 	settings = curMode.settings;
 }
 
+void Window::close()
+{
+	auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+	if (gfx != nullptr)
+		gfx->unSetMode();
+
+	if (context)
+	{
+		SDL_GL_DeleteContext(context);
+		context = nullptr;
+	}
+
+	if (window)
+	{
+		SDL_DestroyWindow(window);
+		window = nullptr;
+
+		// The old window may have generated pending events which are no longer
+		// relevant. Destroy them all!
+		SDL_FlushEvent(SDL_WINDOWEVENT);
+	}
+
+	open = false;
+}
+
 bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 {
 	if (!window)
@@ -639,7 +630,7 @@ bool Window::setFullscreen(bool fullscreen, Window::FullscreenType fstype)
 		updateSettings(newsettings);
 
 		// Update the viewport size now instead of waiting for event polling.
-		graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+		auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 		if (gfx != nullptr)
 			gfx->setViewportSize(curMode.pixelwidth, curMode.pixelheight);
 
@@ -739,21 +730,22 @@ void Window::getPosition(int &x, int &y, int &displayindex)
 
 	SDL_GetWindowPosition(window, &x, &y);
 
-	// SDL always reports 0, 0 for fullscreen windows.
-	if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN))
+	// In SDL <= 2.0.3, fullscreen windows are always reported as 0,0. In every
+	// other case we need to convert the position from global coordinates to the
+	// monitor's coordinate space.
+	if (x != 0 || y != 0)
 	{
 		SDL_Rect displaybounds = {};
 		SDL_GetDisplayBounds(displayindex, &displaybounds);
 
-		// The position needs to be in the monitor's coordinate space.
 		x -= displaybounds.x;
 		y -= displaybounds.y;
 	}
 }
 
-bool Window::isCreated() const
+bool Window::isOpen() const
 {
-	return created;
+	return open;
 }
 
 void Window::setWindowTitle(const std::string &title)
@@ -1032,16 +1024,6 @@ void Window::requestAttention(bool continuous)
 #endif
 	
 	// TODO: Linux?
-}
-
-love::window::Window *Window::createSingleton()
-{
-	if (!singleton)
-		singleton = new Window();
-	else
-		singleton->retain();
-
-	return singleton;
 }
 
 const char *Window::getName() const

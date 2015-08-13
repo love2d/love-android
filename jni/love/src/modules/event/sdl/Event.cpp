@@ -45,7 +45,7 @@ namespace sdl
 // we want them in pixel coordinates (may be different with high-DPI enabled.)
 static void windowToPixelCoords(double *x, double *y)
 {
-	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
+	auto window = Module::getInstance<window::Window>(Module::M_WINDOW);
 	if (window)
 		window->windowToPixelCoords(x, y);
 }
@@ -53,7 +53,7 @@ static void windowToPixelCoords(double *x, double *y)
 #ifndef LOVE_MACOSX
 static void normalizedToPixelCoords(double *x, double *y)
 {
-	window::Window *window = Module::getInstance<window::Window>(Module::M_WINDOW);
+	auto window = Module::getInstance<window::Window>(Module::M_WINDOW);
 	int w = 1, h = 1;
 
 	if (window)
@@ -71,7 +71,7 @@ static void normalizedToPixelCoords(double *x, double *y)
 // handling inside the function which triggered them on some backends.
 static int SDLCALL watchAppEvents(void * /*udata*/, SDL_Event *event)
 {
-	graphics::Graphics *gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
+	auto gfx = Module::getInstance<graphics::Graphics>(Module::M_GRAPHICS);
 
 	switch (event->type)
 	{
@@ -153,7 +153,6 @@ Message *Event::convert(const SDL_Event &e) const
 	std::vector<StrongRef<Variant>> vargs;
 	vargs.reserve(4);
 
-	love::keyboard::Keyboard *kb = nullptr;
 	love::filesystem::Filesystem *filesystem = nullptr;
 
 	love::keyboard::Keyboard::Key key = love::keyboard::Keyboard::KEY_UNKNOWN;
@@ -177,7 +176,7 @@ Message *Event::convert(const SDL_Event &e) const
 	case SDL_KEYDOWN:
 		if (e.key.repeat)
 		{
-			kb = Module::getInstance<love::keyboard::Keyboard>(Module::M_KEYBOARD);
+			auto kb = Module::getInstance<love::keyboard::Keyboard>(Module::M_KEYBOARD);
 			if (kb && !kb->hasKeyRepeat())
 				break;
 		}
@@ -395,7 +394,7 @@ Message *Event::convert(const SDL_Event &e) const
 
 Message *Event::convertJoystickEvent(const SDL_Event &e) const
 {
-	joystick::JoystickModule *joymodule = Module::getInstance<joystick::JoystickModule>(Module::M_JOYSTICK);
+	auto joymodule = Module::getInstance<joystick::JoystickModule>(Module::M_JOYSTICK);
 	if (!joymodule)
 		return nullptr;
 
@@ -511,24 +510,24 @@ Message *Event::convertJoystickEvent(const SDL_Event &e) const
 			msg = new Message("joystickremoved", vargs);
 		}
 		break;
-	default:
-		break;
 #ifdef LOVE_ANDROID
-		case SDL_WINDOWEVENT_MINIMIZED:
+	case SDL_WINDOWEVENT_MINIMIZED:
 		{
-			audio::Audio *audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
+			auto audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
 			if (audio)
 				audio->pause();
 		}
 		break;
-		case SDL_WINDOWEVENT_RESTORED:
+	case SDL_WINDOWEVENT_RESTORED:
 		{
-			audio::Audio *audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
+			auto audio = Module::getInstance<audio::Audio>(Module::M_AUDIO);
 			if (audio)
 				audio->resume();
 		}
 		break;
 #endif
+	default:
+		break;
 	}
 
 	// We gave +1 refs to the StrongRef list, so we should release them.
@@ -754,7 +753,6 @@ std::map<SDL_Keycode, love::keyboard::Keyboard::Key> Event::createKeyMap()
 	k[SDLK_EXECUTE] = Keyboard::KEY_EXECUTE;
 	k[SDLK_HELP] = Keyboard::KEY_HELP;
 	k[SDLK_MENU] = Keyboard::KEY_MENU;
-	k[SDLK_AC_SEARCH] = Keyboard::KEY_SEARCH;
 	k[SDLK_SELECT] = Keyboard::KEY_SELECT;
 	k[SDLK_STOP] = Keyboard::KEY_STOP;
 	k[SDLK_AGAIN] = Keyboard::KEY_AGAIN;

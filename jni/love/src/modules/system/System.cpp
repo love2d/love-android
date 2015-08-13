@@ -104,7 +104,7 @@ bool System::openURL(const std::string &url) const
 
 #elif defined(LOVE_ANDROID)
 
-	return love::android::openURL (url);	
+	return love::android::openURL(url);
 
 #elif defined(LOVE_LINUX)
 
@@ -142,9 +142,12 @@ bool System::openURL(const std::string &url) const
 #endif
 }
 
-void System::vibrate(double seconds) const {
+void System::vibrate(double seconds) const
+{
 #ifdef LOVE_ANDROID
-	love::android::vibrate (seconds);	
+	love::android::vibrate(seconds);
+#else
+	LOVE_UNUSED(seconds);
 #endif
 }
 

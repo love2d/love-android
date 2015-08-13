@@ -1,10 +1,8 @@
 #include <string.h>
 #include "glad.hpp"
-#include <dlfcn.h>
-
-#define GLAD_USE_SDL
 
 namespace glad {
+
 
 #ifdef GLAD_USE_SDL
 #include <SDL.h>
@@ -15,17 +13,9 @@ namespace glad {
 #include <assert.h>
 #endif
 
-void* LoaderDlsymOrSDLGetProc (const char* name) {
-	void* proc = dlsym(RTLD_DEFAULT, name);
-	if (!proc) {
-		proc = SDL_GL_GetProcAddress (name);
-	}
-	return proc;
-}
-
 bool gladLoadGL(void) {
 #ifdef GLAD_USE_SDL
-    return gladLoadGLLoader(LoaderDlsymOrSDLGetProc);
+    return gladLoadGLLoader(SDL_GL_GetProcAddress);
 #else
     // generic gladLoadGL is not implemented, use gladLoadGLLoader or define GLAD_USE_SDL
     assert(0);

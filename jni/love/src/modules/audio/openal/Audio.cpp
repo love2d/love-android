@@ -36,13 +36,11 @@ Audio::PoolThread::PoolThread(Pool *pool)
 	: pool(pool)
 	, finish(false)
 {
-	mutex = thread::newMutex();
 	threadName = "AudioPool";
 }
 
 Audio::PoolThread::~PoolThread()
 {
-	delete mutex;
 }
 
 
@@ -193,7 +191,7 @@ void Audio::pause()
 {
 	pool->pause();
 #ifdef LOVE_ANDROID
-	alcDevicePauseSOFT (device);
+	alcDevicePauseSOFT(device);
 #endif
 }
 

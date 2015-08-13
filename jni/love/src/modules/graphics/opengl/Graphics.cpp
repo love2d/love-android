@@ -24,7 +24,6 @@
 #include "common/Vector.h"
 
 #include "Graphics.h"
-#include "window/sdl/Window.h"
 #include "font/Font.h"
 #include "Polyline.h"
 
@@ -50,7 +49,8 @@ namespace opengl
 {
 
 Graphics::Graphics()
-	: quadIndices(nullptr)
+	: currentWindow(Module::getInstance<love::window::Window>(Module::M_WINDOW))
+	, quadIndices(nullptr)
 	, width(0)
 	, height(0)
 	, created(false)
@@ -62,20 +62,21 @@ Graphics::Graphics()
 	states.reserve(10);
 	states.push_back(DisplayState());
 
-	currentWindow = love::window::sdl::Window::createSingleton();
+	if (currentWindow.get())
+	{
+		int w, h;
+		love::window::WindowSettings wsettings;
 
-	int w, h;
-	love::window::WindowSettings wsettings;
+		currentWindow->getWindow(w, h, wsettings);
 
-	currentWindow->getWindow(w, h, wsettings);
-
-	if (currentWindow->isCreated())
-		setMode(w, h, wsettings.sRGB);
+		if (currentWindow->isOpen())
+			setMode(w, h, wsettings.sRGB);
+	}
 }
 
 Graphics::~Graphics()
 {
-	// We do this manually so the love objects get released before the window.
+	// We do this manually so the graphics objects are released before the window.
 	states.clear();
 	defaultFont.set(nullptr);
 
@@ -87,8 +88,6 @@ Graphics::~Graphics()
 
 	if (quadIndices)
 		delete quadIndices;
-
-	currentWindow->release();
 }
 
 const char *Graphics::getName() const
@@ -195,7 +194,7 @@ void Graphics::checkSetDefaultFont()
 	// Create a new default font if we don't have one yet.
 	if (!defaultFont.get())
 	{
-		font::Font *fontmodule = Module::getInstance<font::Font>(M_FONT);
+		auto fontmodule = Module::getInstance<font::Font>(M_FONT);
 		if (!fontmodule)
 			throw love::Exception("Font module has not been loaded.");
 
@@ -238,6 +237,8 @@ void Graphics::setViewportSize(int width, int height)
 
 bool Graphics::setMode(int width, int height, bool &sRGB)
 {
+	currentWindow.set(Module::getInstance<love::window::Window>(Module::M_WINDOW));
+
 	this->width = width;
 	this->height = height;
 
@@ -355,7 +356,7 @@ bool Graphics::isActive() const
 {
 	// The graphics module is only completely 'active' if there's a window, a
 	// context, and the active variable is set.
-	return active && isCreated() && currentWindow && currentWindow->isCreated();
+	return active && isCreated() && currentWindow.get() && currentWindow->isOpen();
 }
 
 static void APIENTRY debugCB(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*len*/, const GLchar *msg, const GLvoid* /*usr*/)
@@ -494,11 +495,13 @@ void Graphics::discard(const std::vector<bool> &colorbuffers, bool stencil)
 	}
 	else
 	{
-		int activecanvascount = (int) states.back().canvases.size();
+		int rendertargetcount = 1;
+		if (Canvas::current)
+			rendertargetcount = (int) states.back().canvases.size();
 
 		for (int i = 0; i < (int) colorbuffers.size(); i++)
 		{
-			if (colorbuffers[i] && i < activecanvascount)
+			if (colorbuffers[i] && i < rendertargetcount)
 				attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
 		}
 
@@ -536,7 +539,8 @@ void Graphics::present()
 	glBindRenderbuffer(GL_RENDERBUFFER, info.info.uikit.colorbuffer);
 #endif
 
-	currentWindow->swapBuffers();
+	if (currentWindow.get())
+		currentWindow->swapBuffers();
 
 	// Restore the currently active canvas, if there is one.
 	setCanvas(canvases);
@@ -660,12 +664,12 @@ void Graphics::clearStencil()
 	glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-Image *Graphics::newImage(love::image::ImageData *data, const Image::Flags &flags)
+Image *Graphics::newImage(const std::vector<love::image::ImageData *> &data, const Image::Flags &flags)
 {
 	return new Image(data, flags);
 }
 
-Image *Graphics::newImage(love::image::CompressedImageData *cdata, const Image::Flags &flags)
+Image *Graphics::newImage(const std::vector<love::image::CompressedImageData *> &cdata, const Image::Flags &flags)
 {
 	return new Image(cdata, flags);
 }
@@ -945,7 +949,7 @@ void Graphics::setBlendMode(BlendMode mode, bool multiplyalpha)
 		func = GL_FUNC_REVERSE_SUBTRACT;
 	case BLEND_ADD:
 		srcRGB = GL_ONE;
-		srcA = GL_SRC_ALPHA; // FIXME: This isn't correct...
+		srcA = GL_ZERO;
 		dstRGB = dstA = GL_ONE;
 		break;
 	case BLEND_SCREEN:
@@ -1133,6 +1137,13 @@ void Graphics::rectangle(DrawMode mode, float x, float y, float w, float h, floa
 		return;
 	}
 
+	// Radius values that are more than half the rectangle's size aren't handled
+	// correctly (for now)...
+	if (w >= 0.02f)
+		rx = std::min(rx, w / 2.0f - 0.01f);
+	if (h >= 0.02f)
+		ry = std::min(ry, h / 2.0f - 0.01f);
+
 	points = std::max(points, 1);
 
 	const float half_pi = static_cast<float>(LOVE_M_PI / 2);
@@ -1308,7 +1319,33 @@ love::image::ImageData *Graphics::newScreenshot(love::image::Image *image, bool 
 		throw love::Exception("Out of memory.");
 	}
 
+#ifdef LOVE_IOS
+	SDL_SysWMinfo info = {};
+	SDL_VERSION(&info.version);
+	SDL_GetWindowWMInfo(SDL_GL_GetCurrentWindow(), &info);
+
+	if (info.info.uikit.resolveFramebuffer != 0)
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, info.info.uikit.resolveFramebuffer);
+
+		// We need to do an explicit MSAA resolve on iOS, because it uses GLES
+		// FBOs rather than a system framebuffer.
+		if (GLAD_ES_VERSION_3_0)
+			glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		else if (GLAD_APPLE_framebuffer_multisample)
+			glResolveMultisampleFramebufferAPPLE();
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, info.info.uikit.resolveFramebuffer);
+	}
+#endif
+
 	glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+#ifdef LOVE_IOS
+	// Restore the previous binding for the main framebuffer.
+	if (info.info.uikit.resolveFramebuffer != 0)
+		glBindFramebuffer(GL_FRAMEBUFFER, gl.getDefaultFBO());
+#endif
 
 	if (!copyAlpha)
 	{

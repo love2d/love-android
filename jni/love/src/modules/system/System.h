@@ -103,7 +103,6 @@ public:
 	 * Vibrates for the specified amount of seconds.
 	 *
 	 * @param number of seconds to vibrate.
-	 *
 	 */
 	virtual void vibrate(double seconds) const;
 

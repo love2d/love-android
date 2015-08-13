@@ -48,6 +48,14 @@ static int w__gc(lua_State *L)
 
 static int w__tostring(lua_State *L)
 {
+	Proxy *p = (Proxy *) lua_touserdata(L, 1);
+	const char *typname = lua_tostring(L, lua_upvalueindex(1));
+	lua_pushfstring(L, "%s: %p", typname, p->object);
+	return 1;
+}
+
+static int w__type(lua_State *L)
+{
 	lua_pushvalue(L, lua_upvalueindex(1));
 	return 1;
 }
@@ -83,7 +91,7 @@ Reference *luax_refif(lua_State *L, int type)
 
 void luax_printstack(lua_State *L)
 {
-	for (int i = 1; i<=lua_gettop(L); i++)
+	for (int i = 1; i <= lua_gettop(L); i++)
 		std::cout << i << " - " << luaL_typename(L, i) << std::endl;
 }
 
@@ -313,9 +321,9 @@ int luax_register_type(lua_State *L, love::Type type, const luaL_Reg *f, bool pu
 	lua_pushcclosure(L, w__tostring, 1);
 	lua_setfield(L, -2, "__tostring");
 
-	// Add tostring to as type() as well.
+	// Add type
 	lua_pushstring(L, tname);
-	lua_pushcclosure(L, w__tostring, 1);
+	lua_pushcclosure(L, w__type, 1);
 	lua_setfield(L, -2, "type");
 
 	// Add typeOf
@@ -590,8 +598,6 @@ int luax_insistregistry(lua_State *L, Registry r)
 {
 	switch (r)
 	{
-	case REGISTRY_GC:
-		return luax_insistlove(L, "_gc");
 	case REGISTRY_MODULES:
 		return luax_insistlove(L, "_modules");
 	case REGISTRY_OBJECTS:
@@ -605,8 +611,6 @@ int luax_getregistry(lua_State *L, Registry r)
 {
 	switch (r)
 	{
-	case REGISTRY_GC:
-		return luax_getlove(L, "_gc");
 	case REGISTRY_MODULES:
 		return luax_getlove(L, "_modules");
 	case REGISTRY_OBJECTS:
@@ -617,21 +621,54 @@ int luax_getregistry(lua_State *L, Registry r)
 	}
 }
 
+static const char *MAIN_THREAD_KEY = "_love_mainthread";
+
+lua_State *luax_insistpinnedthread(lua_State *L)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, MAIN_THREAD_KEY);
+
+	if (lua_isnoneornil(L, -1))
+	{
+		lua_pop(L, 1);
+
+		// lua_pushthread returns 1 if it's actually the main thread, but we
+		// can't actually get the real main thread if lua_pushthread doesn't
+		// return it (in Lua 5.1 at least), so we ignore that for now...
+		// We do store a strong reference to the current thread/coroutine in
+		// the registry, however.
+		lua_pushthread(L);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_REGISTRYINDEX, MAIN_THREAD_KEY);
+	}
+
+	lua_State *thread = lua_tothread(L, -1);
+	lua_pop(L, 1);
+	return thread;
+}
+
+lua_State *luax_getpinnedthread(lua_State *L)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, MAIN_THREAD_KEY);
+	lua_State *thread = lua_tothread(L, -1);
+	lua_pop(L, 1);
+	return thread;
+}
+
 extern "C" int luax_typerror(lua_State *L, int narg, const char *tname)
 {
 	int argtype = lua_type(L, narg);
 	const char *argtname = 0;
 
 	// We want to use the love type name for userdata, if possible.
-	if (argtype == LUA_TUSERDATA && luaL_getmetafield(L, narg, "__tostring") != 0)
+	if (argtype == LUA_TUSERDATA && luaL_getmetafield(L, narg, "type") != 0)
 	{
 		lua_pushvalue(L, narg);
 		if (lua_pcall(L, 1, 1, 0) == 0 && lua_type(L, -1) == LUA_TSTRING)
 		{
 			argtname = lua_tostring(L, -1);
 
-			// Non-love userdata might have a tostring metamethod which doesn't
-			// describe its type, so we only use __tostring for love types.
+			// Non-love userdata might have a type metamethod which doesn't
+			// describe its type properly, so we only use it for love types.
 			love::Type t;
 			if (!love::getType(argtname, t))
 				argtname = 0;

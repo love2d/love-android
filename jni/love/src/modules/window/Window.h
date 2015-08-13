@@ -112,6 +112,8 @@ public:
 	virtual bool setWindow(int width = 800, int height = 600, WindowSettings *settings = nullptr) = 0;
 	virtual void getWindow(int &width, int &height, WindowSettings &settings) = 0;
 
+	virtual void close() = 0;
+
 	virtual bool setFullscreen(bool fullscreen, FullscreenType fstype) = 0;
 	virtual bool setFullscreen(bool fullscreen) = 0;
 
@@ -128,7 +130,7 @@ public:
 	virtual void setPosition(int x, int y, int displayindex) = 0;
 	virtual void getPosition(int &x, int &y, int &displayindex) = 0;
 
-	virtual bool isCreated() const = 0;
+	virtual bool isOpen() const = 0;
 
 	virtual void setWindowTitle(const std::string &title) = 0;
 	virtual const std::string &getWindowTitle() const = 0;
@@ -173,9 +175,6 @@ public:
 
 	virtual void requestAttention(bool continuous) = 0;
 
-	//virtual static Window *createSingleton() = 0;
-	// No virtual statics, of course, but you are supposed to implement this static.
-
 	static bool getConstant(const char *in, Setting &out);
 	static bool getConstant(Setting in, const char *&out);
 
@@ -184,10 +183,6 @@ public:
 
 	static bool getConstant(const char *in, MessageBoxType &out);
 	static bool getConstant(MessageBoxType in, const char *&out);
-
-protected:
-
-	static Window *singleton;
 
 private:
 

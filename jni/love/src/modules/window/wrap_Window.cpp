@@ -194,7 +194,7 @@ int w_getFullscreenModes(lua_State *L)
 {
 	int displayindex = 0;
 	if (!lua_isnoneornil(L, 1))
-		displayindex = (int) luaL_checknumber(L, 1);
+		displayindex = (int) luaL_checknumber(L, 1) - 1;
 	else
 	{
 		int x, y;
@@ -260,10 +260,16 @@ int w_getFullscreen(lua_State *L)
 	return 2;
 }
 
-int w_isCreated(lua_State *L)
+int w_isOpen(lua_State *L)
 {
-	luax_pushboolean(L, instance()->isCreated());
+	luax_pushboolean(L, instance()->isOpen());
 	return 1;
+}
+
+int w_close(lua_State * /*L*/)
+{
+	instance()->close();
+	return 0;
 }
 
 int w_getDesktopDimensions(lua_State *L)
@@ -271,7 +277,7 @@ int w_getDesktopDimensions(lua_State *L)
 	int width = 0, height = 0;
 	int displayindex = 0;
 	if (!lua_isnoneornil(L, 1))
-		displayindex = (int) luaL_checknumber(L, 1);
+		displayindex = (int) luaL_checknumber(L, 1) - 1;
 	else
 	{
 		int x, y;
@@ -290,7 +296,7 @@ int w_setPosition(lua_State *L)
 
 	int displayindex = 0;
 	if (!lua_isnoneornil(L, 3))
-		displayindex = (int) luaL_checknumber(L, 3);
+		displayindex = (int) luaL_checknumber(L, 3) - 1;
 	else
 	{
 		int x_unused, y_unused;
@@ -499,7 +505,9 @@ static const luaL_Reg functions[] =
 	{ "getFullscreenModes", w_getFullscreenModes },
 	{ "setFullscreen", w_setFullscreen },
 	{ "getFullscreen", w_getFullscreen },
-	{ "isCreated", w_isCreated },
+	{ "isOpen", w_isOpen },
+	{ "isCreated", w_isOpen }, // For compatibility with old error handlers...
+	{ "close", w_close },
 	{ "getDesktopDimensions", w_getDesktopDimensions },
 	{ "setPosition", w_setPosition },
 	{ "getPosition", w_getPosition },
@@ -522,8 +530,11 @@ static const luaL_Reg functions[] =
 
 extern "C" int luaopen_love_window(lua_State *L)
 {
-	Window *instance = nullptr;
-	luax_catchexcept(L, [&](){ instance = sdl::Window::createSingleton(); });
+	Window *instance = instance();
+	if (instance == nullptr)
+		luax_catchexcept(L, [&](){ instance = new love::window::sdl::Window(); });
+	else
+		instance->retain();
 
 	WrappedModule w;
 	w.module = instance;

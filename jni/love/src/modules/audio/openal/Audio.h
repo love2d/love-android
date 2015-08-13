@@ -127,7 +127,7 @@ private:
 		volatile bool finish;
 
 		// finish lock
-		thread::Mutex *mutex;
+		love::thread::MutexRef mutex;
 
 	public:
 		PoolThread(Pool *pool);

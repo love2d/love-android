@@ -164,7 +164,9 @@ static int love_preload(lua_State *L, lua_CFunction f, const char *name)
 	return 0;
 }
 
-static int l_print_sdl_log (lua_State *L) {
+#ifdef LOVE_ANDROID
+static int l_print_sdl_log(lua_State *L)
+{
 	int nargs = lua_gettop(L);
 
 	if (nargs == 0)
@@ -172,43 +174,41 @@ static int l_print_sdl_log (lua_State *L) {
 
 	std::string out_string = "";
 
-	for (int i = 1; i <= nargs; i++) {
-		int type = lua_type (L, i);
+	for (int i = 1; i <= nargs; i++)
+	{
+		int type = lua_type(L, i);
 		char pointer_buf[16];
-		switch (type) {
-			case LUA_TNUMBER:
-			case LUA_TSTRING:
-				out_string += lua_tostring (L, i);
-				break;
-			case LUA_TNIL:
-				out_string += "nil";
-				break;
-			case LUA_TBOOLEAN:
-				out_string += lua_toboolean (L, i) ? "true" : "false";
-				break;
-			default:
-				out_string += lua_typename (L, lua_type(L, i));
-				sprintf (pointer_buf, ": 0x%x", (unsigned int) lua_topointer (L, i));
-				out_string += pointer_buf;
-				break;
+		switch (type)
+		{
+		case LUA_TNUMBER:
+		case LUA_TSTRING:
+			out_string += lua_tostring(L, i);
+			break;
+		case LUA_TNIL:
+			out_string += "nil";
+			break;
+		case LUA_TBOOLEAN:
+			out_string += lua_toboolean(L, i) ? "true" : "false";
+			break;
+		default:
+			out_string += lua_typename(L, lua_type(L, i));
+			sprintf(pointer_buf, ": 0x%lx", (size_t) lua_topointer(L, i));
+			out_string += pointer_buf;
+			break;
 		}
 
-		if (i != nargs - 1) {
+		if (i != nargs - 1)
 			out_string += "\t";
-		}
 	}
 
-	SDL_Log ("[LOVE] %s", out_string.c_str());
+	SDL_Log("[LOVE] %s", out_string.c_str());
 	return 0;
 }
+#endif
 
 int main(int argc, char **argv)
 {
 	int retval = 0;
-
-#ifdef LOVE_ANDROID
-	SDL_SetHint("LOVE_GRAPHICS_USE_OPENGLES", "1");
-#endif
 
 #ifdef LOVE_IOS
 	int orig_argc = argc;
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	luaL_openlibs(L);
 
 #ifdef LOVE_ANDROID
-	lua_register (L, "print", l_print_sdl_log);
+	lua_register(L, "print", l_print_sdl_log);
 #endif
 
 	// Add love to package.preload for easy requiring.

@@ -13,6 +13,7 @@ local.properties
 *.so
 *.a
 *.orig
+*.rej
 
 !jni/LuaJIT-2.0.1/android/armeabi/libluajit.a
 !jni/LuaJIT-2.0.1/android/armeabi-v7a/libluajit.a
