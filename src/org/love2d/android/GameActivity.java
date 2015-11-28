@@ -112,6 +112,13 @@ public class GameActivity extends SDLActivity {
     }
 
     public void setImmersiveMode (boolean immersive_mode) {
+			if (android.os.Build.VERSION.SDK_INT < 11) {
+				// The API getWindow().getDecorView().setSystemUiVisibility() was
+				// added in Android 11 (a.k.a. Honeycomb, a.k.a. 3.0.x). If we run
+				// on this we do nothing.
+				return;
+			}
+
       immersiveActive = immersive_mode;
 
       final Object lock = new Object();
