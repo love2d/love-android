@@ -3,13 +3,13 @@
 #define ALC_API __attribute__((visibility("protected")))
 
 /* Define to the library version */
-#define ALSOFT_VERSION "1.16.0"
+#define ALSOFT_VERSION "1.17.0"
 
 #ifdef IN_IDE_PARSER
 /* KDevelop's parser doesn't recognize the C99-standard restrict keyword, but
  * recent versions (at least 4.5.1) do recognize GCC's __restrict. */
 #define restrict __restrict
-#endif 
+#endif
 
 /* Define any available alignment declaration */
 #define ALIGN(x) __attribute__((aligned(x)))
@@ -26,13 +26,11 @@
 /* Define if we have SSE CPU extensions */
 /* #undef HAVE_SSE */
 /* #undef HAVE_SSE2 */
+/* #undef HAVE_SSE3 */
 /* #undef HAVE_SSE4_1 */
 
 /* Define if we have ARM Neon CPU extensions */
 /* #undef HAVE_NEON */
-
-/* Define if we have FluidSynth support */
-/* #undef HAVE_FLUIDSYNTH */
 
 /* Define if we have the ALSA backend */
 /* #undef HAVE_ALSA */
@@ -64,6 +62,9 @@
 /* Define if we have the PulseAudio backend */
 /* #undef HAVE_PULSEAUDIO */
 
+/* Define if we have the JACK backend */
+/* #undef HAVE_JACK */
+
 /* Define if we have the CoreAudio backend */
 /* #undef HAVE_COREAUDIO */
 
@@ -78,6 +79,9 @@
 
 /* Define if we have the lrintf function */
 #define HAVE_LRINTF
+
+/* Define if we have the modff function */
+#define HAVE_MODFF
 
 /* Define if we have the strtof function */
 /* #undef HAVE_STRTOF */
@@ -101,7 +105,7 @@
 #define HAVE_C11_STATIC_ASSERT
 
 /* Define if we have C11 _Alignas support */
-/* #undef HAVE_C11_ALIGNAS */
+#define HAVE_C11_ALIGNAS
 
 /* Define if we have C11 _Atomic support */
 /* #undef HAVE_C11_ATOMIC */
@@ -119,7 +123,7 @@
 #define HAVE_STDBOOL_H
 
 /* Define if we have stdalign.h */
-/* #undef HAVE_STDALIGN_H */
+#define HAVE_STDALIGN_H
 
 /* Define if we have windows.h */
 /* #undef HAVE_WINDOWS_H */
@@ -136,8 +140,8 @@
 /* Define if we have malloc.h */
 #define HAVE_MALLOC_H
 
-/* Define if we have ftw.h */
-/* #undef HAVE_FTW_H */
+/* Define if we have dirent.h */
+#define HAVE_DIRENT_H
 
 /* Define if we have io.h */
 /* #undef HAVE_IO_H */
@@ -181,17 +185,11 @@
 /* Define if we have __control87_2() */
 /* #undef HAVE___CONTROL87_2 */
 
-/* Define if we have ftw() */
-/* #undef HAVE_FTW */
-
-/* Define if we have _wfindfirst() */
-/* #undef HAVE__WFINDFIRST */
-
 /* Define if we have pthread_setschedparam() */
 #define HAVE_PTHREAD_SETSCHEDPARAM
 
 /* Define if we have pthread_setname_np() */
-#define HAVE_PTHREAD_SETNAME_NP
+/* #undef HAVE_PTHREAD_SETNAME_NP */
 
 /* Define if we have pthread_set_name_np() */
 /* #undef HAVE_PTHREAD_SET_NAME_NP */
