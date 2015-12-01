@@ -19,7 +19,6 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../SDL2-2.0.3/include \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
-	${LOCAL_PATH}/../libjpeg-turbo-1.3.1/ \
 	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff \
 	${LOCAL_PATH}/../openal-soft-1.17.0/include \
@@ -100,7 +99,7 @@ LOCAL_CXXFLAGS := -std=c++0x
 
 LOCAL_SHARED_LIBRARIES := libopenal libmpg123 
 
-LOCAL_STATIC_LIBRARIES := libphysfs libvorbis libogg libmodplug libfreetype libturbo-jpeg libluajit SDL2_static
+LOCAL_STATIC_LIBRARIES := libphysfs libvorbis libogg libmodplug libfreetype libluajit SDL2_static
 
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))

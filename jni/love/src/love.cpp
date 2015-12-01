@@ -36,11 +36,11 @@ extern "C" {
 #endif // LOVE_WINDOWS
 
 #ifdef LOVE_MACOSX
-#include "common/OSX.h"
+#include "common/macosx.h"
 #endif // LOVE_MACOSX
 
 #ifdef LOVE_IOS
-#include "common/iOS.h"
+#include "common/ios.h"
 #endif
 
 #ifdef LOVE_ANDROID
@@ -111,7 +111,7 @@ static void get_app_arguments(int argc, char **argv, int &new_argc, char **&new_
 
 #ifdef LOVE_MACOSX
 	// Check for a drop file string.
-	std::string dropfilestr = love::osx::checkDropEvents();
+	std::string dropfilestr = love::macosx::checkDropEvents();
 	if (!dropfilestr.empty())
 	{
 		temp_argv.insert(temp_argv.begin() + 1, dropfilestr);
@@ -123,7 +123,7 @@ static void get_app_arguments(int argc, char **argv, int &new_argc, char **&new_
 		std::string loveResourcesPath;
 		bool fused = true;
 #if defined(LOVE_MACOSX)
-		loveResourcesPath = love::osx::getLoveInResources();
+		loveResourcesPath = love::macosx::getLoveInResources();
 #elif defined(LOVE_IOS)
 		loveResourcesPath = love::ios::getLoveInResources(fused);
 #endif
@@ -168,39 +168,30 @@ static int l_print_sdl_log(lua_State *L)
 {
 	int nargs = lua_gettop(L);
 
-	if (nargs == 0)
-		return 0;
+	lua_getglobal(L, "tostring");
 
-	std::string out_string = "";
+	std::string outstring;
 
 	for (int i = 1; i <= nargs; i++)
 	{
-		int type = lua_type(L, i);
-		char pointer_buf[16];
-		switch (type)
-		{
-		case LUA_TNUMBER:
-		case LUA_TSTRING:
-			out_string += lua_tostring(L, i);
-			break;
-		case LUA_TNIL:
-			out_string += "nil";
-			break;
-		case LUA_TBOOLEAN:
-			out_string += lua_toboolean(L, i) ? "true" : "false";
-			break;
-		default:
-			out_string += lua_typename(L, lua_type(L, i));
-			sprintf(pointer_buf, ": 0x%lx", (long unsigned int) lua_topointer(L, i));
-			out_string += pointer_buf;
-			break;
-		}
+		// Call tostring(arg) and leave the result on the top of the stack.
+		lua_pushvalue(L, -1);
+		lua_pushvalue(L, i);
+		lua_call(L, 1, 1);
 
-		if (i != nargs - 1)
-			out_string += "\t";
+		const char *s = lua_tostring(L, -1);
+		if (s == nullptr)
+			return luaL_error(L, "'tostring' must return a string to 'print'");
+
+		if (i > 1)
+			outstring += "\t";
+
+		outstring += s;
+
+		lua_pop(L, 1); // Pop the result of tostring(arg).
 	}
 
-	SDL_Log("[LOVE] %s", out_string.c_str());
+	SDL_Log("[LOVE] %s", outstring.c_str());
 	return 0;
 }
 #endif

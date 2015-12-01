@@ -18,56 +18,54 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_ANDROID_H
-#define LOVE_ANDROID_H
+#ifndef LOVE_IOS_H
+#define LOVE_IOS_H
 
 #include "config.h"
 
-#ifdef LOVE_ANDROID
+#ifdef LOVE_IOS
 
 #include <string>
 
 namespace love
 {
-namespace android
+namespace ios
 {
 
 /**
- * Enables or disables immersive mode where the navigation bar is hidden.
+ * Gets the filepath of the first detected love file. The main .app Bundle is
+ * searched first, and then the app's Documents folder.
  **/
-void setImmersive(bool immersive_active);
-bool getImmersive();
+std::string getLoveInResources(bool &fused);
 
 /**
- * Gets the scale factor of the window's screen, e.g. on Retina displays this
- * will return 2.0.
+ * Gets the directory path where files should be stored.
  **/
-double getScreenScale();
+std::string getAppdataDirectory();
 
 /**
- * Gets the selected love file in the device filesystem.
+ * Get the home directory (on iOS, this really means the app's sandbox dir.)
  **/
-const char *getSelectedGameFile();
+std::string getHomeDirectory();
 
+/**
+ * Opens the specified URL with the default program associated with the URL's
+ * scheme.
+ **/
 bool openURL(const std::string &url);
 
-void vibrate(double seconds);
+/**
+ * Returns the full path to the executable.
+ **/
+std::string getExecutablePath();
 
-/*
- * Helper functions for the filesystem module
- */
-void freeGameArchiveMemory(void *ptr);
+/**
+ * Causes devices with vibration support to vibrate for about 0.5 seconds.
+ **/
+void vibrate();
 
-bool loadGameArchiveToMemory(const char *filename, char **ptr, size_t *size);
-
-bool directoryExists(const char *path);
-
-bool mkdir(const char *path);
-
-bool createStorageDirectories();
-
-} // android
+} // ios
 } // love
 
-#endif // LOVE_ANDROID
-#endif // LOVE_ANDROID_H
+#endif // LOVE_IOS
+#endif // LOVE_IOS_H

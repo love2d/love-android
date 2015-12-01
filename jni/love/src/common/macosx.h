@@ -18,56 +18,46 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
-#ifndef LOVE_ANDROID_H
-#define LOVE_ANDROID_H
+#ifndef LOVE_OSX_H
+#define LOVE_OSX_H
 
 #include "config.h"
 
-#ifdef LOVE_ANDROID
+#ifdef LOVE_MACOSX
 
 #include <string>
 
 namespace love
 {
-namespace android
+namespace macosx
 {
 
 /**
- * Enables or disables immersive mode where the navigation bar is hidden.
+ * Returns the filepath of the first detected love file in the Resources folder
+ * in the main bundle (love.app.)
+ * Returns an empty string if no love file is found.
  **/
-void setImmersive(bool immersive_active);
-bool getImmersive();
+std::string getLoveInResources();
 
 /**
- * Gets the scale factor of the window's screen, e.g. on Retina displays this
- * will return 2.0.
+ * Checks for drop-file events. Returns the filepath if an event occurred, or
+ * an empty string otherwise.
  **/
-double getScreenScale();
+std::string checkDropEvents();
 
 /**
- * Gets the selected love file in the device filesystem.
+ * Returns the full path to the executable.
  **/
-const char *getSelectedGameFile();
+std::string getExecutablePath();
 
-bool openURL(const std::string &url);
+/**
+ * Bounce the dock icon, if the app isn't in the foreground.
+ **/
+void requestAttention(bool continuous);
 
-void vibrate(double seconds);
-
-/*
- * Helper functions for the filesystem module
- */
-void freeGameArchiveMemory(void *ptr);
-
-bool loadGameArchiveToMemory(const char *filename, char **ptr, size_t *size);
-
-bool directoryExists(const char *path);
-
-bool mkdir(const char *path);
-
-bool createStorageDirectories();
-
-} // android
+} // macosx
 } // love
 
-#endif // LOVE_ANDROID
-#endif // LOVE_ANDROID_H
+#endif // LOVE_MACOSX
+
+#endif // LOVE_OSX_H

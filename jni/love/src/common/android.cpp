@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2014 LOVE Development Team
+ * Copyright (c) 2006-2015 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -90,7 +90,7 @@ double getScreenScale()
 	return result;
 }
 
-const char* getSelectedGameFile()
+const char *getSelectedGameFile()
 {
 	static const char *path = NULL;
 
@@ -191,19 +191,19 @@ bool directoryExists(const char *path)
 	if (err == -1)
 	{
 		if (errno != ENOENT)
-			SDL_Log ("Error checking for directory %s errno = %d: %s", path, errno, strerror(errno));
+			SDL_Log("Error checking for directory %s errno = %d: %s", path, errno, strerror(errno));
 		return false;
 	}
 
 	return S_ISDIR(s.st_mode);
 }
 
-bool mkdir(const char* path)
+bool mkdir(const char *path)
 {
-	int err = ::mkdir (path, 0770);
+	int err = ::mkdir(path, 0770);
 	if (err == -1)
 	{
-		SDL_Log ("Error: Could not create directory %s", path);
+		SDL_Log("Error: Could not create directory %s", path);
 		return false;
 	}
 

@@ -31,3 +31,5 @@ jni/LuaJIT-2.0.1/src/lj_libdef.h
 jni/LuaJIT-2.0.1/src/lj_recdef.h
 jni/LuaJIT-2.0.1/src/lj_vm.s
 jni/LuaJIT-2.0.1/src/luajit
+
+jni/love/src/Makefile.am

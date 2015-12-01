@@ -21,15 +21,6 @@
 #ifndef LOVE_INT_H
 #define LOVE_INT_H
 
-// fixes compile errors of the form:
-// "error: expected unqualified-id before '__extension__'"
-#ifdef LOVE_ANDROID
-#include <sys/endian.h>
-#undef swap16
-#undef swap32
-#undef swap64
-#endif
-
 // C standard sized integer types.
 #include <stdint.h>
 

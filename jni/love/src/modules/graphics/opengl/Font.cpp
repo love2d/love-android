@@ -410,8 +410,8 @@ std::vector<Font::DrawCommand> Font::generateVertices(const std::string &text, s
 				for (int j = 0; j < 4; j++)
 				{
 					vertices.push_back(glyph.vertices[j]);
-					vertices.back().x += dx /*+ kerning*/;
-					vertices.back().y += dy /*+ kerning.y*/ + lineheight;
+					vertices.back().x += dx;
+					vertices.back().y += dy + lineheight;
 				}
 
 				// Check if glyph texture has changed since the last iteration.
@@ -651,13 +651,12 @@ int Font::getWidth(const std::string &str)
 				prevglyph = c;
 			}
 		}
-		catch(utf8::exception &e)
+		catch (utf8::exception &e)
 		{
 			throw love::Exception("UTF-8 decoding error: %s", e.what());
 		}
 
-		if (width > max_width)
-			max_width = width;
+		max_width = std::max(max_width, width);
 	}
 
 	return max_width;
@@ -671,41 +670,41 @@ int Font::getWidth(char character)
 
 void Font::getWrap(const std::string &text, float wrap, std::vector<std::string> &lines, std::vector<int> *linewidths, std::vector<bool> *wrappedlines)
 {
-	using namespace std;
 	const float width_space = (float) getWidth(' ');
 
-	//split text at newlines
-	istringstream iss(text);
-	string line;
-	ostringstream string_builder;
-	while (getline(iss, line, '\n'))
-	{
-		// split line into words
-		vector<string> words;
-		istringstream word_iss(line);
-		copy(istream_iterator<string>(word_iss), istream_iterator<string>(),
-			 back_inserter< vector<string> >(words));
+	std::istringstream iss(text);
+	std::string line;
+	std::ostringstream string_builder;
 
-		// put words back together until a wrap occurs
+	// Split text at newlines.
+	while (std::getline(iss, line, '\n'))
+	{
+		std::vector<std::string> words;
+		std::istringstream word_iss(line);
+
+		// split line into words
+		std::copy(std::istream_iterator<std::string>(word_iss), std::istream_iterator<std::string>(), std::back_inserter(words));
+
 		float width = 0.0f;
 		float oldwidth = 0.0f;
 		string_builder.str("");
-		vector<string>::const_iterator word_iter, wend = words.end();
-		for (word_iter = words.begin(); word_iter != wend; ++word_iter)
-		{
-			const string &word = *word_iter;
-			width += getWidth(word);
 
-			// on wordwrap, push line to line buffer and clear string builder
+		// Put words back together until a wrap occurs.
+		for (const std::string &word : words)
+		{
+			float wordwidth = (float) getWidth(word);
+			width += wordwidth;
+
+			// On wordwrap, push line to line buffer and clear string builder.
 			if (width > wrap && oldwidth > 0)
 			{
 				int realw = (int) width;
 
-				// remove trailing space
-				string tmp = string_builder.str();
+				// Remove trailing space.
+				std::string tmp = string_builder.str();
 				lines.push_back(tmp.substr(0,tmp.size()-1));
 				string_builder.str("");
-				width = static_cast<float>(getWidth(word));
+				width = wordwidth;
 				realw -= (int) width;
 
 				if (linewidths)
@@ -715,15 +714,18 @@ void Font::getWrap(const std::string &text, float wrap, std::vector<std::string>
 				if (wrappedlines)
 					wrappedlines->push_back(true);
 			}
+
 			string_builder << word << " ";
+
 			width += width_space;
 			oldwidth = width;
 		}
-		// push last line
+
+		// Push last line.
 		if (linewidths)
 			linewidths->push_back(width);
 
-		string tmp = string_builder.str();
+		std::string tmp = string_builder.str();
 		lines.push_back(tmp.substr(0,tmp.size()-1));
 
 		// Indicate that this line was not automatically wrapped.

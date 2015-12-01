@@ -25,7 +25,7 @@
 #if defined(LOVE_MACOSX)
 #include <CoreServices/CoreServices.h>
 #elif defined(LOVE_IOS)
-#include "common/iOS.h"
+#include "common/ios.h"
 #elif defined(LOVE_ANDROID)
 #include "common/android.h"
 #elif defined(LOVE_LINUX)
@@ -68,9 +68,9 @@ std::string System::getOS() const
 	return "iOS";
 #elif defined(LOVE_WINDOWS)
 	return "Windows";
-#elif LOVE_ANDROID
+#elif defined(LOVE_ANDROID)
 	return "Android";
-#elif LOVE_LINUX
+#elif defined(LOVE_LINUX)
 	return "Linux";
 #else
 	return "Unknown";
@@ -146,6 +146,8 @@ void System::vibrate(double seconds) const
 {
 #ifdef LOVE_ANDROID
 	love::android::vibrate(seconds);
+#elif defined(LOVE_IOS)
+	love::ios::vibrate();
 #else
 	LOVE_UNUSED(seconds);
 #endif
