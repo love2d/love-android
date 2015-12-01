@@ -10,6 +10,7 @@ primarily, via a Microsoft-run online store (of the same name).
 
 Some of the operating systems that include WinRT, are:
 
+* Windows 10, via its Universal Windows Platform (UWP) APIs
 * Windows 8.x
 * Windows RT 8.x (aka. Windows 8.x for ARM processors)
 * Windows Phone 8.x
@@ -18,27 +19,131 @@ Some of the operating systems that include WinRT, are:
 Requirements
 ------------
 
-* Microsoft Visual C++ (aka Visual Studio), either 2013 or 2012 versions
-  - Free, "Express" editions may be used, so long as they include support for 
-    either "Windows Store" or "Windows Phone" apps.  Versions marked as
-    supporting "Windows Desktop" development typically do not include support
-    for creating WinRT apps.
-  - Visual C++ 2012 can only build apps that target versions 8.0 of Windows, or 
-    Windows Phone.  8.0-targetted apps will still run on devices running 
-    8.1 editions of Windows, however they will not be able to take advantage of 
+* Microsoft Visual C++ (aka Visual Studio), either 2015, 2013, or 2012
+  - Free, "Community" or "Express" editions may be used, so long as they
+    include  support for either "Windows Store" or "Windows Phone" apps.
+    "Express" versions marked as supporting "Windows Desktop" development
+    typically do not include support for creating WinRT apps, to note.
+    (The "Community" editions of Visual C++ do, however, support both
+    desktop/Win32 and WinRT development).
+  - Visual C++ 2012 can only build apps that target versions 8.0 of Windows,
+    or  Windows Phone.  8.0-targetted apps will run on devices running 8.1
+    editions of Windows, however they will not be able to take advantage of
     8.1-specific features.
-  - Visual C++ 2013 can only create app projects that target 8.1 versions
-    of Windows, which do NOT run on 8.0 devices.  An optional Visual Studio
-    add-in, "Tools for Maintaining Store apps for Windows 8", allows projects
-    that are created with Visual C++ 2012, which can create Windows 8.0 apps,
-    to be loaded and built with non-Express editions of Visual C++ 2013.  More
-    details on targeting different versions of Windows can found at the
-    following web pages:
+  - Visual C++ 2013 cannot create app projects that target Windows 8.0.
+    Visual C++ 2013 Update 4, can create app projects for Windows Phone 8.0,
+    Windows Phone 8.1, and Windows 8.1, but not Windows 8.0.  An optional
+    Visual Studio add-in, "Tools for Maintaining Store apps for Windows 8",
+    allows Visual C++ 2013 to load and build Windows 8.0 projects that were
+    created with Visual C++ 2012, so long as Visual C++ 2012 is installed
+    on the same machine.  More details on targeting different versions of
+    Windows can found at the following web pages:
       - [Develop apps by using Visual Studio 2013](http://msdn.microsoft.com/en-us/library/windows/apps/br211384.aspx)
       - [To add the Tools for Maintaining Store apps for Windows 8](http://msdn.microsoft.com/en-us/library/windows/apps/dn263114.aspx#AddMaintenanceTools)
 * A valid Microsoft account - This requirement is not imposed by SDL, but
   rather by Microsoft's Visual C++ toolchain.  This is required to launch or 
   debug apps.
+
+
+Status
+------
+
+Here is a rough list of what works, and what doens't:
+
+* What works:
+  * compilation via Visual C++ 2012 through 2015
+  * compile-time platform detection for SDL programs.  The C/C++ #define,
+    `__WINRT__`, will be set to 1 (by SDL) when compiling for WinRT.
+  * GPU-accelerated 2D rendering, via SDL_Renderer.
+  * OpenGL ES 2, via the ANGLE library (included separately from SDL)
+  * software rendering, via either SDL_Surface (optionally in conjunction with
+    SDL_GetWindowSurface() and SDL_UpdateWindowSurface()) or via the
+    SDL_Renderer APIs
+  * threads
+  * timers (via SDL_GetTicks(), SDL_AddTimer(), SDL_GetPerformanceCounter(),
+    SDL_GetPerformanceFrequency(), etc.)
+  * file I/O via SDL_RWops
+  * mouse input  (unsupported on Windows Phone)
+  * audio, via a modified version of SDL's XAudio2 backend
+  * .DLL file loading.  Libraries *MUST* be packaged inside applications.  Loading
+    anything outside of the app is not supported.
+  * system path retrieval via SDL's filesystem APIs
+  * game controllers.  Support is provided via the SDL_Joystick and
+    SDL_GameController APIs, and is backed by Microsoft's XInput API.
+  * multi-touch input
+  * app events.  SDL_APP_WILLENTER* and SDL_APP_DIDENTER* events get sent out as
+    appropriate.
+  * window events
+  * using Direct3D 11.x APIs outside of SDL.  Non-XAML / Direct3D-only apps can
+    choose to render content directly via Direct3D, using SDL to manage the
+    internal WinRT window, as well as input and audio.  (Use
+    SDL_GetWindowWMInfo() to get the WinRT 'CoreWindow', and pass it into
+    IDXGIFactory2::CreateSwapChainForCoreWindow() as appropriate.)
+
+* What partially works:
+  * keyboard input.  Most of WinRT's documented virtual keys are supported, as
+    well as many keys with documented hardware scancodes.
+  * SDLmain.  WinRT uses a different signature for each app's main() function.
+    SDL-based apps that use this port must compile in SDL_winrt_main_NonXAML.cpp
+    (in `SDL\src\main\winrt\`) directly in order for their C-style main()
+    functions to be called.
+
+* What doesn't work:
+  * compilation with anything other than Visual C++
+  * programmatically-created custom cursors.  These don't appear to be supported
+    by WinRT.  Different OS-provided cursors can, however, be created via
+    SDL_CreateSystemCursor() (unsupported on Windows Phone)
+  * SDL_WarpMouseInWindow() or SDL_WarpMouseGlobal().  This are not currently
+    supported by WinRT itself.
+  * joysticks and game controllers that aren't supported by Microsoft's XInput
+    API.
+  * turning off VSync when rendering on Windows Phone.  Attempts to turn VSync
+    off on Windows Phone result either in Direct3D not drawing anything, or it
+    forcing VSync back on.  As such, SDL_RENDERER_PRESENTVSYNC will always get
+    turned-on on Windows Phone.  This limitation is not present in non-Phone
+    WinRT (such as Windows 8.x), where turning off VSync appears to work.
+  * probably anything else that's not listed as supported
+
+
+
+Upgrade Notes
+-------------
+
+#### SDL_GetPrefPath() usage when upgrading WinRT apps from SDL 2.0.3
+
+SDL 2.0.4 fixes two bugs found in the WinRT version of SDL_GetPrefPath().
+The fixes may affect older, SDL 2.0.3-based apps' save data.  Please note
+that these changes only apply to SDL-based WinRT apps, and not to apps for
+any other platform.
+
+1. SDL_GetPrefPath() would return an invalid path, one in which the path's
+   directory had not been created.  Attempts to create files there
+   (via fopen(), for example), would fail, unless that directory was
+   explicitly created beforehand.
+
+2. SDL_GetPrefPath(), for non-WinPhone-based apps, would return a path inside
+   a WinRT 'Roaming' folder, the contents of which get automatically
+   synchronized across multiple devices.  This process can occur while an
+   application runs, and can cause existing save-data to be overwritten
+   at unexpected times, with data from other devices.  (Windows Phone apps
+   written with SDL 2.0.3 did not utilize a Roaming folder, due to API
+   restrictions in Windows Phone 8.0).
+
+
+SDL_GetPrefPath(), starting with SDL 2.0.4, addresses these by:
+
+1. making sure that SDL_GetPrefPath() returns a directory in which data
+   can be written to immediately, without first needing to create directories.
+
+2. basing SDL_GetPrefPath() off of a different, non-Roaming folder, the
+   contents of which do not automatically get synchronized across devices
+   (and which require less work to use safely, in terms of data integrity).
+
+Apps that wish to get their Roaming folder's path can do so either by using
+SDL_WinRTGetFSPathUTF8(), SDL_WinRTGetFSPathUNICODE() (which returns a
+UCS-2/wide-char string), or directly through the WinRT class,
+Windows.Storage.ApplicationData.
+
 
 
 Setup, High-Level Steps
@@ -114,10 +219,10 @@ To set this up for SDL/WinRT, you'll need to run through the following steps:
 4. find SDL/WinRT's Visual C++ project file and open it.  Different project
    files exist for different WinRT platforms.  All of them are in SDL's
    source distribution, in the following directories:
-    * `VisualC-WinRT/WinPhone80_VS2012/` - for Windows Phone 8.0 apps
+    * `VisualC-WinRT/UWP_VS2015/`        - for Windows 10 / UWP apps
     * `VisualC-WinRT/WinPhone81_VS2013/` - for Windows Phone 8.1 apps
-    * `VisualC-WinRT/WinRT80_VS2012/` - for Windows 8.0 apps
-    * `VisualC-WinRT/WinRT81_VS2013/` - for Windows 8.1 apps
+    * `VisualC-WinRT/WinRT80_VS2012/`    - for Windows 8.0 apps
+    * `VisualC-WinRT/WinRT81_VS2013/`    - for Windows 8.1 apps
 5. once the project has been added, right-click on your app's project and
    select, "References..."
 6. click on the button titled, "Add New Reference..."
@@ -278,11 +383,11 @@ A list of unsupported C APIs can be found at
 <http://msdn.microsoft.com/en-us/library/windows/apps/jj606124.aspx>
 
 General information on using the C runtime in WinRT can be found at 
-<http://msdn.microsoft.com/en-us/LIBRARY/hh972425(v=vs.110).aspx>
+<https://msdn.microsoft.com/en-us/library/hh972425.aspx>
 
-A list of supported Win32 APIs for Windows 8/RT apps can be found at 
+A list of supported Win32 APIs for WinRT apps can be found at 
 <http://msdn.microsoft.com/en-us/library/windows/apps/br205757.aspx>.  To note, 
-the list of supported Win32 APIs for Windows Phone 8 development is different.  
+the list of supported Win32 APIs for Windows Phone 8.0 is different.  
 That list can be found at 
 <http://msdn.microsoft.com/en-us/library/windowsphone/develop/jj662956(v=vs.105).aspx>
 
@@ -300,7 +405,12 @@ Simulator.  Once you do that, any time you build and run the app, the app will
 launch in window, rather than full-screen.
 
 
-#### 7.A. Running apps on ARM-based devices ####
+#### 7.A. Running apps on older, ARM-based, "Windows RT" devices ####
+
+**These instructions do not include Windows Phone, despite Windows Phone
+typically running on ARM processors.**  They are specifically for devices
+that use the "Windows RT" operating system, which was a modified version of
+Windows 8.x that ran primarily on ARM-based tablet computers.
 
 To build and run the app on ARM-based, "Windows RT" devices, you'll need to:
 
@@ -311,9 +421,9 @@ To build and run the app on ARM-based, "Windows RT" devices, you'll need to:
   Windows RT device (on the network).
 
 Microsoft's Remote Debugger can be found at 
-<http://msdn.microsoft.com/en-us/library/vstudio/bt727f1t.aspx>.  Please note 
+<https://msdn.microsoft.com/en-us/library/hh441469.aspx>.  Please note 
 that separate versions of this debugger exist for different versions of Visual 
-C++, one for debugging with MSVC 2012, another for debugging with MSVC 2013.
+C++, one each for MSVC 2015, 2013, and 2012.
 
 To setup Visual C++ to launch your app on an ARM device:
 
@@ -327,7 +437,8 @@ To setup Visual C++ to launch your app on an ARM device:
     2. select "Debugging"
     3. next to "Machine Name", enter the hostname or IP address of the ARM 
        device
-    4. if, and only if, you've turned off authentication in the Remote Debugger, then change the setting for "Require Authentication" to No
+    4. if, and only if, you've turned off authentication in the Remote Debugger,
+       then change the setting for "Require Authentication" to No
     5. click "OK"
 4. build and run the app (from Visual C++).  The first time you do this, a 
    prompt will show up on the ARM device, asking for a Microsoft Account.  You 
@@ -337,14 +448,21 @@ To setup Visual C++ to launch your app on an ARM device:
    C++.
 
 
-TODO
-----
+Troubleshooting
+---------------
 
-- Document details of SDL satellite library support
-- Make [NuGet](https://www.nuget.org) packages for SDL/WinRT
-- Create templates for both MSVC 2012 and MSVC 2013, and have the corresponding
-  VSIX packages either include pre-built copies of SDL, or reference binaries
-  available via MSVC's NuGet servers
-    - Write setup instructions that use MSVC 201x templates
-- Write a list of caveats found in SDL/WinRT, such as APIs that don't work due
-  to platform restrictions, or things that need further work
+#### Build fails with message, "error LNK2038: mismatch detected for 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker'"
+
+Try adding the following to your linker flags.  In MSVC, this can be done by
+right-clicking on the app project, navigating to Configuration Properties ->
+Linker -> Command Line, then adding them to the Additional Options
+section.
+
+* For Release builds / MSVC-Configurations, add:
+
+    /nodefaultlib:vccorlib /nodefaultlib:msvcrt vccorlib.lib msvcrt.lib
+
+* For Debug builds / MSVC-Configurations, add:
+
+    /nodefaultlib:vccorlibd /nodefaultlib:msvcrtd vccorlibd.lib msvcrtd.lib
+

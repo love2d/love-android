@@ -38,6 +38,7 @@ TARGETS = \
 	testloadso$(EXE) \
 	testlock$(EXE) \
 	testmultiaudio$(EXE) \
+	testaudiohotplug$(EXE) \
 	testnative$(EXE) \
 	testoverlay2$(EXE) \
 	testplatform$(EXE) \
@@ -59,6 +60,7 @@ TARGETS = \
 	torturethread$(EXE) \
 	testrendercopyex$(EXE) \
 	testmessage$(EXE) \
+	testdisplayinfo$(EXE) \
 	controllermap$(EXE) \
 	
 all: Makefile $(TARGETS)
@@ -103,6 +105,9 @@ testautomation$(EXE): $(srcdir)/testautomation.c \
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) 
 
 testmultiaudio$(EXE): $(srcdir)/testmultiaudio.c
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+testaudiohotplug$(EXE): $(srcdir)/testaudiohotplug.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 testatomic$(EXE): $(srcdir)/testatomic.c
@@ -196,6 +201,15 @@ testnative$(EXE): $(srcdir)/testnative.c \
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) @XLIB@
 endif
 
+#there's probably a better way of doing this
+ifeq (@ISMACOSX@,false)
+ifeq (@ISWINDOWS@,false)
+ifeq (@ISUNIX@,false)
+testnative$(EXE): ;
+endif
+endif
+endif
+
 testoverlay2$(EXE): $(srcdir)/testoverlay2.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
@@ -251,6 +265,9 @@ testrendercopyex$(EXE): $(srcdir)/testrendercopyex.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) @MATHLIB@
 
 testmessage$(EXE): $(srcdir)/testmessage.c
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+testdisplayinfo$(EXE): $(srcdir)/testdisplayinfo.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 controllermap$(EXE): $(srcdir)/controllermap.c

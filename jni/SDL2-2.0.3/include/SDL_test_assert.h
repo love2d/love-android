@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,7 +71,7 @@ void SDLTest_Assert(int assertCondition, SDL_PRINTF_FORMAT_STRING const char *as
 int SDLTest_AssertCheck(int assertCondition, SDL_PRINTF_FORMAT_STRING const char *assertDescription, ...) SDL_PRINTF_VARARG_FUNC(2);
 
 /**
- * \brief Explicitely pass without checking an assertion condition. Updates assertion counter.
+ * \brief Explicitly pass without checking an assertion condition. Updates assertion counter.
  *
  * \param assertDescription Message to log with the assert describing it.
  */

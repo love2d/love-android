@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,6 +29,7 @@
 XInputGetState_t SDL_XInputGetState = NULL;
 XInputSetState_t SDL_XInputSetState = NULL;
 XInputGetCapabilities_t SDL_XInputGetCapabilities = NULL;
+XInputGetBatteryInformation_t SDL_XInputGetBatteryInformation = NULL;
 DWORD SDL_XInputVersion = 0;
 
 static HANDLE s_pXInputDLL = 0;
@@ -55,6 +56,7 @@ WIN_LoadXInputDLL(void)
     SDL_XInputGetState = (XInputGetState_t)XInputGetState;
     SDL_XInputSetState = (XInputSetState_t)XInputSetState;
     SDL_XInputGetCapabilities = (XInputGetCapabilities_t)XInputGetCapabilities;
+    SDL_XInputGetBatteryInformation = (XInputGetBatteryInformation_t)XInputGetBatteryInformation;
 
     /* XInput 1.4 ships with Windows 8 and 8.1: */
     SDL_XInputVersion = (1 << 16) | 4;
@@ -84,10 +86,14 @@ WIN_LoadXInputDLL(void)
     s_pXInputDLL = LoadLibrary(L"XInput1_4.dll");  /* 1.4 Ships with Windows 8. */
     if (!s_pXInputDLL) {
         version = (1 << 16) | 3;
-        s_pXInputDLL = LoadLibrary(L"XInput1_3.dll");  /* 1.3 Ships with Vista and Win7, can be installed as a redistributable component. */
+        s_pXInputDLL = LoadLibrary(L"XInput1_3.dll");  /* 1.3 can be installed as a redistributable component. */
     }
     if (!s_pXInputDLL) {
         s_pXInputDLL = LoadLibrary(L"bin\\XInput1_3.dll");
+    }
+    if (!s_pXInputDLL) {
+        /* "9.1.0" Ships with Vista and Win7, and is more limited than 1.3+ (e.g. XInputGetStateEx is not available.)  */
+        s_pXInputDLL = LoadLibrary(L"XInput9_1_0.dll");
     }
     if (!s_pXInputDLL) {
         return -1;
@@ -99,8 +105,12 @@ WIN_LoadXInputDLL(void)
 
     /* 100 is the ordinal for _XInputGetStateEx, which returns the same struct as XinputGetState, but with extra data in wButtons for the guide button, we think... */
     SDL_XInputGetState = (XInputGetState_t)GetProcAddress((HMODULE)s_pXInputDLL, (LPCSTR)100);
+    if (!SDL_XInputGetState) {
+        SDL_XInputGetState = (XInputGetState_t)GetProcAddress((HMODULE)s_pXInputDLL, "XInputGetState");
+    }
     SDL_XInputSetState = (XInputSetState_t)GetProcAddress((HMODULE)s_pXInputDLL, "XInputSetState");
     SDL_XInputGetCapabilities = (XInputGetCapabilities_t)GetProcAddress((HMODULE)s_pXInputDLL, "XInputGetCapabilities");
+    SDL_XInputGetBatteryInformation = (XInputGetBatteryInformation_t)GetProcAddress( (HMODULE)s_pXInputDLL, "XInputGetBatteryInformation" );
     if (!SDL_XInputGetState || !SDL_XInputSetState || !SDL_XInputGetCapabilities) {
         WIN_UnloadXInputDLL();
         return -1;

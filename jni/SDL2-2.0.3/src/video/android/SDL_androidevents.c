@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -32,8 +32,14 @@
 
 void android_egl_context_backup();
 void android_egl_context_restore();
+
+#if SDL_AUDIO_DRIVER_ANDROID
 void AndroidAUD_ResumeDevices(void);
 void AndroidAUD_PauseDevices(void);
+#else
+static void AndroidAUD_ResumeDevices(void) {}
+static void AndroidAUD_PauseDevices(void) {}
+#endif
 
 void 
 android_egl_context_restore() 

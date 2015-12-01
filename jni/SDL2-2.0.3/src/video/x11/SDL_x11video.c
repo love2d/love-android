@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -216,6 +216,7 @@ X11_CreateDevice(int devindex)
     device->VideoQuit = X11_VideoQuit;
     device->GetDisplayModes = X11_GetDisplayModes;
     device->GetDisplayBounds = X11_GetDisplayBounds;
+    device->GetDisplayDPI = X11_GetDisplayDPI;
     device->SetDisplayMode = X11_SetDisplayMode;
     device->SuspendScreenSaver = X11_SuspendScreenSaver;
     device->PumpEvents = X11_PumpEvents;
@@ -407,6 +408,7 @@ X11_VideoInit(_THIS)
     GET_ATOM(XdndDrop);
     GET_ATOM(XdndFinished);
     GET_ATOM(XdndSelection);
+    GET_ATOM(XKLAVIER_STATE);
 
     /* Detect the window manager */
     X11_CheckWindowManager(_this);

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -125,6 +125,9 @@
 #endif
 #ifndef SDL_IPHONE_KEYBOARD
 #define SDL_IPHONE_KEYBOARD 1
+#endif
+#ifndef SDL_IPHONE_LAUNCHSCREEN
+#define SDL_IPHONE_LAUNCHSCREEN 1
 #endif
 #ifndef SDL_POWER_UIKIT
 #define SDL_POWER_UIKIT 1

@@ -39,6 +39,16 @@ public class GameActivity extends SDLActivity {
     private static Vibrator vibrator;
     private static boolean immersiveActive = false;
 
+		@Override 
+		protected String[] getLibraries() {
+			return new String[] {
+       "gnustl_shared",
+       "mpg123",
+       "openal",
+       "love",
+			};
+		}
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
       Log.d("GameActivity", "started");

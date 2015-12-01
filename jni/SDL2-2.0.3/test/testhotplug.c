@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -17,7 +17,6 @@
 #include <string.h>
 
 #include "SDL.h"
-#include "SDL_haptic.h"
 
 #if !defined SDL_JOYSTICK_DISABLED && !defined SDL_HAPTIC_DISABLED
 
@@ -43,7 +42,7 @@ main(int argc, char *argv[])
     }
     
     /* Enable standard application logging */
-    SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);	
+    SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
 
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
@@ -135,10 +134,10 @@ main(int argc, char *argv[])
                     {
                         SDL_HapticRumblePlay(haptic, 0.25, 250);
                     }
-					if (event.jbutton.button == 0) {
-						SDL_Log("Exiting due to button press of button 0\n");
-						keepGoing = SDL_FALSE;
-					}
+                    if (event.jbutton.button == 0) {
+                        SDL_Log("Exiting due to button press of button 0\n");
+                        keepGoing = SDL_FALSE;
+                    }
                     break;
                 case SDL_JOYBUTTONUP:
                     SDL_Log("Button Release: %d\n", event.jbutton.button);

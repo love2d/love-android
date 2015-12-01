@@ -74,7 +74,7 @@ The final step is compiling SDL itself.
     export CC="/opt/rpi-tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-gcc --sysroot=$SYSROOT -I$SYSROOT/opt/vc/include -I$SYSROOT/usr/include -I$SYSROOT/opt/vc/include/interface/vcos/pthreads -I$SYSROOT/opt/vc/include/interface/vmcs_host/linux"
     cd <SDL SOURCE>
     mkdir -p build;cd build
-    ../configure --with-sysroot=$SYSROOT --host=arm-raspberry-linux-gnueabihf --prefix=$PWD/rpi-sdl2-installed --disable-pulseaudio --disable-esd
+    LDFLAGS="-L$SYSROOT/opt/vc/lib" ../configure --with-sysroot=$SYSROOT --host=arm-raspberry-linux-gnueabihf --prefix=$PWD/rpi-sdl2-installed --disable-pulseaudio --disable-esd
     make
     make install
 
@@ -149,6 +149,23 @@ To configure the locale, which controls which keys are interpreted as letters,
 this determining the CAPS LOCK behavior:
 
     sudo dpkg-reconfigure locales
+
+================================================================================
+ OpenGL problems
+================================================================================
+
+If you have desktop OpenGL headers installed at build time in your RPi or cross 
+compilation environment, support for it will be built in. However, the chipset 
+does not actually have support for it, which causes issues in certain SDL apps 
+since the presence of OpenGL support supersedes the ES/ES2 variants.
+The workaround is to disable OpenGL at configuration time:
+
+    ./configure --disable-video-opengl
+
+Or if the application uses the Render functions, you can use the SDL_RENDER_DRIVER
+environment variable:
+
+    export SDL_RENDER_DRIVER=opengles2
 
 ================================================================================
  Notes

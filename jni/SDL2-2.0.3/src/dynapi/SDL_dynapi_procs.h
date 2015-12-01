@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -612,7 +612,7 @@ SDL_DYNAPI_PROC(int,SDL_WinRTRunApp,(int a, char **b, void *c),(a,b,c),return)
 SDL_DYNAPI_PROC(const wchar_t*,SDL_WinRTGetFSPathUNICODE,(SDL_WinRT_Path a),(a),return)
 SDL_DYNAPI_PROC(const char*,SDL_WinRTGetFSPathUTF8,(SDL_WinRT_Path a),(a),return)
 #endif
-SDL_DYNAPI_PROC(void,SDL_WarpMouseGlobal,(int a, int b),(a,b),)
+SDL_DYNAPI_PROC(int,SDL_WarpMouseGlobal,(int a, int b),(a,b),return)
 SDL_DYNAPI_PROC(float,SDL_sqrtf,(float a),(a),return)
 SDL_DYNAPI_PROC(double,SDL_tan,(double a),(a),return)
 SDL_DYNAPI_PROC(float,SDL_tanf,(float a),(a),return)
@@ -623,3 +623,11 @@ SDL_DYNAPI_PROC(SDL_bool,SDL_HasAVX2,(void),(),return)
 SDL_DYNAPI_PROC(int,SDL_QueueAudio,(SDL_AudioDeviceID a, const void *b, Uint32 c),(a,b,c),return)
 SDL_DYNAPI_PROC(Uint32,SDL_GetQueuedAudioSize,(SDL_AudioDeviceID a),(a),return)
 SDL_DYNAPI_PROC(void,SDL_ClearQueuedAudio,(SDL_AudioDeviceID a),(a),)
+SDL_DYNAPI_PROC(SDL_Window*,SDL_GetGrabbedWindow,(void),(),return)
+#ifdef __WIN32__
+SDL_DYNAPI_PROC(void,SDL_SetWindowsMessageHook,(SDL_WindowsMessageHook a, void *b),(a,b),)
+#endif
+SDL_DYNAPI_PROC(int,SDL_GetDisplayDPI,(int a, float *b, float *c, float *d),(a,b,c,d),return)
+SDL_DYNAPI_PROC(SDL_JoystickPowerLevel,SDL_JoystickCurrentPowerLevel,(SDL_Joystick *a),(a),return)
+SDL_DYNAPI_PROC(SDL_GameController*,SDL_GameControllerFromInstanceID,(SDL_JoystickID a),(a),return)
+SDL_DYNAPI_PROC(SDL_Joystick*,SDL_JoystickFromInstanceID,(SDL_JoystickID a),(a),return)

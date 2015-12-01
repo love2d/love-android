@@ -1,6 +1,7 @@
 Dynamic API
 ================================================================================
-Originally posted by Ryan at https://plus.google.com/103391075724026391227/posts/TB8UfnDYu4U
+Originally posted by Ryan at:
+  https://plus.google.com/103391075724026391227/posts/TB8UfnDYu4U
 
 Background:
 
@@ -119,7 +120,7 @@ To which I would point out that the extra function call through the jump table
 probably wouldn't even show up in a profile, but lucky you: this can all be 
 disabled. You can build SDL without this if you absolutely must, but we would 
 encourage you not to do that. However, on heavily locked down platforms like 
-iOS, or maybe when debugging,  it makes sense to disable it. The way this is 
+iOS, or maybe when debugging, it makes sense to disable it. The way this is
 designed in SDL, you just have to change one #define, and the entire system 
 vaporizes out, and SDL functions exactly like it always did. Most of it is 
 macro magic, so the system is contained to one C file and a few headers. 

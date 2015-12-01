@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -78,6 +78,9 @@ WIN_DeleteDevice(SDL_VideoDevice * device)
     if (data->userDLL) {
         SDL_UnloadObject(data->userDLL);
     }
+    if (data->shcoreDLL) {
+        SDL_UnloadObject(data->shcoreDLL);
+    }
 
     SDL_free(device->driverdata);
     SDL_free(device);
@@ -112,10 +115,16 @@ WIN_CreateDevice(int devindex)
         data->RegisterTouchWindow = (BOOL (WINAPI *)(HWND, ULONG)) SDL_LoadFunction(data->userDLL, "RegisterTouchWindow");
     }
 
+    data->shcoreDLL = SDL_LoadObject("SHCORE.DLL");
+    if (data->shcoreDLL) {
+        data->GetDpiForMonitor = (HRESULT (WINAPI *)(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *)) SDL_LoadFunction(data->shcoreDLL, "GetDpiForMonitor");
+    }
+
     /* Set the function pointers */
     device->VideoInit = WIN_VideoInit;
     device->VideoQuit = WIN_VideoQuit;
     device->GetDisplayBounds = WIN_GetDisplayBounds;
+    device->GetDisplayDPI = WIN_GetDisplayDPI;
     device->GetDisplayModes = WIN_GetDisplayModes;
     device->SetDisplayMode = WIN_SetDisplayMode;
     device->PumpEvents = WIN_PumpEvents;

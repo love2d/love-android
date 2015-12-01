@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -342,9 +342,11 @@ GL_HandleDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 
     if (type == GL_DEBUG_TYPE_ERROR_ARB) {
         /* Record this error */
-        ++data->errors;
-        data->error_messages = SDL_realloc(data->error_messages, data->errors * sizeof(*data->error_messages));
-        if (data->error_messages) {
+        int errors = data->errors + 1;
+        char **error_messages = SDL_realloc(data->error_messages, errors * sizeof(*data->error_messages));
+        if (error_messages) {
+            data->errors = errors;
+            data->error_messages = error_messages;
             data->error_messages[data->errors-1] = SDL_strdup(message);
         }
     }
@@ -1044,7 +1046,14 @@ GL_UpdateClipRect(SDL_Renderer * renderer)
     if (renderer->clipping_enabled) {
         const SDL_Rect *rect = &renderer->clip_rect;
         data->glEnable(GL_SCISSOR_TEST);
-        data->glScissor(rect->x, renderer->viewport.h - rect->y - rect->h, rect->w, rect->h);
+        if (renderer->target) {
+            data->glScissor(renderer->viewport.x + rect->x, renderer->viewport.y + rect->y, rect->w, rect->h);
+        } else {
+            int w, h;
+
+            SDL_GetRendererOutputSize(renderer, &w, &h);
+            data->glScissor(renderer->viewport.x + rect->x, (h - renderer->viewport.y - renderer->viewport.h) + rect->y, rect->w, rect->h);
+        }
     } else {
         data->glDisable(GL_SCISSOR_TEST);
     }

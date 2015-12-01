@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -371,9 +371,9 @@ SDL_LogOutput(void *userdata, int category, SDL_LogPriority priority,
         if (consoleAttached == 1) {
                 if (!WriteConsole(stderrHandle, tstr, lstrlen(tstr), &charsWritten, NULL)) {
                     OutputDebugString(TEXT("Error calling WriteConsole\r\n"));
-                }
-                if (charsWritten == ERROR_NOT_ENOUGH_MEMORY) {
-                    OutputDebugString(TEXT("Insufficient heap memory to write message\r\n"));
+                    if (GetLastError() == ERROR_NOT_ENOUGH_MEMORY) {
+                        OutputDebugString(TEXT("Insufficient heap memory to write message\r\n"));
+                    }
                 }
         }
 #endif /* ifndef __WINRT__ */

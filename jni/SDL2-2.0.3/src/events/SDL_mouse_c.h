@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -61,7 +61,7 @@ typedef struct
     void (*WarpMouse) (SDL_Window * window, int x, int y);
 
     /* Warp the mouse to (x,y) in screen space */
-    void (*WarpMouseGlobal) (int x, int y);
+    int (*WarpMouseGlobal) (int x, int y);
 
     /* Set relative mode */
     int (*SetRelativeMouseMode) (SDL_bool enabled);
@@ -120,7 +120,7 @@ extern int SDL_SendMouseMotion(SDL_Window * window, SDL_MouseID mouseID, int rel
 extern int SDL_SendMouseButton(SDL_Window * window, SDL_MouseID mouseID, Uint8 state, Uint8 button);
 
 /* Send a mouse wheel event */
-extern int SDL_SendMouseWheel(SDL_Window * window, SDL_MouseID mouseID, int x, int y);
+extern int SDL_SendMouseWheel(SDL_Window * window, SDL_MouseID mouseID, int x, int y, SDL_MouseWheelDirection direction);
 
 /* Shutdown the mouse subsystem */
 extern void SDL_MouseQuit(void);

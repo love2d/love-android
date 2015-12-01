@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -89,6 +89,7 @@ typedef struct _ControllerMapping_t
 
 static ControllerMapping_t *s_pSupportedControllers = NULL;
 static ControllerMapping_t *s_pXInputMapping = NULL;
+static ControllerMapping_t *s_pEmscriptenMapping = NULL;
 
 /* The SDL game controller structure */
 struct _SDL_GameController
@@ -258,16 +259,29 @@ ControllerMapping_t *SDL_PrivateGetControllerMappingForGUID(SDL_JoystickGUID *gu
  */
 ControllerMapping_t *SDL_PrivateGetControllerMapping(int device_index)
 {
+    SDL_JoystickGUID jGUID = SDL_JoystickGetDeviceGUID(device_index);
+    ControllerMapping_t *mapping;
+
+    mapping = SDL_PrivateGetControllerMappingForGUID(&jGUID);
 #if SDL_JOYSTICK_XINPUT
-    if (SDL_SYS_IsXInputGamepad_DeviceIndex(device_index) && s_pXInputMapping) {
-        return s_pXInputMapping;
+    if (!mapping && SDL_SYS_IsXInputGamepad_DeviceIndex(device_index)) {
+        mapping = s_pXInputMapping;
     }
-    else
-#endif /* SDL_JOYSTICK_XINPUT */
-    {
-        SDL_JoystickGUID jGUID = SDL_JoystickGetDeviceGUID(device_index);
-        return SDL_PrivateGetControllerMappingForGUID(&jGUID);
+#endif
+#if defined(SDL_JOYSTICK_EMSCRIPTEN)
+    if (!mapping && s_pEmscriptenMapping) {
+        mapping = s_pEmscriptenMapping;
     }
+#endif
+    if (!mapping) {
+        const char *name = SDL_JoystickNameForIndex(device_index);
+        if (name) {
+            if (SDL_strstr(name, "Xbox") || SDL_strstr(name, "X-Box")) {
+                mapping = s_pXInputMapping;
+            }
+        }
+    }
+    return mapping;
 }
 
 static const char* map_StringForControllerAxis[] = {
@@ -606,7 +620,7 @@ SDL_GameControllerAddMappingsFromRW(SDL_RWops * rw, int freerw)
         if (freerw) {
             SDL_RWclose(rw);
         }
-        return SDL_SetError("Could allocate space to not read DB into memory");
+        return SDL_SetError("Could not allocate space to read DB into memory");
     }
     
     if (SDL_RWread(rw, buf, db_size, 1) != 1) {
@@ -668,6 +682,11 @@ SDL_GameControllerAddMapping(const char *mappingString)
     SDL_JoystickGUID jGUID;
     ControllerMapping_t *pControllerMapping;
     SDL_bool is_xinput_mapping = SDL_FALSE;
+    SDL_bool is_emscripten_mapping = SDL_FALSE;
+
+    if (!mappingString) {
+        return SDL_InvalidParamError("mappingString");
+    }
 
     pchGUID = SDL_PrivateGetControllerGUIDFromMappingString(mappingString);
     if (!pchGUID) {
@@ -675,6 +694,9 @@ SDL_GameControllerAddMapping(const char *mappingString)
     }
     if (!SDL_strcasecmp(pchGUID, "xinput")) {
         is_xinput_mapping = SDL_TRUE;
+    }
+    if (!SDL_strcasecmp(pchGUID, "emscripten")) {
+        is_emscripten_mapping = SDL_TRUE;
     }
     jGUID = SDL_JoystickGetGUIDFromString(pchGUID);
     SDL_free(pchGUID);
@@ -711,6 +733,9 @@ SDL_GameControllerAddMapping(const char *mappingString)
         if (is_xinput_mapping) {
             s_pXInputMapping = pControllerMapping;
         }
+        if (is_emscripten_mapping) {
+            s_pEmscriptenMapping = pControllerMapping;
+        }
         pControllerMapping->guid = jGUID;
         pControllerMapping->name = pchName;
         pControllerMapping->mapping = pchMapping;
@@ -735,6 +760,10 @@ SDL_GameControllerMappingForGUID(SDL_JoystickGUID guid)
         /* allocate enough memory for GUID + ',' + name + ',' + mapping + \0 */
         needed = SDL_strlen(pchGUID) + 1 + SDL_strlen(mapping->name) + 1 + SDL_strlen(mapping->mapping) + 1;
         pMappingString = SDL_malloc(needed);
+        if (!pMappingString) {
+            SDL_OutOfMemory();
+            return NULL;
+        }
         SDL_snprintf(pMappingString, needed, "%s,%s,%s", pchGUID, mapping->name, mapping->mapping);
     }
     return pMappingString;
@@ -746,6 +775,10 @@ SDL_GameControllerMappingForGUID(SDL_JoystickGUID guid)
 char *
 SDL_GameControllerMapping(SDL_GameController * gamecontroller)
 {
+    if (!gamecontroller) {
+        return NULL;
+    }
+
     return SDL_GameControllerMappingForGUID(gamecontroller->mapping.guid);
 }
 
@@ -992,9 +1025,6 @@ SDL_GameControllerGetAttached(SDL_GameController * gamecontroller)
 }
 
 
-/*
- * Get the number of multi-dimensional axis controls on a joystick
- */
 const char *
 SDL_GameControllerName(SDL_GameController * gamecontroller)
 {
@@ -1015,6 +1045,25 @@ SDL_Joystick *SDL_GameControllerGetJoystick(SDL_GameController * gamecontroller)
 
     return gamecontroller->joystick;
 }
+
+
+/*
+ * Find the SDL_GameController that owns this instance id
+ */
+SDL_GameController *
+SDL_GameControllerFromInstanceID(SDL_JoystickID joyid)
+{
+    SDL_GameController *gamecontroller = SDL_gamecontrollers;
+    while (gamecontroller) {
+        if (gamecontroller->joystick->instance_id == joyid) {
+            return gamecontroller;
+        }
+        gamecontroller = gamecontroller->next;
+    }
+
+    return NULL;
+}
+
 
 /**
  * Get the SDL joystick layer binding for this controller axis mapping
@@ -1066,9 +1115,6 @@ SDL_GameControllerButtonBind SDL_GameControllerGetBindForButton(SDL_GameControll
 }
 
 
-/*
- * Close a joystick previously opened with SDL_JoystickOpen()
- */
 void
 SDL_GameControllerClose(SDL_GameController * gamecontroller)
 {

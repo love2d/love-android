@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -347,17 +347,16 @@ Wayland_WarpMouse(SDL_Window *window, int x, int y)
     SDL_Unsupported();
 }
 
-static void
+static int
 Wayland_WarpMouseGlobal(int x, int y)
 {
-    SDL_Unsupported();
+    return SDL_Unsupported();
 }
 
 static int
 Wayland_SetRelativeMouseMode(SDL_bool enabled)
 {
-    SDL_Unsupported();
-    return -1;
+    return SDL_Unsupported();
 }
 
 void

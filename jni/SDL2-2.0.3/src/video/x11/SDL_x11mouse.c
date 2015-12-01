@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -318,13 +318,14 @@ X11_WarpMouse(SDL_Window * window, int x, int y)
     X11_XSync(display, False);
 }
 
-static void
+static int
 X11_WarpMouseGlobal(int x, int y)
 {
     Display *display = GetDisplay();
 
     X11_XWarpPointer(display, None, DefaultRootWindow(display), 0, 0, 0, 0, x, y);
     X11_XSync(display, False);
+    return 0;
 }
 
 static int
@@ -378,12 +379,18 @@ X11_GetGlobalMouseState(int *x, int *y)
             int rootx, rooty, winx, winy;
             unsigned int mask;
             if (X11_XQueryPointer(display, RootWindow(display, data->screen), &root, &child, &rootx, &rooty, &winx, &winy, &mask)) {
+                XWindowAttributes root_attrs;
                 Uint32 retval = 0;
                 retval |= (mask & Button1Mask) ? SDL_BUTTON_LMASK : 0;
                 retval |= (mask & Button2Mask) ? SDL_BUTTON_MMASK : 0;
                 retval |= (mask & Button3Mask) ? SDL_BUTTON_RMASK : 0;
-                *x = data->x + rootx;
-                *y = data->y + rooty;
+                /* SDL_DisplayData->x,y point to screen origin, and adding them to mouse coordinates relative to root window doesn't do the right thing
+                 * (observed on dual monitor setup with primary display being the rightmost one - mouse was offset to the right).
+                 *
+                 * Adding root position to root-relative coordinates seems to be a better way to get absolute position. */
+                X11_XGetWindowAttributes(display, root, &root_attrs);
+                *x = root_attrs.x + rootx;
+                *y = root_attrs.y + rooty;
                 return retval;
             }
         }

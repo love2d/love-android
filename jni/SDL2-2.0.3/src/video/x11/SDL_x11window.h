@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -27,8 +27,7 @@
    video mode changes and we can respond to them by triggering more mode
    changes.
 */
-#define PENDING_FOCUS_IN_TIME   200
-#define PENDING_FOCUS_OUT_TIME  200
+#define PENDING_FOCUS_TIME   200
 
 #if SDL_VIDEO_OPENGL_EGL   
 #include <EGL/egl.h>

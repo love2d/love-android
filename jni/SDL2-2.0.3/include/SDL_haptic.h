@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -102,11 +102,6 @@
  *    return 0; // Success
  * }
  * \endcode
- *
- * You can also find out more information on my blog:
- * http://bobbens.dyndns.org/journal/2010/sdl_haptic/
- *
- * \author Edgar Simo Serra
  */
 
 #ifndef _SDL_haptic_h
@@ -347,6 +342,9 @@ typedef struct _SDL_Haptic SDL_Haptic;
 /**
  *  \brief Structure that represents a haptic direction.
  *
+ *  This is the direction where the force comes from,
+ *  instead of the direction in which the force is exerted.
+ *
  *  Directions can be specified by:
  *   - ::SDL_HAPTIC_POLAR : Specified by polar coordinates.
  *   - ::SDL_HAPTIC_CARTESIAN : Specified by cartesian coordinates.
@@ -555,7 +553,7 @@ typedef struct SDL_HapticPeriodic
     Uint16 period;      /**< Period of the wave. */
     Sint16 magnitude;   /**< Peak value; if negative, equivalent to 180 degrees extra phase shift. */
     Sint16 offset;      /**< Mean value of the wave. */
-    Uint16 phase;       /**< Horizontal shift given by hundredth of a degree. */
+    Uint16 phase;       /**< Positive phase shift given by hundredth of a degree. */
 
     /* Envelope */
     Uint16 attack_length;   /**< Duration of the attack. */
@@ -897,7 +895,7 @@ extern DECLSPEC int SDLCALL SDL_JoystickIsHaptic(SDL_Joystick * joystick);
 /**
  *  \brief Opens a Haptic device for usage from a Joystick device.
  *
- *  You must still close the haptic device seperately.  It will not be closed
+ *  You must still close the haptic device separately.  It will not be closed
  *  with the joystick.
  *
  *  When opening from a joystick you should first close the haptic device before
@@ -954,7 +952,7 @@ extern DECLSPEC int SDLCALL SDL_HapticNumEffects(SDL_Haptic * haptic);
 extern DECLSPEC int SDLCALL SDL_HapticNumEffectsPlaying(SDL_Haptic * haptic);
 
 /**
- *  \brief Gets the haptic devices supported features in bitwise matter.
+ *  \brief Gets the haptic device's supported features in bitwise manner.
  *
  *  Example:
  *  \code

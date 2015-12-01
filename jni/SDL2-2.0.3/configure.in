@@ -142,7 +142,7 @@ find_lib()
     else
         host_lib_path="/usr/$base_libdir /usr/local/$base_libdir"
     fi
-    for path in $gcc_bin_path $gcc_lib_path $env_lib_path $host_lib_path; do
+    for path in $env_lib_path $gcc_bin_path $gcc_lib_path $host_lib_path; do
         lib=[`ls -- $path/$1 2>/dev/null | sed -e '/\.so\..*\./d' -e 's,.*/,,' | sort | tail -1`]
         if test x$lib != x; then
             echo $lib
@@ -1159,28 +1159,6 @@ CheckWarnAll()
     fi
 }
 
-dnl See if GCC's -Wshadow is supported.
-CheckWarnShadow()
-{
-    AC_MSG_CHECKING(for GCC -Wshadow option)
-    have_gcc_Wshadow=no
-
-    save_CFLAGS="$CFLAGS"
-    CFLAGS="$save_CFLAGS -Wshadow"
-    AC_TRY_COMPILE([
-    int x = 0;
-    ],[
-    ],[
-    have_gcc_Wshadow=yes
-    ])
-    AC_MSG_RESULT($have_gcc_Wshadow)
-    CFLAGS="$save_CFLAGS"
-
-    if test x$have_gcc_Wshadow = xyes; then
-        EXTRA_CFLAGS="$EXTRA_CFLAGS -Wshadow"
-    fi
-}
-
 dnl Check for Wayland
 CheckWayland()
 {
@@ -1492,18 +1470,6 @@ AC_HELP_STRING([--enable-x11-shared], [dynamically load X11 support [[default=ma
             ])
             AC_MSG_RESULT($have_const_param_XextAddDisplay)
 
-            AC_MSG_CHECKING(for const parameter to _XData32)
-	    have_const_param_xdata32=no
-	    AC_TRY_COMPILE([
-	      #include <X11/Xlibint.h>
-	      extern int _XData32(Display *dpy,register _Xconst long *data,unsigned len);
-	    ],[
-	    ],[
-	    have_const_param_xdata32=yes
-	    AC_DEFINE(SDL_VIDEO_DRIVER_X11_CONST_PARAM_XDATA32)
-	    ])
-	    AC_MSG_RESULT($have_const_param_xdata32)
-
             dnl AC_CHECK_LIB(X11, XGetEventData, AC_DEFINE(SDL_VIDEO_DRIVER_X11_SUPPORTS_GENERIC_EVENTS, 1, [Have XGenericEvent]))
             AC_MSG_CHECKING([for XGenericEvent])
             have_XGenericEvent=no
@@ -1551,6 +1517,20 @@ AC_HELP_STRING([--enable-video-x11-xcursor], [enable X11 Xcursor support [[defau
             if test x$definitely_enable_video_x11_xcursor = xyes; then
                 AC_DEFINE(SDL_VIDEO_DRIVER_X11_XCURSOR, 1, [ ])
                 SUMMARY_video_x11="${SUMMARY_video_x11} xcursor"
+            fi
+            AC_ARG_ENABLE(video-x11-xdbe,
+AC_HELP_STRING([--enable-video-x11-xdbe], [enable X11 Xdbe support [[default=yes]]]),
+                            , enable_video_x11_xdbe=yes)
+            if test x$enable_video_x11_xdbe = xyes; then
+                AC_CHECK_HEADER(X11/extensions/Xdbe.h,
+                                have_dbe_h_hdr=yes,
+                                have_dbe_h_hdr=no,
+                                [#include <X11/Xlib.h>
+                                ])
+                if test x$have_dbe_h_hdr = xyes; then
+                    AC_DEFINE(SDL_VIDEO_DRIVER_X11_XDBE, 1, [ ])
+                    SUMMARY_video_x11="${SUMMARY_video_x11} xdbe"
+                fi
             fi
             AC_ARG_ENABLE(video-x11-xinerama,
 AC_HELP_STRING([--enable-video-x11-xinerama], [enable X11 Xinerama support [[default=yes]]]),
@@ -2130,6 +2110,40 @@ CheckMacGL()
     fi
 }
 
+CheckEmscriptenGLES()
+{
+    if test x$enable_video = xyes -a x$enable_video_opengles = xyes; then
+        AC_MSG_CHECKING(for EGL support)
+        video_opengl_egl=no
+        AC_TRY_COMPILE([
+         #include <EGL/egl.h>
+        ],[
+        ],[
+        video_opengl_egl=yes
+        ])
+        AC_MSG_RESULT($video_opengl_egl)
+        if test x$video_opengl_egl = xyes; then
+            AC_DEFINE(SDL_VIDEO_OPENGL_EGL, 1, [ ])
+        fi
+
+        AC_MSG_CHECKING(for OpenGL ES v2 headers)
+        video_opengles_v2=no
+        AC_TRY_COMPILE([
+         #include <GLES2/gl2.h>
+         #include <GLES2/gl2ext.h>
+        ],[
+        ],[
+        video_opengles_v2=yes
+        ])
+        AC_MSG_RESULT($video_opengles_v2)
+        if test x$video_opengles_v2 = xyes; then
+            AC_DEFINE(SDL_VIDEO_OPENGL_ES2, 1, [ ])
+            AC_DEFINE(SDL_VIDEO_RENDER_OGL_ES2, 1, [ ])
+            SUMMARY_video="${SUMMARY_video} opengl_es2"
+        fi
+    fi
+}
+
 dnl See if we can use the new unified event interface in Linux 2.4
 CheckInputEvents()
 {
@@ -2379,7 +2393,6 @@ AC_HELP_STRING([--enable-pthread-sem], [use pthread semaphores [[default=yes]]])
             EXTRA_CFLAGS="$EXTRA_CFLAGS $pthread_cflags"
             EXTRA_LDFLAGS="$EXTRA_LDFLAGS $pthread_lib"
             SDL_CFLAGS="$SDL_CFLAGS $pthread_cflags"
-            SDL_LIBS="$SDL_LIBS $pthread_lib"
 
             # Save the original compiler flags and libraries
             ac_save_cflags="$CFLAGS"; ac_save_libs="$LIBS"
@@ -2390,7 +2403,8 @@ AC_HELP_STRING([--enable-pthread-sem], [use pthread semaphores [[default=yes]]])
             AC_MSG_CHECKING(for recursive mutexes)
             has_recursive_mutexes=no
             if test x$has_recursive_mutexes = xno; then
-                AC_TRY_COMPILE([
+                AC_TRY_LINK([
+                  #define _GNU_SOURCE 1
                   #include <pthread.h>
                 ],[
                   pthread_mutexattr_t attr;
@@ -2401,7 +2415,8 @@ AC_HELP_STRING([--enable-pthread-sem], [use pthread semaphores [[default=yes]]])
                 ])
             fi
             if test x$has_recursive_mutexes = xno; then
-                AC_TRY_COMPILE([
+                AC_TRY_LINK([
+                  #define _GNU_SOURCE 1
                   #include <pthread.h>
                 ],[
                   pthread_mutexattr_t attr;
@@ -2801,7 +2816,9 @@ case "$host" in
 
                 if test x$enable_video = xyes; then
                     SOURCES="$SOURCES $srcdir/src/video/raspberry/*.c"
+                    # FIXME: confdefs? Not AC_DEFINE?
                     $as_echo "#define SDL_VIDEO_DRIVER_RPI 1" >>confdefs.h
+                    SUMMARY_video="${SUMMARY_video} rpi"
                 fi
                 ;;
             *-*-androideabi*)
@@ -2815,6 +2832,7 @@ case "$host" in
 
                 if test x$enable_video = xyes; then
                     SOURCES="$SOURCES $srcdir/src/core/android/*.c $srcdir/src/video/android/*.c"
+                    # FIXME: confdefs? Not AC_DEFINE?
                     $as_echo "#define SDL_VIDEO_DRIVER_ANDROID 1" >>confdefs.h
                     SUMMARY_video="${SUMMARY_video} android"
                 fi
@@ -2858,8 +2876,12 @@ case "$host" in
         CheckLibUDev
         CheckDBus
         CheckIBus
-        CheckInputEvents
-        CheckInputKD
+        case $ARCH in
+          linux)
+              CheckInputEvents
+              CheckInputKD
+          ;;
+        esac
         CheckTslib
         CheckUSBHID
         CheckPTHREAD
@@ -2937,9 +2959,18 @@ case "$host" in
         fi
         # Set up files for the filesystem library
         if test x$enable_filesystem = xyes; then
-            AC_DEFINE(SDL_FILESYSTEM_UNIX, 1, [ ])
-            SOURCES="$SOURCES $srcdir/src/filesystem/unix/*.c"
-            have_filesystem=yes
+             case $ARCH in
+               android)
+                   AC_DEFINE(SDL_FILESYSTEM_ANDROID, 1, [ ])
+                   SOURCES="$SOURCES $srcdir/src/filesystem/android/*.c"
+                   have_filesystem=yes
+               ;;
+               *)
+                   AC_DEFINE(SDL_FILESYSTEM_UNIX, 1, [ ])
+                   SOURCES="$SOURCES $srcdir/src/filesystem/unix/*.c"
+                   have_filesystem=yes
+               ;;
+             esac
         fi
         # Set up files for the timer library
         if test x$enable_timers = xyes; then
@@ -3070,7 +3101,7 @@ AC_HELP_STRING([--enable-render-d3d], [enable the Direct3D render driver [[defau
         else
             LIBUUID=-luuid
         fi
-        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion $LIBUUID -XCClinker -static-libgcc"
+        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion $LIBUUID -static-libgcc"
         # The Windows platform requires special setup
         VERSION_SOURCES="$srcdir/src/main/windows/*.rc"
         SDLMAIN_SOURCES="$srcdir/src/main/windows/*.c"
@@ -3206,6 +3237,7 @@ AC_HELP_STRING([--enable-render-d3d], [enable the Direct3D render driver [[defau
         EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,AudioToolbox"
         EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,CoreGraphics"
         EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,CoreMotion"
+        EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,GameController"
         ;;
     *-*-darwin* )
         # This could be either full "Mac OS X", or plain "Darwin" which is
@@ -3302,7 +3334,56 @@ AC_HELP_STRING([--enable-render-d3d], [enable the Direct3D render driver [[defau
             SOURCES="$SOURCES $srcdir/src/filesystem/nacl/*.c"
             have_filesystem=yes
         fi
+        ;;
+    *-*-emscripten* )
+        if test x$enable_video = xyes; then
+            AC_DEFINE(SDL_VIDEO_DRIVER_EMSCRIPTEN, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/video/emscripten/*.c"
+            have_video=yes
+            SUMMARY_video="${SUMMARY_video} emscripten"
+        fi
+
+        if test x$enable_audio = xyes; then
+            AC_DEFINE(SDL_AUDIO_DRIVER_EMSCRIPTEN, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/audio/emscripten/*.c"
+            have_audio=yes
+            SUMMARY_audio="${SUMMARY_audio} emscripten"
+        fi
+
+        CheckVisibilityHidden
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckDummyAudio
+        CheckDLOPEN
+        CheckClockGettime
+        CheckEmscriptenGLES
+
+         # Set up files for the power library
+        if test x$enable_power = xyes; then
+            AC_DEFINE(SDL_POWER_EMSCRIPTEN, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/power/emscripten/*.c"
+            have_power=yes
+        fi
         
+        # Set up files for the power library
+        if test x$enable_joystick = xyes; then
+            AC_DEFINE(SDL_JOYSTICK_EMSCRIPTEN, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/joystick/emscripten/*.c"
+            have_joystick=yes
+        fi
+
+        # Set up files for the filesystem library
+        if test x$enable_filesystem = xyes; then
+            AC_DEFINE(SDL_FILESYSTEM_EMSCRIPTEN, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/filesystem/emscripten/*.c"
+            have_filesystem=yes
+        fi
+        # Set up files for the timer library
+        if test x$enable_timers = xyes; then
+            AC_DEFINE(SDL_TIMER_UNIX, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/timer/unix/*.c"
+            have_timers=yes
+        fi
         ;;
     *)
         AC_MSG_ERROR([
@@ -3313,7 +3394,6 @@ esac
 
 dnl Do this on all platforms, after everything else.
 CheckWarnAll
-CheckWarnShadow
 
 # Verify that we have all the platform specific files we need
 
@@ -3454,7 +3534,7 @@ $SDLTEST_DEPENDS
 __EOF__
 
 AC_CONFIG_FILES([
-    Makefile:Makefile.in:Makefile.rules sdl2-config SDL2.spec sdl2.pc
+    Makefile:Makefile.in:Makefile.rules sdl2-config sdl2-config.cmake SDL2.spec sdl2.pc
 ])
 AC_CONFIG_COMMANDS([sdl2_config],[chmod a+x sdl2-config])
 

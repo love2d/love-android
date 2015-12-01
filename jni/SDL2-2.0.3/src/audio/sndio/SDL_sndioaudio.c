@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -158,7 +158,7 @@ SNDIO_PlayDevice(_THIS)
 
     /* If we couldn't write, assume fatal error for now */
     if ( written == 0 ) {
-        this->enabled = 0;
+        SDL_OpenedAudioDeviceDisconnected(this);
     }
 #ifdef DEBUG_AUDIO
     fprintf(stderr, "Wrote %d bytes of audio data\n", written);
@@ -193,7 +193,7 @@ SNDIO_CloseDevice(_THIS)
 }
 
 static int
-SNDIO_OpenDevice(_THIS, const char *devname, int iscapture)
+SNDIO_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
 {
     SDL_AudioFormat test_format = SDL_FirstAudioFormat(this->spec.format);
     struct sio_par par;

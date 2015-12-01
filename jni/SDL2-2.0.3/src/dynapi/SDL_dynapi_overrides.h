@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -505,6 +505,7 @@
 #define SDL_GetNumVideoDisplays SDL_GetNumVideoDisplays_REAL
 #define SDL_GetDisplayName SDL_GetDisplayName_REAL
 #define SDL_GetDisplayBounds SDL_GetDisplayBounds_REAL
+#define SDL_GetDisplayDPI SDL_GetDisplayDPI_REAL
 #define SDL_GetNumDisplayModes SDL_GetNumDisplayModes_REAL
 #define SDL_GetDisplayMode SDL_GetDisplayMode_REAL
 #define SDL_GetDesktopDisplayMode SDL_GetDesktopDisplayMode_REAL
@@ -591,3 +592,8 @@
 #define SDL_QueueAudio SDL_QueueAudio_REAL
 #define SDL_GetQueuedAudioSize SDL_GetQueuedAudioSize_REAL
 #define SDL_ClearQueuedAudio SDL_ClearQueuedAudio_REAL
+#define SDL_GetGrabbedWindow SDL_GetGrabbedWindow_REAL
+#define SDL_SetWindowsMessageHook SDL_SetWindowsMessageHook_REAL
+#define SDL_JoystickCurrentPowerLevel SDL_JoystickCurrentPowerLevel_REAL
+#define SDL_GameControllerFromInstanceID SDL_GameControllerFromInstanceID_REAL
+#define SDL_JoystickFromInstanceID SDL_JoystickFromInstanceID_REAL

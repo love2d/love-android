@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -59,6 +59,15 @@ typedef enum
     SDL_SYSTEM_CURSOR_HAND,      /**< Hand */
     SDL_NUM_SYSTEM_CURSORS
 } SDL_SystemCursor;
+
+/**
+ * \brief Scroll direction types for the Scroll event
+ */
+typedef enum
+{
+    SDL_MOUSEWHEEL_NORMAL,    /**< The scroll direction is normal */
+    SDL_MOUSEWHEEL_FLIPPED    /**< The scroll direction is flipped / natural */
+} SDL_MouseWheelDirection;
 
 /* Function prototypes */
 
@@ -128,10 +137,11 @@ extern DECLSPEC void SDLCALL SDL_WarpMouseInWindow(SDL_Window * window,
  *
  *  \param x The x coordinate
  *  \param y The y coordinate
+ *  \return 0 on success, -1 on error (usually: unsupported by a platform).
  *
  *  \note This function generates a mouse motion event
  */
-extern DECLSPEC void SDLCALL SDL_WarpMouseGlobal(int x, int y);
+extern DECLSPEC int SDLCALL SDL_WarpMouseGlobal(int x, int y);
 
 /**
  *  \brief Set relative mouse mode.

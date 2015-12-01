@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -137,7 +137,7 @@ HandleTouchMotion(int device_id, int source_id, float x, float y, float pressure
 static void
 HandleMouseScroll(SDL_Window* sdl_window, int hscroll, int vscroll)
 {
-    SDL_SendMouseWheel(sdl_window, 0, hscroll, vscroll);
+    SDL_SendMouseWheel(sdl_window, 0, hscroll, vscroll, SDL_MOUSEWHEEL_NORMAL);
 }
 
 static void
