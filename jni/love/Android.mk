@@ -30,7 +30,8 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../libmodplug-0.8.8.4/src \
 	${LOCAL_PATH}/../libvorbis-1.3.5/include \
 	${LOCAL_PATH}/../LuaJIT-2.0.1/src \
-	${LOCAL_PATH}/../libogg-1.3.2/include 
+	${LOCAL_PATH}/../libogg-1.3.2/include \
+	${LOCAL_PATH}/../libtheora-1.2.0alpha1/include 
 		
 LOCAL_SRC_FILES := \
 	$(filter-out \
@@ -72,6 +73,8 @@ LOCAL_SRC_FILES := \
  	$(wildcard ${LOCAL_PATH}/src/modules/touch/sdl/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/timer/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/timer/sdl/*.cpp) \
+  $(wildcard ${LOCAL_PATH}/src/modules/video/*.cpp) \
+  $(wildcard ${LOCAL_PATH}/src/modules/video/theora/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/window/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/modules/window/sdl/*.cpp) \
   $(wildcard ${LOCAL_PATH}/src/libraries/ddsparse/*.cpp) \
@@ -99,7 +102,7 @@ LOCAL_CXXFLAGS := -std=c++0x
 
 LOCAL_SHARED_LIBRARIES := libopenal libmpg123 
 
-LOCAL_STATIC_LIBRARIES := libphysfs libvorbis libogg libmodplug libfreetype libluajit SDL2_static
+LOCAL_STATIC_LIBRARIES := libphysfs libvorbis libogg libtheora libmodplug libfreetype libluajit SDL2_static
 
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
