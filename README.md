@@ -39,6 +39,15 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.10.0-alpha2:
+* Update to the next love API 0.10.0 (not yet officially released)
+* Added building of libtheora
+* Updated LuaJIT from 2.0.1 to 2.1
+* Fixed a compatibility issue with Android 2.3 devices
+* Updated libogg from 1.3.2. to 1.3.5
+* Updated OpenAL to 1.17.0
+* Updated SDL2 to a dev version of 2.0.4
+
 0.9.2a:
 * Added bugfix for ParticleSystem:clone
 
