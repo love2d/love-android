@@ -25,6 +25,7 @@
 #include "image/Image.h"
 #include "font/Rasterizer.h"
 #include "filesystem/wrap_Filesystem.h"
+#include "video/VideoStream.h"
 #include "image/wrap_Image.h"
 
 #include <cassert>
@@ -181,6 +182,20 @@ int w_setScissor(lua_State *L)
 		return luaL_error(L, "Can't set scissor with negative width and/or height.");
 
 	instance()->setScissor(x, y, w, h);
+	return 0;
+}
+
+int w_intersectScissor(lua_State *L)
+{
+	int x = (int) luaL_checknumber(L, 1);
+	int y = (int) luaL_checknumber(L, 2);
+	int w = (int) luaL_checknumber(L, 3);
+	int h = (int) luaL_checknumber(L, 4);
+
+	if (w < 0 || h < 0)
+		return luaL_error(L, "Can't set scissor with negative width and/or height.");
+
+	instance()->intersectScissor(x, y, w, h);
 	return 0;
 }
 
@@ -354,13 +369,13 @@ int w_newImage(lua_State *L)
 int w_newQuad(lua_State *L)
 {
 	Quad::Viewport v;
-	v.x = (float) luaL_checknumber(L, 1);
-	v.y = (float) luaL_checknumber(L, 2);
-	v.w = (float) luaL_checknumber(L, 3);
-	v.h = (float) luaL_checknumber(L, 4);
+	v.x = luaL_checknumber(L, 1);
+	v.y = luaL_checknumber(L, 2);
+	v.w = luaL_checknumber(L, 3);
+	v.h = luaL_checknumber(L, 4);
 
-	float sw = (float) luaL_checknumber(L, 5);
-	float sh = (float) luaL_checknumber(L, 6);
+	double sw = luaL_checknumber(L, 5);
+	double sh = luaL_checknumber(L, 6);
 
 	Quad *quad = instance()->newQuad(v, sw, sh);
 	luax_pushtype(L, GRAPHICS_QUAD_ID, quad);
@@ -837,12 +852,28 @@ int w_newText(lua_State *L)
 		luax_catchexcept(L, [&](){ t = instance()->newText(font); });
 	else
 	{
-		std::string text = luax_checkstring(L, 2);
+		std::vector<Font::ColoredString> text;
+		luax_checkcoloredstring(L, 2, text);
+
 		luax_catchexcept(L, [&](){ t = instance()->newText(font, text); });
 	}
 
 	luax_pushtype(L, GRAPHICS_TEXT_ID, t);
 	t->release();
+	return 1;
+}
+
+int w_newVideo(lua_State *L)
+{
+	if (!luax_istype(L, 1, VIDEO_VIDEO_STREAM_ID))
+		luax_convobj(L, 1, "video", "newVideoStream");
+
+	auto stream = luax_checktype<love::video::VideoStream>(L, 1, VIDEO_VIDEO_STREAM_ID);
+	Video *video = nullptr;
+
+	luax_catchexcept(L, [&]() { video = instance()->newVideo(stream); });
+	luax_pushtype(L, GRAPHICS_VIDEO_ID, video);
+	video->release();
 	return 1;
 }
 
@@ -1258,25 +1289,37 @@ int w_setDefaultShaderCode(lua_State *L)
 	lua_getfield(L, 1, "opengl");
 	lua_rawgeti(L, -1, 1);
 	lua_rawgeti(L, -2, 2);
+	lua_rawgeti(L, -3, 3);
 
 	Shader::ShaderSource openglcode;
-	openglcode.vertex = luax_checkstring(L, -2);
-	openglcode.pixel = luax_checkstring(L, -1);
+	openglcode.vertex = luax_checkstring(L, -3);
+	openglcode.pixel = luax_checkstring(L, -2);
 
-	lua_pop(L, 3);
+	Shader::ShaderSource openglVideocode;
+	openglVideocode.vertex = luax_checkstring(L, -3);
+	openglVideocode.pixel = luax_checkstring(L, -1);
+
+	lua_pop(L, 4);
 
 	lua_getfield(L, 1, "opengles");
 	lua_rawgeti(L, -1, 1);
 	lua_rawgeti(L, -2, 2);
+	lua_rawgeti(L, -3, 3);
 
 	Shader::ShaderSource openglescode;
-	openglescode.vertex = luax_checkstring(L, -2);
-	openglescode.pixel = luax_checkstring(L, -1);
+	openglescode.vertex = luax_checkstring(L, -3);
+	openglescode.pixel = luax_checkstring(L, -2);
 
-	lua_pop(L, 3);
+	Shader::ShaderSource openglesVideocode;
+	openglesVideocode.vertex = luax_checkstring(L, -3);
+	openglesVideocode.pixel = luax_checkstring(L, -1);
+
+	lua_pop(L, 4);
 
 	Shader::defaultCode[Graphics::RENDERER_OPENGL]   = openglcode;
 	Shader::defaultCode[Graphics::RENDERER_OPENGLES] = openglescode;
+	Shader::defaultVideoCode[Graphics::RENDERER_OPENGL]   = openglVideocode;
+	Shader::defaultVideoCode[Graphics::RENDERER_OPENGLES] = openglesVideocode;
 
 	return 0;
 }
@@ -1452,7 +1495,9 @@ int w_draw(lua_State *L)
 
 int w_print(lua_State *L)
 {
-	std::string str = luax_checkstring(L, 1);
+	std::vector<Font::ColoredString> str;
+	luax_checkcoloredstring(L, 1, str);
+
 	float x = (float)luaL_optnumber(L, 2, 0.0);
 	float y = (float)luaL_optnumber(L, 3, 0.0);
 	float angle = (float)luaL_optnumber(L, 4, 0.0f);
@@ -1471,7 +1516,9 @@ int w_print(lua_State *L)
 
 int w_printf(lua_State *L)
 {
-	std::string str = luax_checkstring(L, 1);
+	std::vector<Font::ColoredString> str;
+	luax_checkcoloredstring(L, 1, str);
+
 	float x = (float)luaL_checknumber(L, 2);
 	float y = (float)luaL_checknumber(L, 3);
 	float wrap = (float)luaL_checknumber(L, 4);
@@ -1843,6 +1890,7 @@ static const luaL_Reg functions[] =
 	{ "newShader", w_newShader },
 	{ "newMesh", w_newMesh },
 	{ "newText", w_newText },
+	{ "_newVideo", w_newVideo },
 
 	{ "setColor", w_setColor },
 	{ "getColor", w_getColor },
@@ -1899,6 +1947,7 @@ static const luaL_Reg functions[] =
 	{ "getDimensions", w_getDimensions },
 
 	{ "setScissor", w_setScissor },
+	{ "intersectScissor", w_intersectScissor },
 	{ "getScissor", w_getScissor },
 
 	{ "stencil", w_stencil },
@@ -1925,9 +1974,16 @@ static const luaL_Reg functions[] =
 	{ 0, 0 }
 };
 
+static int luaopen_drawable(lua_State *L)
+{
+	return luax_register_type(L, GRAPHICS_DRAWABLE_ID, "Drawable", nullptr);
+}
+
 // Types for this module.
 static const lua_CFunction types[] =
 {
+	luaopen_drawable,
+	luaopen_texture,
 	luaopen_font,
 	luaopen_image,
 	luaopen_quad,
@@ -1937,6 +1993,7 @@ static const lua_CFunction types[] =
 	luaopen_shader,
 	luaopen_mesh,
 	luaopen_text,
+	luaopen_video,
 	0
 };
 

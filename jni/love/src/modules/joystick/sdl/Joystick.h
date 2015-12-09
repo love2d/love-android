@@ -106,17 +106,15 @@ private:
 
 	struct Vibration
 	{
-		float left, right;
-		SDL_HapticEffect effect;
+		float left  = 0.0f;
+		float right = 0.0f;
+		SDL_HapticEffect effect = {};
 		Uint16 data[4];
-		int id;
-
-		Uint32 endtime;
+		int id = -1;
+		Uint32 endtime = SDL_HAPTIC_INFINITY;
 
 		Vibration()
-			: left(0.0f), right(0.0f)
-			, effect(), data(), id(-1)
-			, endtime(SDL_HAPTIC_INFINITY)
+			: data() // VS2013 can't initialize the array above...
 		{}
 
 	} vibration;

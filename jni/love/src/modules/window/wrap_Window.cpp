@@ -329,6 +329,18 @@ int w_getIcon(lua_State *L)
 	return 1;
 }
 
+int w_setDisplaySleepEnabled(lua_State *L)
+{
+	instance()->setDisplaySleepEnabled(luax_toboolean(L, 1));
+	return 0;
+}
+
+int w_isDisplaySleepEnabled(lua_State *L)
+{
+	luax_pushboolean(L, instance()->isDisplaySleepEnabled());
+	return 1;
+}
+
 int w_setTitle(lua_State *L)
 {
 	std::string title = luax_checkstring(L, 1);
@@ -509,6 +521,8 @@ static const luaL_Reg functions[] =
 	{ "getPosition", w_getPosition },
 	{ "setIcon", w_setIcon },
 	{ "getIcon", w_getIcon },
+	{ "setDisplaySleepEnabled", w_setDisplaySleepEnabled },
+	{ "isDisplaySleepEnabled", w_isDisplaySleepEnabled },
 	{ "setTitle", w_setTitle },
 	{ "getTitle", w_getTitle },
 	{ "hasFocus", w_hasFocus },

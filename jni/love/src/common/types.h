@@ -34,6 +34,7 @@ enum Type
 	OBJECT_ID,
 	DATA_ID,
 	MODULE_ID,
+	STREAM_ID,
 
 	// Filesystem.
 	FILESYSTEM_FILE_ID,
@@ -56,6 +57,7 @@ enum Type
 	GRAPHICS_SHADER_ID,
 	GRAPHICS_MESH_ID,
 	GRAPHICS_TEXT_ID,
+	GRAPHICS_VIDEO_ID,
 
 	// Image
 	IMAGE_IMAGE_DATA_ID,
@@ -106,6 +108,9 @@ enum Type
 	THREAD_THREAD_ID,
 	THREAD_CHANNEL_ID,
 
+	// Video
+	VIDEO_VIDEO_STREAM_ID,
+
 	// The modules themselves. Only add abstracted modules here.
 	MODULE_FILESYSTEM_ID,
 	MODULE_GRAPHICS_ID,
@@ -123,8 +128,9 @@ typedef std::bitset<TYPE_MAX_ENUM> TypeBits;
  **/
 extern const TypeBits *typeFlags;
 
-bool getType(const char *in, Type &out);
-bool getType(Type in, const char *&out);
+void addTypeName(Type type, const char *name);
+bool getTypeName(const char *in, Type &out);
+bool getTypeName(Type in, const char *&out);
 
 } // love
 

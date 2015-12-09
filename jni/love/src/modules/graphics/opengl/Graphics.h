@@ -37,6 +37,8 @@
 
 #include "window/Window.h"
 
+#include "video/VideoStream.h"
+
 #include "Font.h"
 #include "Image.h"
 #include "graphics/Quad.h"
@@ -47,6 +49,7 @@
 #include "Shader.h"
 #include "Mesh.h"
 #include "Text.h"
+#include "Video.h"
 
 namespace love
 {
@@ -126,6 +129,8 @@ public:
 	 **/
 	void setScissor(int x, int y, int width, int height);
 
+	void intersectScissor(int x, int y, int width, int height);
+
 	/**
 	 * Clears any scissor that has been created.
 	 **/
@@ -160,7 +165,7 @@ public:
 	Image *newImage(const std::vector<love::image::ImageData *> &data, const Image::Flags &flags);
 	Image *newImage(const std::vector<love::image::CompressedImageData *> &cdata, const Image::Flags &flags);
 
-	Quad *newQuad(Quad::Viewport v, float sw, float sh);
+	Quad *newQuad(Quad::Viewport v, double sw, double sh);
 
 	/**
 	 * Creates a Font object.
@@ -181,7 +186,9 @@ public:
 	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, int vertexcount, Mesh::DrawMode drawmode, Mesh::Usage usage);
 	Mesh *newMesh(const std::vector<Mesh::AttribFormat> &vertexformat, const void *data, size_t datasize, Mesh::DrawMode drawmode, Mesh::Usage usage);
 
-	Text *newText(Font *font, const std::string &text = "");
+	Text *newText(Font *font, const std::vector<Font::ColoredString> &text = {});
+
+	Video *newVideo(love::video::VideoStream *stream);
 
 	bool isGammaCorrect() const;
 
@@ -326,7 +333,7 @@ public:
 	 * @param kx Shear along the x-axis.
 	 * @param ky Shear along the y-axis.
 	 **/
-	void print(const std::string &str, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
+	void print(const std::vector<Font::ColoredString> &str, float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
 
 	/**
 	 * Draw formatted text on screen at the specified coordinates.
@@ -344,7 +351,7 @@ public:
 	 * @param kx Shear along the x-axis.
 	 * @param ky Shear along the y-axis.
 	 **/
-	void printf(const std::string &str, float x, float y, float wrap, Font::AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
+	void printf(const std::vector<Font::ColoredString> &str, float x, float y, float wrap, Font::AlignMode align, float angle, float sx, float sy, float ox, float oy, float kx, float ky);
 
 	/**
 	 * Draws a point at (x,y).
@@ -478,7 +485,7 @@ private:
 		float pointSize = 1.0f;
 
 		bool scissor = false;
-		OpenGL::Viewport scissorBox = OpenGL::Viewport();
+		ScissorRect scissorRect = ScissorRect();
 
 		// Stencil.
 		bool stencilTest = false;

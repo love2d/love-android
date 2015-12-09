@@ -126,6 +126,7 @@ public:
 	 **/
 	const std::vector<AttribFormat> &getVertexFormat() const;
 	DataType getAttributeInfo(int attribindex, int &components) const;
+	int getAttributeIndex(const std::string &name) const;
 
 	/**
 	 * Sets whether a specific vertex attribute is used when drawing the Mesh.
@@ -140,7 +141,7 @@ public:
 	void attachAttribute(const std::string &name, Mesh *mesh);
 
 	void *mapVertexData();
-	void unmapVertexData();
+	void unmapVertexData(size_t modifiedoffset = 0, size_t modifiedsize = -1);
 
 	/**
 	 * Flushes all modified data to the GPU.
@@ -154,12 +155,13 @@ public:
 	 * {0, 1, 2, 3, 4, ...}
 	 **/
 	void setVertexMap(const std::vector<uint32> &map);
+	void setVertexMap();
 
 	/**
 	 * Fills the uint32 vector passed into the method with the previously set
 	 * vertex map (index buffer) values.
 	 **/
-	void getVertexMap(std::vector<uint32> &map) const;
+	bool getVertexMap(std::vector<uint32> &map) const;
 
 	/**
 	 * Gets the total number of elements in the vertex map array.
@@ -192,6 +194,8 @@ public:
 	void setDrawRange();
 	void getDrawRange(int &min, int &max) const;
 
+	int bindAttributeToShaderInput(int attributeindex, const std::string &inputname);
+
 	// Implements Drawable.
 	void draw(float x, float y, float angle, float sx, float sy, float ox, float oy, float kx, float ky) override;
 
@@ -211,7 +215,7 @@ private:
 	struct AttachedAttribute
 	{
 		Mesh *mesh;
-		size_t index;
+		int index;
 		bool enabled;
 	};
 
@@ -242,6 +246,7 @@ private:
 
 	// Element (vertex index) buffer, for the vertex map.
 	GLBuffer *ibo;
+	bool useIndexBuffer;
 	size_t elementCount;
 	GLenum elementDataType;
 

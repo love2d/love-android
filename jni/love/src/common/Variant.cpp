@@ -24,8 +24,6 @@
 namespace love
 {
 
-extern StringMap<Type, TYPE_MAX_ENUM> types;
-
 static love::Type extractudatatype(lua_State *L, int idx)
 {
 	Type t = INVALID_ID;
@@ -36,7 +34,7 @@ static love::Type extractudatatype(lua_State *L, int idx)
 	lua_pushvalue(L, idx);
 	int result = lua_pcall(L, 1, 1, 0);
 	if (result == 0)
-		types.find(lua_tostring(L, -1), t);
+		getTypeName(lua_tostring(L, -1), t);
 	if (result == 0 || result == LUA_ERRRUN)
 		lua_pop(L, 1);
 	return t;
@@ -165,7 +163,7 @@ Variant *Variant::fromLua(lua_State *L, int n, bool allowTables)
 		if (allowTables)
 		{
 			bool success = true;
-			std::vector<std::pair<Variant*, Variant*> > *table = new std::vector<std::pair<Variant*, Variant*> >();
+			std::vector<std::pair<Variant*, Variant*>> *table = new std::vector<std::pair<Variant*, Variant*>>();
 			lua_pushnil(L);
 			while (lua_next(L, n))
 			{
@@ -230,7 +228,7 @@ void Variant::toLua(lua_State *L)
 		// I can do (at the moment).
 		break;
 	case TABLE:
-		lua_newtable(L);
+		lua_createtable(L, 0, (int) data.table->size());
 		for (size_t i = 0; i < data.table->size(); ++i)
 		{
 			std::pair<Variant*, Variant*> &kv = data.table->at(i);

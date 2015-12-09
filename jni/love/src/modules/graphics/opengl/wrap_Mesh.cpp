@@ -109,10 +109,15 @@ int w_Mesh_setVertices(lua_State *L)
 {
 	Mesh *t = luax_checkmesh(L, 1);
 	luaL_checktype(L, 2, LUA_TTABLE);
+	size_t vertoffset = (size_t) luaL_optnumber(L, 3, 1) - 1;
+
+	if (vertoffset >= t->getVertexCount())
+		return luaL_error(L, "Invalid vertex start index (must be between 1 and %d)", (int) t->getVertexCount());
 
 	size_t nvertices = luax_objlen(L, 2);
-	if (nvertices != t->getVertexCount())
-		return luaL_error(L, "Invalid number of vertices (expected %d, got %d)", (int) t->getVertexCount(), (int) nvertices);
+
+	if (vertoffset + nvertices > t->getVertexCount())
+		return luaL_error(L, "Too many vertices (expected at most %d, got %d)", (int) t->getVertexCount() - (int) vertoffset, (int) nvertices);
 
 	const std::vector<Mesh::AttribFormat> &vertexformat = t->getVertexFormat();
 
@@ -120,7 +125,10 @@ int w_Mesh_setVertices(lua_State *L)
 	for (const Mesh::AttribFormat &format : vertexformat)
 		ncomponents += format.components;
 
-	char *data = (char *) t->mapVertexData();
+	size_t stride = t->getVertexStride();
+	size_t byteoffset = vertoffset * stride;
+
+	char *data = (char *) t->mapVertexData() + byteoffset;
 
 	for (size_t i = 0; i < nvertices; i++)
 	{
@@ -145,7 +153,7 @@ int w_Mesh_setVertices(lua_State *L)
 		lua_pop(L, ncomponents + 1);
 	}
 
-	t->unmapVertexData();
+	t->unmapVertexData(byteoffset, nvertices * stride);
 	return 0;
 }
 
@@ -331,6 +339,13 @@ int w_Mesh_setVertexMap(lua_State *L)
 {
 	Mesh *t = luax_checkmesh(L, 1);
 
+	if (lua_isnoneornil(L, 2))
+	{
+		// Disable the vertex map / index buffer.
+		luax_catchexcept(L, [&](){ t->setVertexMap(); });
+		return 0;
+	}
+
 	bool is_table = lua_istable(L, 2);
 	int nargs = is_table ? (int) luax_objlen(L, 2) : lua_gettop(L) - 1;
 
@@ -361,7 +376,14 @@ int w_Mesh_getVertexMap(lua_State *L)
 	Mesh *t = luax_checkmesh(L, 1);
 
 	std::vector<uint32> vertex_map;
-	luax_catchexcept(L, [&](){ t->getVertexMap(vertex_map); });
+	bool has_vertex_map = false;
+	luax_catchexcept(L, [&](){ has_vertex_map = t->getVertexMap(vertex_map); });
+
+	if (!has_vertex_map)
+	{
+		lua_pushnil(L);
+		return 1;
+	}
 
 	int element_count = (int) vertex_map.size();
 
@@ -468,7 +490,7 @@ int w_Mesh_getDrawRange(lua_State *L)
 	return 2;
 }
 
-static const luaL_Reg functions[] =
+static const luaL_Reg w_Mesh_functions[] =
 {
 	{ "setVertices", w_Mesh_setVertices },
 	{ "setVertex", w_Mesh_setVertex },
@@ -494,7 +516,7 @@ static const luaL_Reg functions[] =
 
 extern "C" int luaopen_mesh(lua_State *L)
 {
-	return luax_register_type(L, GRAPHICS_MESH_ID, functions);
+	return luax_register_type(L, GRAPHICS_MESH_ID, "Mesh", w_Mesh_functions, nullptr);
 }
 
 } // opengl

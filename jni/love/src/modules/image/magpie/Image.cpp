@@ -18,6 +18,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
+#include "common/config.h"
+
 #include "Image.h"
 
 #include "ImageData.h"
@@ -30,6 +32,7 @@
 #include "PVRHandler.h"
 #include "KTXHandler.h"
 #include "PKMHandler.h"
+#include "ASTCHandler.h"
 
 namespace love
 {
@@ -40,13 +43,18 @@ namespace magpie
 
 Image::Image()
 {
-	formatHandlers.push_back(new PNGHandler);
-	formatHandlers.push_back(new STBHandler);
+	formatHandlers = {
+		new PNGHandler,
+		new STBHandler,
+	};
 
-	compressedFormatHandlers.push_back(new DDSHandler);
-	compressedFormatHandlers.push_back(new PVRHandler);
-	compressedFormatHandlers.push_back(new KTXHandler);
-	compressedFormatHandlers.push_back(new PKMHandler);
+	compressedFormatHandlers = {
+		new DDSHandler,
+		new PVRHandler,
+		new KTXHandler,
+		new PKMHandler,
+		new ASTCHandler,
+	};
 }
 
 Image::~Image()

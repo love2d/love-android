@@ -361,6 +361,14 @@ bool Canvas::setWrap(const Texture::Wrap &w)
 		wrap.s = wrap.t = WRAP_CLAMP;
 	}
 
+	if (!gl.isClampZeroTextureWrapSupported())
+	{
+		if (wrap.s == WRAP_CLAMP_ZERO)
+			wrap.s = WRAP_CLAMP;
+		if (wrap.t == WRAP_CLAMP_ZERO)
+			wrap.t = WRAP_CLAMP;
+	}
+
 	gl.bindTexture(texture);
 	gl.setTextureWrap(wrap);
 
@@ -407,9 +415,6 @@ void Canvas::startGrab(const std::vector<Canvas *> &canvases)
 
 	if (canvases.size() > 0)
 	{
-		if (!isMultiCanvasSupported())
-			throw love::Exception("Multi-canvas rendering is not supported on this system.");
-
 		if ((int) canvases.size() + 1 > gl.getMaxRenderTargets())
 			throw love::Exception("This system can't simultaneously render to %d canvases.", canvases.size()+1);
 
@@ -804,15 +809,9 @@ bool Canvas::isSupported()
 	return GLAD_ES_VERSION_2_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object || GLAD_EXT_framebuffer_object;
 }
 
-bool Canvas::isMultiCanvasSupported()
-{
-	// system must support at least 4 simultaneous active canvases.
-	return gl.getMaxRenderTargets() >= 4;
-}
-
 bool Canvas::isMultiFormatMultiCanvasSupported()
 {
-	return isMultiCanvasSupported() && (GLAD_ES_VERSION_3_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object);
+	return gl.getMaxRenderTargets() > 1 && (GLAD_ES_VERSION_3_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object);
 }
 
 bool Canvas::supportedFormats[] = {false};

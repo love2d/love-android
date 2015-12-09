@@ -50,6 +50,8 @@ class Font : public Object, public Volatile
 {
 public:
 
+	typedef std::vector<uint32> Codepoints;
+
 	enum AlignMode
 	{
 		ALIGN_LEFT,
@@ -59,10 +61,29 @@ public:
 		ALIGN_MAX_ENUM
 	};
 
+	struct ColoredString
+	{
+		std::string str;
+		Color color;
+	};
+
+	struct IndexedColor
+	{
+		Color color;
+		int index;
+	};
+
+	struct ColoredCodepoints
+	{
+		std::vector<uint32> cps;
+		std::vector<IndexedColor> colors;
+	};
+
 	struct GlyphVertex
 	{
-		float x, y;
-		float s, t;
+		float  x, y;
+		uint16 s, t;
+		Color  color;
 	};
 
 	struct TextInfo
@@ -77,26 +98,21 @@ public:
 		GLuint texture;
 		int startvertex;
 		int vertexcount;
-
-		// used when sorting with std::sort.
-		bool operator < (const DrawCommand &other) const
-		{
-			// Texture binds are expensive, so we should sort by that first.
-			if (texture != other.texture)
-				return texture < other.texture;
-			else
-				return startvertex < other.startvertex;
-		}
 	};
 
 	Font(love::font::Rasterizer *r, const Texture::Filter &filter = Texture::getDefaultFilter());
 
 	virtual ~Font();
 
+	std::vector<DrawCommand> generateVertices(const ColoredCodepoints &codepoints, std::vector<GlyphVertex> &vertices, float extra_spacing = 0.0f, Vector offset = {}, TextInfo *info = nullptr);
 	std::vector<DrawCommand> generateVertices(const std::string &text, std::vector<GlyphVertex> &vertices, float extra_spacing = 0.0f, Vector offset = Vector(), TextInfo *info = nullptr);
-	std::vector<DrawCommand> generateVerticesFormatted(const std::string &text, float wrap, AlignMode align, std::vector<GlyphVertex> &vertices, TextInfo *info = nullptr);
+
+	std::vector<DrawCommand> generateVerticesFormatted(const ColoredCodepoints &text, float wrap, AlignMode align, std::vector<GlyphVertex> &vertices, TextInfo *info = nullptr);
 
 	void drawVertices(const std::vector<DrawCommand> &drawcommands);
+
+	static void getCodepointsFromString(const std::string &str, Codepoints &codepoints);
+	static void getCodepointsFromString(const std::vector<ColoredString> &strs, ColoredCodepoints &codepoints);
 
 	/**
 	 * Prints the text at the designated position with rotation and scaling.
@@ -112,9 +128,9 @@ public:
 	 * @param kx Shear along the x axis.
 	 * @param ky Shear along the y axis.
 	 **/
-	void print(const std::string &text, float x, float y, float angle = 0.0f, float sx = 1.0f, float sy = 1.0f, float ox = 0.0f, float oy = 0.0f, float kx = 0.0f, float ky = 0.0f);
+	void print(const std::vector<ColoredString> &text, float x, float y, float angle = 0.0f, float sx = 1.0f, float sy = 1.0f, float ox = 0.0f, float oy = 0.0f, float kx = 0.0f, float ky = 0.0f);
 
-	void printf(const std::string &text, float x, float y, float wrap, AlignMode align, float angle = 0.0f, float sx = 1.0f, float sy = 1.0f, float ox = 0.0f, float oy = 0.0f, float kx = 0.0f, float ky = 0.0f);
+	void printf(const std::vector<ColoredString> &text, float x, float y, float wrap, AlignMode align, float angle = 0.0f, float sx = 1.0f, float sy = 1.0f, float ox = 0.0f, float oy = 0.0f, float kx = 0.0f, float ky = 0.0f);
 
 	/**
 	 * Returns the height of the font.
@@ -140,13 +156,12 @@ public:
 	 * and optionally the number of lines
 	 *
 	 * @param text The input text
-	 * @param wrap The number of pixels to wrap at
+	 * @param wraplimit The number of pixels to wrap at
 	 * @param max_width Optional output of the maximum width
-	 * @param wrapped_lines Optional output indicating which lines were
-	 *        auto-wrapped. Indices correspond to indices of the returned value.
 	 * Returns a vector with the lines.
 	 **/
-	void getWrap(const std::string &text, float wrap, std::vector<std::string> &lines, std::vector<int> *line_widths = 0, std::vector<bool> *wrapped_lines = 0);
+	void getWrap(const std::string &text, float wraplimit, std::vector<std::string> &lines, std::vector<int> *line_widths = nullptr);
+	void getWrap(const ColoredCodepoints &codepoints, float wraplimit, std::vector<ColoredCodepoints> &lines, std::vector<int> *line_widths = nullptr);
 
 	/**
 	 * Sets the line height (which should be a number to multiply the font size by,

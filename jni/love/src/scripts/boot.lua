@@ -369,6 +369,7 @@ function love.init()
 			font = true,
 			thread = true,
 			window = true,
+			video = true,
 		},
 		console = false, -- Only relevant for windows.
 		identity = false,
@@ -425,6 +426,7 @@ function love.init()
 		"system",
 		"audio",
 		"image",
+		"video",
 		"font",
 		"window",
 		"graphics",
@@ -633,9 +635,9 @@ function love.errhand(msg)
 				return
 			elseif e == "keypressed" and a == "escape" then
 				return
-			elseif e == "mousereleased" then
+			elseif e == "touchreleased" then
 				local name = love.window.getTitle()
-				if #name == 0 then name = "Game" end
+				if #name == 0 or name == "Untitled" then name = "Game" end
 				local buttons = {"OK", "Cancel"}
 				local pressed = love.window.showMessageBox("Quit "..name.."?", "", buttons)
 				if pressed == 1 then

@@ -143,7 +143,7 @@ public:
 	{
 	public:
 
-#if defined(DEBUG) && DEBUG == 1
+#if defined(LOVE_IOS)
 		TempDebugGroup(const char *name)
 		{
 			if (GLAD_EXT_debug_marker)
@@ -153,7 +153,7 @@ public:
 		TempDebugGroup(const char *) {}
 #endif
 
-#if defined(DEBUG) && DEBUG == 1
+#if defined(LOVE_IOS)
 		~TempDebugGroup()
 		{
 			if (GLAD_EXT_debug_marker)
@@ -312,6 +312,8 @@ public:
 	 **/
 	void setTextureWrap(const graphics::Texture::Wrap &w);
 
+	bool isClampZeroTextureWrapSupported() const;
+
 	/**
 	 * Returns the maximum supported width or height of a texture.
 	 **/
@@ -339,6 +341,8 @@ public:
 	 **/
 	Vendor getVendor() const;
 
+	static const char *errorString(GLenum errorcode);
+
 	// Get human-readable strings for debug info.
 	static const char *debugSeverityString(GLenum severity);
 	static const char *debugSourceString(GLenum source);
@@ -351,6 +355,8 @@ private:
 	void initMaxValues();
 	void initMatrices();
 	void createDefaultTexture();
+
+	GLint getGLWrapMode(Texture::WrapMode wmode);
 
 	bool contextInitialized;
 

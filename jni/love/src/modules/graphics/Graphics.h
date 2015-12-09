@@ -98,8 +98,8 @@ public:
 
 	enum Support
 	{
-		SUPPORT_MULTI_CANVAS,
 		SUPPORT_MULTI_CANVAS_FORMATS,
+		SUPPORT_CLAMP_ZERO,
 		SUPPORT_MAX_ENUM
 	};
 
@@ -175,6 +175,17 @@ public:
 		bool operator != (const ColorMask &m) const
 		{
 			return !(operator == (m));
+		}
+	};
+
+	struct ScissorRect
+	{
+		int x, y;
+		int w, h;
+
+		bool operator == (const ScissorRect &rhs) const
+		{
+			return x == rhs.x && y == rhs.y && w == rhs.w && h == rhs.h;
 		}
 	};
 
