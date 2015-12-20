@@ -82,6 +82,16 @@ bool Graphics::getConstant(BlendMode in, const char *&out)
 	return blendModes.find(in, out);
 }
 
+bool Graphics::getConstant(const char *in, BlendAlpha &out)
+{
+	return blendAlphaModes.find(in, out);
+}
+
+bool Graphics::getConstant(BlendAlpha in, const char *&out)
+{
+	return blendAlphaModes.find(in, out);
+}
+
 bool Graphics::getConstant(const char *in, LineStyle &out)
 {
 	return lineStyles.find(in, out);
@@ -100,6 +110,26 @@ bool Graphics::getConstant(const char *in, LineJoin &out)
 bool Graphics::getConstant(LineJoin in, const char *&out)
 {
 	return lineJoins.find(in, out);
+}
+
+bool Graphics::getConstant(const char *in, StencilAction &out)
+{
+	return stencilActions.find(in, out);
+}
+
+bool Graphics::getConstant(StencilAction in, const char *&out)
+{
+	return stencilActions.find(in, out);
+}
+
+bool Graphics::getConstant(const char *in, CompareMode &out)
+{
+	return compareModes.find(in, out);
+}
+
+bool Graphics::getConstant(CompareMode in, const char *&out)
+{
+	return compareModes.find(in, out);
 }
 
 bool Graphics::getConstant(const char *in, Support &out)
@@ -152,15 +182,23 @@ StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM> Graphics::drawModes(Graph
 
 StringMap<Graphics::BlendMode, Graphics::BLEND_MAX_ENUM>::Entry Graphics::blendModeEntries[] =
 {
-	{ "alpha", BLEND_ALPHA },
-	{ "add", BLEND_ADD },
+	{ "alpha",    BLEND_ALPHA    },
+	{ "add",      BLEND_ADD      },
 	{ "subtract", BLEND_SUBTRACT },
 	{ "multiply", BLEND_MULTIPLY },
-	{ "screen", BLEND_SCREEN },
-	{ "replace", BLEND_REPLACE },
+	{ "screen",   BLEND_SCREEN   },
+	{ "replace",  BLEND_REPLACE  },
 };
 
 StringMap<Graphics::BlendMode, Graphics::BLEND_MAX_ENUM> Graphics::blendModes(Graphics::blendModeEntries, sizeof(Graphics::blendModeEntries));
+
+StringMap<Graphics::BlendAlpha, Graphics::BLENDALPHA_MAX_ENUM>::Entry Graphics::blendAlphaEntries[] =
+{
+	{ "alphamultiply", BLENDALPHA_MULTIPLY      },
+	{ "premultiplied", BLENDALPHA_PREMULTIPLIED },
+};
+
+StringMap<Graphics::BlendAlpha, Graphics::BLENDALPHA_MAX_ENUM> Graphics::blendAlphaModes(Graphics::blendAlphaEntries, sizeof(Graphics::blendAlphaEntries));
 
 StringMap<Graphics::LineStyle, Graphics::LINE_MAX_ENUM>::Entry Graphics::lineStyleEntries[] =
 {
@@ -178,6 +216,31 @@ StringMap<Graphics::LineJoin, Graphics::LINE_JOIN_MAX_ENUM>::Entry Graphics::lin
 };
 
 StringMap<Graphics::LineJoin, Graphics::LINE_JOIN_MAX_ENUM> Graphics::lineJoins(Graphics::lineJoinEntries, sizeof(Graphics::lineJoinEntries));
+
+StringMap<Graphics::StencilAction, Graphics::STENCIL_MAX_ENUM>::Entry Graphics::stencilActionEntries[] =
+{
+	{ "replace", STENCIL_REPLACE },
+	{ "increment", STENCIL_INCREMENT },
+	{ "decrement", STENCIL_DECREMENT },
+	{ "incrementwrap", STENCIL_INCREMENT_WRAP },
+	{ "decrementwrap", STENCIL_DECREMENT_WRAP },
+	{ "invert", STENCIL_INVERT },
+};
+
+StringMap<Graphics::StencilAction, Graphics::STENCIL_MAX_ENUM> Graphics::stencilActions(Graphics::stencilActionEntries, sizeof(Graphics::stencilActionEntries));
+
+StringMap<Graphics::CompareMode, Graphics::COMPARE_MAX_ENUM>::Entry Graphics::compareModeEntries[] =
+{
+	{ "less",     COMPARE_LESS     },
+	{ "lequal",   COMPARE_LEQUAL   },
+	{ "equal",    COMPARE_EQUAL    },
+	{ "gequal",   COMPARE_GEQUAL   },
+	{ "greater",  COMPARE_GREATER  },
+	{ "notequal", COMPARE_NOTEQUAL },
+	{ "always",   COMPARE_ALWAYS   },
+};
+
+StringMap<Graphics::CompareMode, Graphics::COMPARE_MAX_ENUM> Graphics::compareModes(Graphics::compareModeEntries, sizeof(Graphics::compareModeEntries));
 
 StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM>::Entry Graphics::supportEntries[] =
 {

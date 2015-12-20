@@ -32,11 +32,11 @@ namespace event
 
 #define instance() (Module::getInstance<Event>(Module::M_EVENT))
 
-static int poll_i(lua_State *L)
+static int w_poll_i(lua_State *L)
 {
-	Message *m;
+	Message *m = nullptr;
 
-	while (instance()->poll(m))
+	if (instance()->poll(m))
 	{
 		int args = m->toLua(L);
 		m->release();
@@ -47,23 +47,22 @@ static int poll_i(lua_State *L)
 	return 0;
 }
 
+int w_poll(lua_State *L)
+{
+	lua_pushcclosure(L, &w_poll_i, 0);
+	return 1;
+}
+
 int w_pump(lua_State *)
 {
 	instance()->pump();
 	return 0;
 }
 
-int w_poll(lua_State *L)
-{
-	lua_pushcclosure(L, &poll_i, 0);
-	return 1;
-}
-
 int w_wait(lua_State *L)
 {
-	Message *m;
-
-	if ((m = instance()->wait()))
+	Message *m = instance()->wait();
+	if (m)
 	{
 		int args = m->toLua(L);
 		m->release();
@@ -75,12 +74,11 @@ int w_wait(lua_State *L)
 
 int w_push(lua_State *L)
 {
-	Message *m;
+	Message *m = Message::fromLua(L, 1);
 
-	bool success = (m = Message::fromLua(L, 1)) != NULL;
-	luax_pushboolean(L, success);
+	luax_pushboolean(L, m != nullptr);
 
-	if (!success)
+	if (m == nullptr)
 		return 1;
 
 	instance()->push(m);
@@ -143,7 +141,9 @@ extern "C" int luaopen_love_event(lua_State *L)
 	w.functions = functions;
 	w.types = nullptr;
 
-	return luax_register_module(L, w);
+	int ret = luax_register_module(L, w);
+
+	return ret;
 }
 
 } // event

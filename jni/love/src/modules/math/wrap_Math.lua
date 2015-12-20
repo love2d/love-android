@@ -22,7 +22,36 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 --]]
 
-local math, ffifuncspointer = ...
+local love_math, ffifuncspointer = ...
+
+local type, tonumber, error = type, tonumber, error
+local floor = math.floor
+
+local rng = love_math._getRandomGenerator()
+
+function love_math.random(l, u)
+	return rng:random(l, u)
+end
+
+function love_math.randomNormal(stddev, mean)
+	return rng:randomNormal(stddev, mean)
+end
+
+function love_math.setRandomSeed(low, high)
+	return rng:setSeed(low, high)
+end
+
+function love_math.getRandomSeed()
+	return rng:getSeed()
+end
+
+function love_math.setRandomState(state)
+	return rng:setState(state)
+end
+
+function love_math.getRandomState()
+	return rng:getState()
+end
 
 if type(jit) ~= "table" or not jit.status() then
 	-- LuaJIT's FFI is *much* slower than LOVE's regular methods when the JIT
@@ -32,8 +61,6 @@ end
 
 local status, ffi = pcall(require, "ffi")
 if not status then return end
-
-local type, tonumber = type, tonumber
 
 -- Matches the struct declaration in wrap_Math.cpp.
 pcall(ffi.cdef, [[
@@ -54,7 +81,7 @@ local ffifuncs = ffi.cast("FFI_Math *", ffifuncspointer)
 
 -- Overwrite some regular love.math functions with FFI implementations.
 
-function math.noise(x, y, z, w)
+function love_math.noise(x, y, z, w)
 	if w ~= nil then
 		return tonumber(ffifuncs.noise4(x, y, z, w))
 	elseif z ~= nil then
@@ -73,7 +100,7 @@ local function gammaToLinear(c)
 	return c
 end
 
-function math.gammaToLinear(r, g, b, a)
+function love_math.gammaToLinear(r, g, b, a)
 	if type(r) == "table" then
 		local t = r
 		return gammaToLinear(t[1]), gammaToLinear(t[2]), gammaToLinear(t[3]), t[4]
@@ -88,7 +115,7 @@ local function linearToGamma(c)
 	return c
 end
 
-function math.linearToGamma(r, g, b, a)
+function love_math.linearToGamma(r, g, b, a)
 	if type(r) == "table" then
 		local t = r
 		return linearToGamma(t[1]), linearToGamma(t[2]), linearToGamma(t[3]), t[4]

@@ -217,35 +217,63 @@ int w_stencil(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TFUNCTION);
 
-	// Second argument: whether to keep the contents of the stencil buffer.
-	if (lua_toboolean(L, 2) == 0)
+	Graphics::StencilAction action = Graphics::STENCIL_REPLACE;
+
+	if (!lua_isnoneornil(L, 2))
+	{
+		const char *actionstr = luaL_checkstring(L, 2);
+		if (!Graphics::getConstant(actionstr, action))
+			return luaL_error(L, "Invalid stencil draw action: %s", actionstr);
+	}
+
+	int stencilvalue = (int) luaL_optnumber(L, 3, 1);
+
+	// Fourth argument: whether to keep the contents of the stencil buffer.
+	if (lua_toboolean(L, 4) == 0)
 		instance()->clearStencil();
 
-	instance()->drawToStencilBuffer(true);
+	instance()->drawToStencilBuffer(action, stencilvalue);
 
 	// Call stencilfunc()
 	lua_pushvalue(L, 1);
 	lua_call(L, 0, 0);
 
-	instance()->drawToStencilBuffer(false);
-
+	instance()->stopDrawToStencilBuffer();
 	return 0;
 }
 
 int w_setStencilTest(lua_State *L)
 {
-	bool enable = luax_toboolean(L, 1);
-	bool invert = luax_toboolean(L, 2);
-	instance()->setStencilTest(enable, invert);
+	// COMPARE_ALWAYS effectively disables stencil testing.
+	Graphics::CompareMode compare = Graphics::COMPARE_ALWAYS;
+	int comparevalue = 0;
+
+	if (!lua_isnoneornil(L, 1))
+	{
+		const char *comparestr = luaL_checkstring(L, 1);
+		if (!Graphics::getConstant(comparestr, compare))
+			return luaL_error(L, "Invalid compare mode: %s", comparestr);
+
+		comparevalue = (int) luaL_checknumber(L, 2);
+	}
+
+	instance()->setStencilTest(compare, comparevalue);
 	return 0;
 }
 
 int w_getStencilTest(lua_State *L)
 {
-	bool enabled, inverted;
-	instance()->getStencilTest(enabled, inverted);
-	luax_pushboolean(L, enabled);
-	luax_pushboolean(L, inverted);
+	Graphics::CompareMode compare = Graphics::COMPARE_ALWAYS;
+	int comparevalue = 1;
+
+	instance()->getStencilTest(compare, comparevalue);
+
+	const char *comparestr;
+	if (!Graphics::getConstant(compare, comparestr))
+		return luaL_error(L, "Unknown compare mode.");
+
+	lua_pushstring(L, comparestr);
+	lua_pushnumber(L, comparevalue);
 	return 2;
 }
 
@@ -1014,25 +1042,34 @@ int w_setBlendMode(lua_State *L)
 	if (!Graphics::getConstant(str, mode))
 		return luaL_error(L, "Invalid blend mode: %s", str);
 
-	bool multiplyalpha = luax_optboolean(L, 2, true);
+	Graphics::BlendAlpha alphamode = Graphics::BLENDALPHA_MULTIPLY;
+	if (!lua_isnoneornil(L, 2))
+	{
+		const char *alphastr = luaL_checkstring(L, 2);
+		if (!Graphics::getConstant(alphastr, alphamode))
+			return luaL_error(L, "Invalid blend alpha mode: %s", alphastr);
+	}
 
-	luax_catchexcept(L, [&](){ instance()->setBlendMode(mode, multiplyalpha); });
+	luax_catchexcept(L, [&](){ instance()->setBlendMode(mode, alphamode); });
 	return 0;
 }
 
 int w_getBlendMode(lua_State *L)
 {
 	const char *str;
-	Graphics::BlendMode mode;
-	bool multiplyalpha = false;
+	const char *alphastr;
 
-	luax_catchexcept(L, [&](){ mode = instance()->getBlendMode(multiplyalpha); });
+	Graphics::BlendAlpha alphamode;
+	Graphics::BlendMode mode = instance()->getBlendMode(alphamode);
 
 	if (!Graphics::getConstant(mode, str))
 		return luaL_error(L, "Unknown blend mode");
 
+	if (!Graphics::getConstant(alphamode, alphastr))
+		return luaL_error(L, "Unknown blend alpha mode");
+
 	lua_pushstring(L, str);
-	lua_pushboolean(L, multiplyalpha);
+	lua_pushstring(L, alphastr);
 	return 2;
 }
 
@@ -1201,7 +1238,7 @@ int w_newScreenshot(lua_State *L)
 int w_setCanvas(lua_State *L)
 {
 	// Disable stencil writes.
-	instance()->drawToStencilBuffer(false);
+	instance()->stopDrawToStencilBuffer();
 
 	// called with none -> reset to default buffer
 	if (lua_isnoneornil(L, 1))

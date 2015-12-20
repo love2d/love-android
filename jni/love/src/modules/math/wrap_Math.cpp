@@ -39,44 +39,10 @@ namespace love
 namespace math
 {
 
-int w_random(lua_State *L)
+int w__getRandomGenerator(lua_State *L)
 {
-	return luax_getrandom(L, 1, Math::instance.random());
-}
-
-int w_randomNormal(lua_State *L)
-{
-	double stddev = luaL_optnumber(L, 1, 1.0);
-	double mean = luaL_optnumber(L, 2, 0.0);
-	double r = Math::instance.randomNormal(stddev);
-
-	lua_pushnumber(L, r + mean);
-	return 1;
-}
-
-int w_setRandomSeed(lua_State *L)
-{
-	luax_catchexcept(L, [&](){ Math::instance.setRandomSeed(luax_checkrandomseed(L, 1)); });
-	return 0;
-}
-
-int w_getRandomSeed(lua_State *L)
-{
-	RandomGenerator::Seed s = Math::instance.getRandomSeed();
-	lua_pushnumber(L, (lua_Number) s.b32.low);
-	lua_pushnumber(L, (lua_Number) s.b32.high);
-	return 2;
-}
-
-int w_setRandomState(lua_State *L)
-{
-	luax_catchexcept(L, [&](){ Math::instance.setRandomState(luax_checkstring(L, 1)); });
-	return 0;
-}
-
-int w_getRandomState(lua_State *L)
-{
-	luax_pushstring(L, Math::instance.getRandomState());
+	RandomGenerator *t = Math::instance.getRandomGenerator();
+	luax_pushtype(L, MATH_RANDOM_GENERATOR_ID, t);
 	return 1;
 }
 
@@ -463,12 +429,9 @@ static FFI_Math ffifuncs =
 // List of functions to wrap.
 static const luaL_Reg functions[] =
 {
-	{ "random", w_random },
-	{ "randomNormal", w_randomNormal },
-	{ "setRandomSeed", w_setRandomSeed },
-	{ "getRandomSeed", w_getRandomSeed },
-	{ "setRandomState", w_setRandomState },
-	{ "getRandomState", w_getRandomState },
+	// love.math.random etc. are defined in wrap_Math.lua.
+
+	{ "_getRandomGenerator", w__getRandomGenerator },
 	{ "newRandomGenerator", w_newRandomGenerator },
 	{ "newBezierCurve", w_newBezierCurve },
 	{ "triangulate", w_triangulate },
@@ -502,7 +465,7 @@ extern "C" int luaopen_love_math(lua_State *L)
 
 	int n = luax_register_module(L, w);
 
-	// Execute wrap_Event.lua, sending the math table and ffifuncs pointer as args.
+	// Execute wrap_Math.lua, sending the math table and ffifuncs pointer as args.
 	luaL_loadbuffer(L, math_lua, sizeof(math_lua), "wrap_Math.lua");
 	lua_pushvalue(L, -2);
 	lua_pushlightuserdata(L, &ffifuncs);

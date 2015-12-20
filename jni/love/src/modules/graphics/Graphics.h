@@ -81,6 +81,13 @@ public:
 		BLEND_MAX_ENUM
 	};
 
+	enum BlendAlpha
+	{
+		BLENDALPHA_MULTIPLY,
+		BLENDALPHA_PREMULTIPLIED,
+		BLENDALPHA_MAX_ENUM
+	};
+
 	enum LineStyle
 	{
 		LINE_ROUGH,
@@ -94,6 +101,29 @@ public:
 		LINE_JOIN_MITER,
 		LINE_JOIN_BEVEL,
 		LINE_JOIN_MAX_ENUM
+	};
+
+	enum StencilAction
+	{
+		STENCIL_REPLACE,
+		STENCIL_INCREMENT,
+		STENCIL_DECREMENT,
+		STENCIL_INCREMENT_WRAP,
+		STENCIL_DECREMENT_WRAP,
+		STENCIL_INVERT,
+		STENCIL_MAX_ENUM
+	};
+
+	enum CompareMode
+	{
+		COMPARE_LESS,
+		COMPARE_LEQUAL,
+		COMPARE_EQUAL,
+		COMPARE_GEQUAL,
+		COMPARE_GREATER,
+		COMPARE_NOTEQUAL,
+		COMPARE_ALWAYS,
+		COMPARE_MAX_ENUM
 	};
 
 	enum Support
@@ -232,11 +262,20 @@ public:
 	static bool getConstant(const char *in, BlendMode &out);
 	static bool getConstant(BlendMode in, const char *&out);
 
+	static bool getConstant(const char *in, BlendAlpha &out);
+	static bool getConstant(BlendAlpha in, const char *&out);
+
 	static bool getConstant(const char *in, LineStyle &out);
 	static bool getConstant(LineStyle in, const char *&out);
 
 	static bool getConstant(const char *in, LineJoin &out);
 	static bool getConstant(LineJoin in, const char *&out);
+
+	static bool getConstant(const char *in, StencilAction &out);
+	static bool getConstant(StencilAction in, const char *&out);
+
+	static bool getConstant(const char *in, CompareMode &out);
+	static bool getConstant(CompareMode in, const char *&out);
 
 	static bool getConstant(const char *in, Support &out);
 	static bool getConstant(Support in, const char *&out);
@@ -258,11 +297,20 @@ private:
 	static StringMap<BlendMode, BLEND_MAX_ENUM>::Entry blendModeEntries[];
 	static StringMap<BlendMode, BLEND_MAX_ENUM> blendModes;
 
+	static StringMap<BlendAlpha, BLENDALPHA_MAX_ENUM>::Entry blendAlphaEntries[];
+	static StringMap<BlendAlpha, BLENDALPHA_MAX_ENUM> blendAlphaModes;
+
 	static StringMap<LineStyle, LINE_MAX_ENUM>::Entry lineStyleEntries[];
 	static StringMap<LineStyle, LINE_MAX_ENUM> lineStyles;
 
 	static StringMap<LineJoin, LINE_JOIN_MAX_ENUM>::Entry lineJoinEntries[];
 	static StringMap<LineJoin, LINE_JOIN_MAX_ENUM> lineJoins;
+
+	static StringMap<StencilAction, STENCIL_MAX_ENUM>::Entry stencilActionEntries[];
+	static StringMap<StencilAction, STENCIL_MAX_ENUM> stencilActions;
+
+	static StringMap<CompareMode, COMPARE_MAX_ENUM>::Entry compareModeEntries[];
+	static StringMap<CompareMode, COMPARE_MAX_ENUM> compareModes;
 
 	static StringMap<Support, SUPPORT_MAX_ENUM>::Entry supportEntries[];
 	static StringMap<Support, SUPPORT_MAX_ENUM> support;

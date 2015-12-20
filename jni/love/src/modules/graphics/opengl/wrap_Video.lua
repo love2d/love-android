@@ -25,20 +25,9 @@ misrepresented as being the original software.
 local Video_mt = ...
 local Video = Video_mt.__index
 
-function Video:loadRemote()
-	local stream = self:getStream()
-	local remote = love.video.newRemote()
-	stream:setSync(remote)
-	return remote
-end
-
 function Video:setSource(source)
 	self:_setSource(source)
-	if source then
-		self:getStream():setSync(source)
-	else
-		self:getStream():setSync(love.video.newRemote())
-	end
+	self:getStream():setSync(source)
 end
 
 function Video:play()

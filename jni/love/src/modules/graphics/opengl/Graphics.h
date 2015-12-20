@@ -146,13 +146,15 @@ public:
 	 * Enables or disables drawing to the stencil buffer. When enabled, the
 	 * color buffer is disabled.
 	 **/
-	void drawToStencilBuffer(bool enable);
+	void drawToStencilBuffer(StencilAction action, int value);
+	void stopDrawToStencilBuffer();
 
 	/**
 	 * Sets whether stencil testing is enabled.
 	 **/
-	void setStencilTest(bool enable, bool invert);
-	void getStencilTest(bool &enable, bool &invert);
+	void setStencilTest(CompareMode compare, int value);
+	void setStencilTest();
+	void getStencilTest(CompareMode &compare, int &value);
 
 	/**
 	 * Clear the stencil buffer in the active Canvas(es.)
@@ -241,12 +243,12 @@ public:
 	/**
 	 * Sets the current blend mode.
 	 **/
-	void setBlendMode(BlendMode mode, bool multiplyalpha);
+	void setBlendMode(BlendMode mode, BlendAlpha alphamode);
 
 	/**
 	 * Gets the current blend mode.
 	 **/
-	BlendMode getBlendMode(bool &multiplyalpha) const;
+	BlendMode getBlendMode(BlendAlpha &alphamode) const;
 
 	/**
 	 * Sets the default filter for images, canvases, and fonts.
@@ -476,7 +478,7 @@ private:
 		Colorf backgroundColor = Colorf(0.0, 0.0, 0.0, 255.0);
 
 		BlendMode blendMode = BLEND_ALPHA;
-		bool blendMultiplyAlpha = true;
+		BlendAlpha blendAlphaMode = BLENDALPHA_MULTIPLY;
 
 		float lineWidth = 1.0f;
 		LineStyle lineStyle = LINE_SMOOTH;
@@ -488,8 +490,8 @@ private:
 		ScissorRect scissorRect = ScissorRect();
 
 		// Stencil.
-		bool stencilTest = false;
-		bool stencilInvert = false;
+		CompareMode stencilCompare = COMPARE_ALWAYS;
+		int stencilTestValue = 0;
 
 		StrongRef<Font> font;
 		StrongRef<Shader> shader;
