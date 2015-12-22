@@ -17,7 +17,9 @@ your choice.
 Quick Start:
 ------------
 
-Install the Android NDK and the Android SDK with SDK API 12 and run
+Install the Android NDK and the Android SDK with SDK API 23, set the
+environment variables ```ANDROID_NDK```, ```ANDROID_SDK```, and
+```ANDROID_HOME``` and run
 
     ndk-build -j4
 
@@ -38,6 +40,10 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 
 Changelog:
 ----------
+
+0.10.0:
+* first official release!
+* Disabled JIT by default as it can cause performance problems. To enable JIT call jit.on()
 
 0.10.0-alpha2:
 * Update to the next love API 0.10.0 (not yet officially released)
