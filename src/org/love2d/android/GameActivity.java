@@ -31,12 +31,13 @@ import android.util.Log;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
 import android.view.*;
+import android.content.pm.PackageManager;
 
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
     private static String gamePath = "";
     private static Context context;
-    private static Vibrator vibrator;
+    private static Vibrator vibrator = null;
     private static boolean immersiveActive = false;
 
 		@Override 
@@ -54,7 +55,14 @@ public class GameActivity extends SDLActivity {
       Log.d("GameActivity", "started");
  
       context = this.getApplicationContext();
-      vibrator = (Vibrator) this.context.getSystemService(Context.VIBRATOR_SERVICE);
+			
+			String permission = "android.permission.VIBRATE";
+			int res = context.checkCallingOrSelfPermission(permission);
+			if (res == PackageManager.PERMISSION_GRANTED) {
+	      vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+			} else {
+				Log.d("GameActivity", "Vibration disabled: could not get vibration permission.");
+			}
 
       handleIntent (this.getIntent());
 
@@ -94,15 +102,19 @@ public class GameActivity extends SDLActivity {
 
     @Override
     protected void onDestroy() {
-      Log.d("GameActivity", "Cancelling vibration");
-      vibrator.cancel();
+			if (vibrator != null) {
+				Log.d("GameActivity", "Cancelling vibration");
+				vibrator.cancel();
+			}
       super.onDestroy();
     }
 
     @Override
     protected void onPause() {
-      Log.d("GameActivity", "Cancelling vibration");
-      vibrator.cancel();
+			if (vibrator != null) {
+				Log.d("GameActivity", "Cancelling vibration");
+				vibrator.cancel();
+			}
       super.onPause();
     }
 
@@ -174,7 +186,9 @@ public class GameActivity extends SDLActivity {
     }
 
     public static void vibrate (double seconds) {
-      vibrator.vibrate((long) (seconds * 1000.));
+			if (vibrator != null) {
+				vibrator.vibrate((long) (seconds * 1000.));
+			}
     }
 
     public static void openURL (String url) {
