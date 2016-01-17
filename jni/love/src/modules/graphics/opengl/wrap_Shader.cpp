@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -184,7 +184,7 @@ static int w__Shader_sendFloat(lua_State *L, bool colors)
 			for (int j = 0; j < (int) dimension; j++)
 			{
 				// the fourth component (alpha) is always already linear, if it exists.
-				if (gammacorrect && i < 4)
+				if (gammacorrect && j < 3)
 					values[i * dimension + j] = m.gammaToLinear(values[i * dimension + j] / 255.0f);
 				else
 					values[i * dimension + j] /= 255.0f;

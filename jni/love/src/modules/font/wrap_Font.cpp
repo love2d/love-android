@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -85,7 +85,10 @@ int w_newTrueTypeRasterizer(lua_State *L)
 		love::Data *d = nullptr;
 
 		if (luax_istype(L, 1, DATA_ID))
+		{
 			d = luax_checkdata(L, 1);
+			d->retain();
+		}
 		else
 			d = filesystem::luax_getfiledata(L, 1);
 

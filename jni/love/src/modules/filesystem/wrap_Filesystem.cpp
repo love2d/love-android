@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -67,6 +67,13 @@ int w_isFused(lua_State *L)
 {
 	luax_pushboolean(L, instance()->isFused());
 	return 1;
+}
+
+int w_setAndroidSaveExternal(lua_State *L)
+{
+	bool useExternal = luax_optboolean(L, 1, false);
+	instance()->setAndroidSaveExternal(useExternal);
+	return 0;
 }
 
 int w_setIdentity(lua_State *L)
@@ -708,6 +715,7 @@ static const luaL_Reg functions[] =
 	{ "init", w_init },
 	{ "setFused", w_setFused },
 	{ "isFused", w_isFused },
+	{ "_setAndroidSaveExternal", w_setAndroidSaveExternal },
 	{ "setIdentity", w_setIdentity },
 	{ "getIdentity", w_getIdentity },
 	{ "setSource", w_setSource },

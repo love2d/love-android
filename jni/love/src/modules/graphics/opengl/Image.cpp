@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -29,10 +29,10 @@
 #ifdef LOVE_ANDROID
 // log2 is not declared in the math.h shipped with the Android NDK
 #include <cmath>
-inline double log2( double n )  
+inline double log2(double n)
 { 
 	// log(n)/log(2) is log2.  
-	return std::log( n ) / std::log( 2 );  
+	return std::log(n) / std::log(2);
 }
 #endif
 
@@ -202,11 +202,8 @@ void Image::generateMipmaps()
 	if (flags.mipmaps && !isCompressed() &&
 		(GLAD_ES_VERSION_2_0 || GLAD_VERSION_3_0 || GLAD_ARB_framebuffer_object))
 	{
-		// Driver bug: http://www.opengl.org/wiki/Common_Mistakes#Automatic_mipmap_generation
-#if defined(LOVE_WINDOWS) || defined(LOVE_LINUX)
-		if (gl.getVendor() == OpenGL::VENDOR_AMD)
+		if (gl.bugs.generateMipmapsRequiresTexture2DEnable)
 			glEnable(GL_TEXTURE_2D);
-#endif
 
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
@@ -751,7 +748,7 @@ bool Image::hasCompressedTextureSupport(image::CompressedImageData::Format forma
 	case CompressedImageData::FORMAT_ASTC_10x10:
 	case CompressedImageData::FORMAT_ASTC_12x10:
 	case CompressedImageData::FORMAT_ASTC_12x12:
-		return /*GLAD_ES_VERSION_3_2 ||*/ GLAD_KHR_texture_compression_astc_ldr;
+		return GLAD_ES_VERSION_3_2 || GLAD_KHR_texture_compression_astc_ldr;
 	default:
 		return false;
 	}

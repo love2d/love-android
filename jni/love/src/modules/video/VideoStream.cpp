@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -52,12 +52,12 @@ void VideoStream::seek(double offset)
 	frameSync->seek(offset);
 }
 
-double VideoStream::tell()
+double VideoStream::tell() const
 {
 	return frameSync->tell();
 }
 
-bool VideoStream::isPlaying()
+bool VideoStream::isPlaying() const
 {
 	return frameSync->isPlaying();
 }

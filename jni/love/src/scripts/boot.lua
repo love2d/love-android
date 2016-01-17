@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2015 LOVE Development Team
+Copyright (c) 2006-2016 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -374,6 +374,7 @@ function love.init()
 		console = false, -- Only relevant for windows.
 		identity = false,
 		appendidentity = false,
+		externalstorage = false, -- Only relevant for Android.
 		accelerometerjoystick = true, -- Only relevant for Android / iOS.
 		gammacorrect = false,
 	}
@@ -493,6 +494,7 @@ function love.init()
 	end
 
 	if love.filesystem then
+		love.filesystem._setAndroidSaveExternal(c.externalstorage)
 		love.filesystem.setIdentity(c.identity or love.filesystem.getIdentity(), c.appendidentity)
 		if love.filesystem.isFile("main.lua") then
 			require("main")
@@ -584,6 +586,9 @@ function love.errhand(msg)
 		love.mouse.setVisible(true)
 		love.mouse.setGrabbed(false)
 		love.mouse.setRelativeMode(false)
+		if love.mouse.hasCursor() then
+			love.mouse.setCursor()
+		end
 	end
 	if love.joystick then
 		-- Stop all joystick vibrations.

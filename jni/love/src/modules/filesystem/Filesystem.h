@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -78,6 +78,20 @@ public:
 	 * @return True on success, false otherwise.
 	 **/
 	virtual bool setupWriteDirectory() = 0;
+
+	/**
+	 * This sets the save location on Android. 
+	 * False for internal, true for external
+	 * @param external Bool for whether 
+	 * Android should use external file storage.
+	**/
+	virtual void setAndroidSaveExternal(bool useExternal = false);
+
+	/**
+	 * Gets whether the Android save is external.
+	 * Returns a bool.
+	**/
+	virtual bool isAndroidSaveExternal() const; 
 
 	/**
 	 * Sets the name of the save folder.
@@ -263,6 +277,10 @@ public:
 	 **/
 	virtual std::string getExecutablePath() const;
 
+private:
+
+	//should we save external or internal for Android
+	bool useExternal;
 }; // Filesystem
 
 } // filesystem

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -446,23 +446,39 @@ void Graphics::clear(Colorf c)
 
 	glClearColor(nc.r, nc.g, nc.b, nc.a);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	if (gl.bugs.clearRequiresDriverTextureStateUpdate && Shader::current)
+	{
+		// This seems to be enough to fix the bug for me. Other methods I've
+		// tried (e.g. dummy draws) don't work in all cases.
+		glUseProgram(0);
+		glUseProgram(Shader::current->getProgram());
+	}
 }
 
-void Graphics::clear(const std::vector<Colorf> &colors)
+void Graphics::clear(const std::vector<OptionalColorf> &colors)
 {
 	if (colors.size() == 0)
 		return;
 
 	if (states.back().canvases.size() == 0)
-		return clear(colors[0]);
+	{
+		if (colors[0].enabled)
+			clear({colors[0].r, colors[0].g, colors[0].b, colors[0].a});
+
+		return;
+	}
 
 	if (colors.size() != states.back().canvases.size())
 		throw love::Exception("Number of clear colors must match the number of active canvases (%ld)", states.back().canvases.size());
 
-	std::vector<GLenum> bufs;
+	bool drawbuffermodified = false;
 
 	for (int i = 0; i < (int) colors.size(); i++)
 	{
+		if (!colors[i].enabled)
+			continue;
+
 		GLfloat c[] = {colors[i].r/255.f, colors[i].g/255.f, colors[i].b/255.f, colors[i].a/255.f};
 
 		// TODO: Investigate a potential bug on AMD drivers in Windows/Linux
@@ -478,10 +494,11 @@ void Graphics::clear(const std::vector<Colorf> &colors)
 			glClearBufferfv(GL_COLOR, i, c);
 		else
 		{
-			bufs.push_back(GL_COLOR_ATTACHMENT0 + i);
 			glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
 			glClearColor(c[0], c[1], c[2], c[3]);
 			glClear(GL_COLOR_BUFFER_BIT);
+
+			drawbuffermodified = true;
 		}
 	}
 
@@ -489,12 +506,25 @@ void Graphics::clear(const std::vector<Colorf> &colors)
 
 	// Revert to the expected draw buffers once we're done, if glClearBuffer
 	// wasn't supported.
-	if (!(GLAD_ES_VERSION_3_0 || GLAD_VERSION_3_0))
+	if (drawbuffermodified)
 	{
+		std::vector<GLenum> bufs;
+
+		for (int i = 0; i < (int) states.back().canvases.size(); i++)
+			bufs.push_back(GL_COLOR_ATTACHMENT0 + i);
+
 		if (bufs.size() > 1)
 			glDrawBuffers((int) bufs.size(), &bufs[0]);
 		else
 			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	}
+
+	if (gl.bugs.clearRequiresDriverTextureStateUpdate && Shader::current)
+	{
+		// This seems to be enough to fix the bug for me. Other methods I've
+		// tried (e.g. dummy draws) don't work in all cases.
+		glUseProgram(0);
+		glUseProgram(Shader::current->getProgram());
 	}
 }
 
@@ -1065,6 +1095,28 @@ void Graphics::setBlendMode(BlendMode mode, BlendAlpha alphamode)
 	GLenum dstRGB = GL_ZERO;
 	GLenum dstA   = GL_ZERO;
 
+	if (mode == BLEND_LIGHTEN || mode == BLEND_DARKEN)
+	{
+		if (!isSupported(SUPPORT_LIGHTEN))
+			throw love::Exception("The 'lighten' and 'darken' blend modes are not supported on this system.");
+	}
+
+	if (alphamode != BLENDALPHA_PREMULTIPLIED)
+	{
+		const char *modestr = "unknown";
+		switch (mode)
+		{
+		case BLEND_LIGHTEN:
+		case BLEND_DARKEN:
+		/*case BLEND_MULTIPLY:*/ // FIXME: Uncomment for 0.11.0
+			getConstant(mode, modestr);
+			throw love::Exception("The '%s' blend mode must be used with premultiplied alpha.", modestr);
+			break;
+		default:
+			break;
+		}
+	}
+
 	switch (mode)
 	{
 	case BLEND_ALPHA:
@@ -1081,6 +1133,12 @@ void Graphics::setBlendMode(BlendMode mode, BlendAlpha alphamode)
 		srcRGB = GL_ONE;
 		srcA = GL_ZERO;
 		dstRGB = dstA = GL_ONE;
+		break;
+	case BLEND_LIGHTEN:
+		func = GL_MAX;
+		break;
+	case BLEND_DARKEN:
+		func = GL_MIN;
 		break;
 	case BLEND_SCREEN:
 		srcRGB = srcA = GL_ONE;
@@ -1355,7 +1413,7 @@ void Graphics::ellipse(DrawMode mode, float x, float y, float a, float b, int po
 	delete[] coords;
 }
 
-void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, float angle2, int points)
+void Graphics::arc(DrawMode drawmode, ArcMode arcmode, float x, float y, float radius, float angle1, float angle2, int points)
 {
 	// Nothing to display with no points or equal angles. (Or is there with line mode?)
 	if (points <= 0 || angle1 == angle2)
@@ -1364,7 +1422,7 @@ void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, 
 	// Oh, you want to draw a circle?
 	if (fabs(angle1 - angle2) >= 2.0f * (float) LOVE_M_PI)
 	{
-		circle(mode, x, y, radius, points);
+		circle(drawmode, x, y, radius, points);
 		return;
 	}
 
@@ -1373,20 +1431,62 @@ void Graphics::arc(DrawMode mode, float x, float y, float radius, float angle1, 
 	if (angle_shift == 0.0)
 		return;
 
-	float phi = angle1;
-	int num_coords = (points + 3) * 2;
-	float *coords = new float[num_coords];
-	coords[0] = coords[num_coords - 2] = x;
-	coords[1] = coords[num_coords - 1] = y;
+	// Prevent the connecting line from being drawn if a closed line arc has a
+	// small angle. Avoids some visual issues when connected lines are at sharp
+	// angles, due to the miter line join drawing code.
+	if (drawmode == DRAW_LINE && arcmode == ARC_CLOSED && fabsf(angle1 - angle2) < LOVE_TORAD(4))
+		arcmode = ARC_OPEN;
 
-	for (int i = 0; i <= points; ++i, phi += angle_shift)
+	// Quick fix for the last part of a filled open arc not being drawn (because
+	// polygon(DRAW_FILL, ...) doesn't work without a closed loop of vertices.)
+	if (drawmode == DRAW_FILL && arcmode == ARC_OPEN)
+		arcmode = ARC_CLOSED;
+
+	float phi = angle1;
+
+	float *coords = nullptr;
+	int num_coords = 0;
+
+	const auto createPoints = [&](float *coordinates)
 	{
-		coords[2 * (i+1)]     = x + radius * cosf(phi);
-		coords[2 * (i+1) + 1] = y + radius * sinf(phi);
+		for (int i = 0; i <= points; ++i, phi += angle_shift)
+		{
+			coordinates[2 * i + 0] = x + radius * cosf(phi);
+			coordinates[2 * i + 1] = y + radius * sinf(phi);
+		}
+	};
+
+	if (arcmode == ARC_PIE)
+	{
+		num_coords = (points + 3) * 2;
+		coords = new float[num_coords];
+
+		coords[0] = coords[num_coords - 2] = x;
+		coords[1] = coords[num_coords - 1] = y;
+
+		createPoints(coords + 2);
+	}
+	else if (arcmode == ARC_OPEN)
+	{
+		num_coords = (points + 1) * 2;
+		coords = new float[num_coords];
+
+		createPoints(coords);
+	}
+	else // ARC_CLOSED
+	{
+		num_coords = (points + 2) * 2;
+		coords = new float[num_coords];
+
+		createPoints(coords);
+
+		// Connect the ends of the arc.
+		coords[num_coords - 2] = coords[0];
+		coords[num_coords - 1] = coords[1];
 	}
 
 	// NOTE: We rely on polygon() using GL_TRIANGLE_FAN, when fill mode is used.
-	polygon(mode, coords, num_coords);
+	polygon(drawmode, coords, num_coords);
 
 	delete[] coords;
 }
@@ -1553,14 +1653,13 @@ Graphics::Stats Graphics::getStats() const
 
 double Graphics::getSystemLimit(SystemLimit limittype) const
 {
+	GLfloat limits[2];
+
 	switch (limittype)
 	{
 	case Graphics::LIMIT_POINT_SIZE:
-		{
-			GLfloat limits[2];
-			glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
-			return (double) limits[1];
-		}
+		glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
+		return (double) limits[1];
 	case Graphics::LIMIT_TEXTURE_SIZE:
 		return (double) gl.getMaxTextureSize();
 	case Graphics::LIMIT_MULTI_CANVAS:
@@ -1580,6 +1679,8 @@ bool Graphics::isSupported(Support feature) const
 		return Canvas::isMultiFormatMultiCanvasSupported();
 	case SUPPORT_CLAMP_ZERO:
 		return gl.isClampZeroTextureWrapSupported();
+	case SUPPORT_LIGHTEN:
+		return GLAD_VERSION_1_4 || GLAD_ES_VERSION_3_0 || GLAD_EXT_blend_minmax;
 	default:
 		return false;
 	}

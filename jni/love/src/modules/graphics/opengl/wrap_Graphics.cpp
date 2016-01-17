@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -55,19 +55,26 @@ int w_reset(lua_State *)
 
 int w_clear(lua_State *L)
 {
-	std::vector<Colorf> colors(1);
+	Colorf color;
 
 	if (lua_isnoneornil(L, 1))
-		colors[0].set(0, 0, 0, 0);
+		color.set(0, 0, 0, 0);
 	else if (lua_istable(L, 1))
 	{
-		colors.resize((size_t) lua_gettop(L));
+		std::vector<Graphics::OptionalColorf> colors((size_t) lua_gettop(L));
 
 		for (int i = 0; i < lua_gettop(L); i++)
 		{
+			if (lua_isnoneornil(L, i + 1) || luax_objlen(L, i + 1) == 0)
+			{
+				colors[i].enabled = false;
+				continue;
+			}
+
 			for (int j = 1; j <= 4; j++)
 				lua_rawgeti(L, i + 1, j);
 
+			colors[i].enabled = true;
 			colors[i].r = (float) luaL_checknumber(L, -4);
 			colors[i].g = (float) luaL_checknumber(L, -3);
 			colors[i].b = (float) luaL_checknumber(L, -2);
@@ -75,22 +82,19 @@ int w_clear(lua_State *L)
 
 			lua_pop(L, 4);
 		}
+
+		luax_catchexcept(L, [&]() { instance()->clear(colors); });
+		return 0;
 	}
 	else
 	{
-		colors[0].r = (float) luaL_checknumber(L, 1);
-		colors[0].g = (float) luaL_checknumber(L, 2);
-		colors[0].b = (float) luaL_checknumber(L, 3);
-		colors[0].a = (float) luaL_optnumber(L, 4, 255);
+		color.r = (float) luaL_checknumber(L, 1);
+		color.g = (float) luaL_checknumber(L, 2);
+		color.b = (float) luaL_checknumber(L, 3);
+		color.a = (float) luaL_optnumber(L, 4, 255);
 	}
 
-	luax_catchexcept(L, [&]() {
-		if (colors.size() == 1)
-			instance()->clear(colors[0]);
-		else
-			instance()->clear(colors);
-	});
-
+	luax_catchexcept(L, [&]() { instance()->clear(color); });
 	return 0;
 }
 
@@ -702,19 +706,10 @@ static Mesh *newStandardMesh(lua_State *L)
 			v.s = (float) luaL_optnumber(L, -6, 0.0);
 			v.t = (float) luaL_optnumber(L, -5, 0.0);
 
-			Colorf c = {
-				(float) luaL_optnumber(L, -4, 255) / 255.0f,
-				(float) luaL_optnumber(L, -3, 255) / 255.0f,
-				(float) luaL_optnumber(L, -2, 255) / 255.0f,
-				(float) luaL_optnumber(L, -1, 255) / 255.0f
-			};
-
-			gammaCorrectColor(c);
-
-			v.r = (unsigned char) (c.r * 255.0f);
-			v.g = (unsigned char) (c.g * 255.0f);
-			v.b = (unsigned char) (c.b * 255.0f);
-			v.a = (unsigned char) (c.a * 255.0f);
+			v.r = (unsigned char) luaL_optnumber(L, -4, 255);
+			v.g = (unsigned char) luaL_optnumber(L, -3, 255);
+			v.b = (unsigned char) luaL_optnumber(L, -2, 255);
+			v.a = (unsigned char) luaL_optnumber(L, -1, 255);
 
 			lua_pop(L, 9);
 			vertices.push_back(v);
@@ -1716,7 +1711,7 @@ int w_rectangle(lua_State *L)
 	Graphics::DrawMode mode;
 	const char *str = luaL_checkstring(L, 1);
 	if (!Graphics::getConstant(str, mode))
-		return luaL_error(L, "Incorrect draw mode %s", str);
+		return luaL_error(L, "Invalid draw mode: %s", str);
 
 	float x = (float)luaL_checknumber(L, 2);
 	float y = (float)luaL_checknumber(L, 3);
@@ -1747,7 +1742,7 @@ int w_circle(lua_State *L)
 	Graphics::DrawMode mode;
 	const char *str = luaL_checkstring(L, 1);
 	if (!Graphics::getConstant(str, mode))
-		return luaL_error(L, "Incorrect draw mode %s", str);
+		return luaL_error(L, "Invalid draw mode: %s", str);
 
 	float x = (float)luaL_checknumber(L, 2);
 	float y = (float)luaL_checknumber(L, 3);
@@ -1767,7 +1762,7 @@ int w_ellipse(lua_State *L)
 	Graphics::DrawMode mode;
 	const char *str = luaL_checkstring(L, 1);
 	if (!Graphics::getConstant(str, mode))
-		return luaL_error(L, "Incorrect draw mode %s", str);
+		return luaL_error(L, "Invalid draw mode: %s", str);
 
 	float x = (float)luaL_checknumber(L, 2);
 	float y = (float)luaL_checknumber(L, 3);
@@ -1786,23 +1781,41 @@ int w_ellipse(lua_State *L)
 
 int w_arc(lua_State *L)
 {
-	Graphics::DrawMode mode;
-	const char *str = luaL_checkstring(L, 1);
-	if (!Graphics::getConstant(str, mode))
-		return luaL_error(L, "Incorrect draw mode %s", str);
+	Graphics::DrawMode drawmode;
+	const char *drawstr = luaL_checkstring(L, 1);
+	if (!Graphics::getConstant(drawstr, drawmode))
+		return luaL_error(L, "Invalid draw mode: %s", drawstr);
 
-	float x = (float)luaL_checknumber(L, 2);
-	float y = (float)luaL_checknumber(L, 3);
-	float radius = (float)luaL_checknumber(L, 4);
-	float angle1 = (float)luaL_checknumber(L, 5);
-	float angle2 = (float)luaL_checknumber(L, 6);
-	int points;
-	if (lua_isnoneornil(L, 7))
-		points = radius > 10 ? (int)(radius) : 10;
-	else
-		points = (int) luaL_checknumber(L, 7);
+	int startidx = 2;
 
-	instance()->arc(mode, x, y, radius, angle1, angle2, points);
+	Graphics::ArcMode arcmode = Graphics::ARC_PIE;
+
+	if (lua_type(L, 2) == LUA_TSTRING)
+	{
+		const char *arcstr = luaL_checkstring(L, 2);
+		if (!Graphics::getConstant(arcstr, arcmode))
+			return luaL_error(L, "Invalid arc mode: %s", arcstr);
+
+		startidx = 3;
+	}
+
+	float x = (float) luaL_checknumber(L, startidx + 0);
+	float y = (float) luaL_checknumber(L, startidx + 1);
+	float radius = (float) luaL_checknumber(L, startidx + 2);
+	float angle1 = (float) luaL_checknumber(L, startidx + 3);
+	float angle2 = (float) luaL_checknumber(L, startidx + 4);
+
+	int points = (int) radius;
+	float angle = fabs(angle1 - angle2);
+
+	// The amount of points is based on the fraction of the circle created by the arc.
+	if (angle < 2.0f * (float) LOVE_M_PI)
+		points *= angle / (2.0f * (float) LOVE_M_PI);
+
+	points = std::max(points, 10);
+	points = (int) luaL_optnumber(L, startidx + 5, points);
+
+	instance()->arc(drawmode, arcmode, x, y, radius, angle1, angle2, points);
 	return 0;
 }
 

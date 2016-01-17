@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -48,6 +48,16 @@ Filesystem::Filesystem()
 
 Filesystem::~Filesystem()
 {
+}
+
+void Filesystem::setAndroidSaveExternal(bool useExternal)
+{	
+	this->useExternal = useExternal;
+}
+
+bool Filesystem::isAndroidSaveExternal() const
+{ 
+	return useExternal;
 }
 
 bool Filesystem::isRealDirectory(const std::string &path) const

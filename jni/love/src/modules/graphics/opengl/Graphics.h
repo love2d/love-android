@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -62,6 +62,12 @@ class Graphics : public love::graphics::Graphics
 {
 public:
 
+	struct OptionalColorf
+	{
+		float r, g, b, a;
+		bool enabled;
+	};
+
 	Graphics();
 	virtual ~Graphics();
 
@@ -92,7 +98,7 @@ public:
 	/**
 	 * Clears each active canvas to a different color.
 	 **/
-	void clear(const std::vector<Colorf> &colors);
+	void clear(const std::vector<OptionalColorf> &colors);
 
 	/**
 	 * Discards the contents of the screen.
@@ -414,7 +420,8 @@ public:
 
 	/**
 	 * Draws an arc using the specified arguments.
-	 * @param mode The mode of drawing (line/filled).
+	 * @param drawmode The mode of drawing (line/filled).
+	 * @param arcmode The type of arc.
 	 * @param x X-coordinate.
 	 * @param y Y-coordinate.
 	 * @param radius Radius of the arc.
@@ -422,7 +429,7 @@ public:
 	 * @param angle2 The angle at which the arc terminates.
 	 * @param points Number of points to use to draw the arc.
 	 **/
-	void arc(DrawMode mode, float x, float y, float radius, float angle1, float angle2, int points = 10);
+	void arc(DrawMode drawmode, ArcMode arcmode, float x, float y, float radius, float angle1, float angle2, int points = 10);
 
 	/**
 	 * Draws a polygon with an arbitrary number of vertices.

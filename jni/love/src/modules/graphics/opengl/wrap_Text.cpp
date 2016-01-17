@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -222,6 +222,15 @@ int w_Text_getHeight(lua_State *L)
 	return 1;
 }
 
+int w_Text_getDimensions(lua_State *L)
+{
+	Text *t = luax_checktext(L, 1);
+	int index = (int) luaL_optnumber(L, 2, 0) - 1;
+	lua_pushnumber(L, t->getWidth(index));
+	lua_pushnumber(L, t->getHeight(index));
+	return 2;
+}
+
 static const luaL_Reg w_Text_functions[] =
 {
 	{ "set", w_Text_set },
@@ -233,6 +242,7 @@ static const luaL_Reg w_Text_functions[] =
 	{ "getFont", w_Text_getFont },
 	{ "getWidth", w_Text_getWidth },
 	{ "getHeight", w_Text_getHeight },
+	{ "getDimensions", w_Text_getDimensions },
 	{ 0, 0 }
 };
 

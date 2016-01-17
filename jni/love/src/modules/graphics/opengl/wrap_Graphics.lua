@@ -3,7 +3,7 @@ R"luastring"--(
 -- There is a matching delimiter at the bottom of the file.
 
 --[[
-Copyright (c) 2006-2015 LOVE Development Team
+Copyright (c) 2006-2016 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -82,7 +82,7 @@ float linearToGammaPrecise(float c) {
 	return c < 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1.0 / 2.4) - 0.055;
 }
 vec3 linearToGammaPrecise(vec3 c) {
-	bvec3 lt = lessThan(c, vec3(0.0031308));
+	bvec3 lt = lessThanEqual(c, vec3(0.0031308));
 	c.r = lt.r ? c.r * 12.92 : 1.055 * pow(c.r, 1.0 / 2.4) - 0.055;
 	c.g = lt.g ? c.g * 12.92 : 1.055 * pow(c.g, 1.0 / 2.4) - 0.055;
 	c.b = lt.b ? c.b * 12.92 : 1.055 * pow(c.b, 1.0 / 2.4) - 0.055;

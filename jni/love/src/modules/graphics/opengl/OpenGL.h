@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -168,6 +168,49 @@ public:
 		int    drawCalls;
 		int    framebufferBinds;
 	} stats;
+
+	struct Bugs
+	{
+		/**
+		 * On AMD's Windows (and probably Linux) drivers,
+		 * glBindFramebuffer + glClear + glBindFramebuffer + draw(fbo_tex) won't
+		 * work unless there's some kind of draw or state change which causes
+		 * the driver to update the texture's contents (just drawing the texture
+		 * won't always do it, with this driver bug).
+		 * Activating shader program 0 and then activating the actual program
+		 * seems to always 'fix' it for me.
+		 * Bug observed January 2016 with multiple AMD GPUs and driver versions.
+		 * https://love2d.org/forums/viewtopic.php?f=4&t=81496
+		 **/
+		bool clearRequiresDriverTextureStateUpdate;
+
+		/**
+		 * AMD's Windows drivers don't always properly generate mipmaps unless
+		 * glEnable(GL_TEXTURE_2D) is called directly before glGenerateMipmap.
+		 * This only applies to legacy and Compatibility Profile contexts, of
+		 * course.
+		 * https://www.opengl.org/wiki/Common_Mistakes#Automatic_mipmap_generation
+		 **/
+		bool generateMipmapsRequiresTexture2DEnable;
+
+		/**
+		 * Other bugs which have workarounds that don't use conditional code at
+		 * the moment:
+		 *
+		 * Kepler nvidia GPUs in at least OS X 10.10 and 10.11 fail to render
+		 * geometry with glDrawElements if index data comes from a Buffer Object
+		 * and vertex data doesn't. One workaround is to use a CPU-side index
+		 * array when there's also a CPU-side vertex array.
+		 * https://love2d.org/forums/viewtopic.php?f=4&t=81401&start=10
+		 *
+		 * Some android drivers don't seem to initialize the sampler index
+		 * values of sampler uniforms in shaders to 0 (which is required by the
+		 * GLSL ES specification) when linking the shader program. One
+		 * workaround is to always set the values of said sampler uniforms to 0
+		 * just after linking the shader program.
+		 * https://love2d.org/forums/viewtopic.php?f=4&t=81458
+		 **/
+	} bugs;
 
 	OpenGL();
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -70,12 +70,22 @@ public:
 		DRAW_MAX_ENUM
 	};
 
+	enum ArcMode
+	{
+		ARC_OPEN,
+		ARC_CLOSED,
+		ARC_PIE,
+		ARC_MAX_ENUM
+	};
+
 	enum BlendMode
 	{
 		BLEND_ALPHA,
 		BLEND_ADD,
 		BLEND_SUBTRACT,
 		BLEND_MULTIPLY,
+		BLEND_LIGHTEN,
+		BLEND_DARKEN,
 		BLEND_SCREEN,
 		BLEND_REPLACE,
 		BLEND_MAX_ENUM
@@ -130,6 +140,7 @@ public:
 	{
 		SUPPORT_MULTI_CANVAS_FORMATS,
 		SUPPORT_CLAMP_ZERO,
+		SUPPORT_LIGHTEN,
 		SUPPORT_MAX_ENUM
 	};
 
@@ -259,6 +270,9 @@ public:
 	static bool getConstant(const char *in, DrawMode &out);
 	static bool getConstant(DrawMode in, const char *&out);
 
+	static bool getConstant(const char *in, ArcMode &out);
+	static bool getConstant(ArcMode in, const char *&out);
+
 	static bool getConstant(const char *in, BlendMode &out);
 	static bool getConstant(BlendMode in, const char *&out);
 
@@ -293,6 +307,9 @@ private:
 
 	static StringMap<DrawMode, DRAW_MAX_ENUM>::Entry drawModeEntries[];
 	static StringMap<DrawMode, DRAW_MAX_ENUM> drawModes;
+
+	static StringMap<ArcMode, ARC_MAX_ENUM>::Entry arcModeEntries[];
+	static StringMap<ArcMode, ARC_MAX_ENUM> arcModes;
 
 	static StringMap<BlendMode, BLEND_MAX_ENUM>::Entry blendModeEntries[];
 	static StringMap<BlendMode, BLEND_MAX_ENUM> blendModes;

@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2006-2015 LOVE Development Team
+Copyright (c) 2006-2016 LOVE Development Team
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -867,11 +867,13 @@ function love.nogame()
 				local c = str:sub(i, i)
 				if c ~= " " then
 					local piece = self.pieces[idx + i]
-					piece.quad = GLYPHS[c]
-					piece.r = 0
-					piece.rv = 0
-					piece.color.prev = INITIAL_TEXT_COLOR
-					piece.color.next = INITIAL_TEXT_COLOR
+					if piece then
+						piece.quad = GLYPHS[c]
+						piece.r = 0
+						piece.rv = 0
+						piece.color.prev = INITIAL_TEXT_COLOR
+						piece.color.next = INITIAL_TEXT_COLOR
+					end
 				end
 			end
 		end

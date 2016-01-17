@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -70,6 +70,16 @@ bool Graphics::getConstant(const char *in, DrawMode &out)
 bool Graphics::getConstant(DrawMode in, const char *&out)
 {
 	return drawModes.find(in, out);
+}
+
+bool Graphics::getConstant(const char *in, ArcMode &out)
+{
+	return arcModes.find(in, out);
+}
+
+bool Graphics::getConstant(ArcMode in, const char *&out)
+{
+	return arcModes.find(in, out);
 }
 
 bool Graphics::getConstant(const char *in, BlendMode &out)
@@ -180,12 +190,23 @@ StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM>::Entry Graphics::drawMode
 
 StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM> Graphics::drawModes(Graphics::drawModeEntries, sizeof(Graphics::drawModeEntries));
 
+StringMap<Graphics::ArcMode, Graphics::ARC_MAX_ENUM>::Entry Graphics::arcModeEntries[] =
+{
+	{ "open",   ARC_OPEN   },
+	{ "closed", ARC_CLOSED },
+	{ "pie",    ARC_PIE    },
+};
+
+StringMap<Graphics::ArcMode, Graphics::ARC_MAX_ENUM> Graphics::arcModes(Graphics::arcModeEntries, sizeof(Graphics::arcModeEntries));
+
 StringMap<Graphics::BlendMode, Graphics::BLEND_MAX_ENUM>::Entry Graphics::blendModeEntries[] =
 {
 	{ "alpha",    BLEND_ALPHA    },
 	{ "add",      BLEND_ADD      },
 	{ "subtract", BLEND_SUBTRACT },
 	{ "multiply", BLEND_MULTIPLY },
+	{ "lighten",  BLEND_LIGHTEN  },
+	{ "darken",   BLEND_DARKEN   },
 	{ "screen",   BLEND_SCREEN   },
 	{ "replace",  BLEND_REPLACE  },
 };
@@ -246,6 +267,7 @@ StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM>::Entry Graphics::suppor
 {
 	{ "multicanvasformats", SUPPORT_MULTI_CANVAS_FORMATS },
 	{ "clampzero", SUPPORT_CLAMP_ZERO },
+	{ "lighten", SUPPORT_LIGHTEN },
 };
 
 StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM> Graphics::support(Graphics::supportEntries, sizeof(Graphics::supportEntries));

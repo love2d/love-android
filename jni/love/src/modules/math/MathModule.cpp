@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -213,7 +213,7 @@ float Math::gammaToLinear(float c) const
  **/
 float Math::linearToGamma(float c) const
 {
-	if (c < 0.0031308f)
+	if (c <= 0.0031308f)
 		return c * 12.92f;
 	else
 		return 1.055f * powf(c, 1.0f / 2.4f) - 0.055f;

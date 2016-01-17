@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2015 LOVE Development Team
+ * Copyright (c) 2006-2016 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -56,6 +56,9 @@ bool File::open(Mode mode)
 {
 	if (mode == MODE_CLOSED)
 		return true;
+
+	if (!PHYSFS_isInit())
+		throw love::Exception("PhysFS is not initialized.");
 
 	// File must exist if read mode.
 	if ((mode == MODE_READ) && !PHYSFS_exists(filename.c_str()))
