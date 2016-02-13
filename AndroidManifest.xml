@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="org.love2d.android"
-      android:versionCode="19"
-      android:versionName="0.10.0"
+      android:versionCode="20"
+      android:versionName="0.10.1"
       android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -11,7 +11,7 @@
 
     <application
       android:allowBackup="true"
-      android:icon="@drawable/ic_launcher"
+      android:icon="@drawable/love"
       android:label="LÖVE for Android"
       android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
       <service android:name=".DownloadService" />

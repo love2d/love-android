@@ -41,6 +41,14 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.10.1:
+This release contains all bugfixes of the desktor 0.10.1 release. Android
+specific fixes are:
+* Added a new love.conf flag t.externalstorage, which determines whether files are saved in internal or external storage on Android devices.
+* Fixed audio on Android to pause when the app is inactive, and resume when the app becomes active again.
+* Fixed a driver bug on some Android devices which caused all objects to show up as black.
+* New icons
+
 0.10.0:
 * first official release!
 * Disabled JIT by default as it can cause performance problems. To enable JIT call jit.on()
