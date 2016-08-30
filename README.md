@@ -47,6 +47,7 @@ specific fixes are:
 * Added a new love.conf flag t.externalstorage, which determines whether files are saved in internal or external storage on Android devices.
 * Fixed audio on Android to pause when the app is inactive, and resume when the app becomes active again.
 * Fixed a driver bug on some Android devices which caused all objects to show up as black.
+* Fixed love.graphics.clear(colortable) causing crashes on OpenGL ES 2 systems when a Canvas is active.
 * New icons
 
 0.10.0:
