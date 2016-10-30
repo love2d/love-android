@@ -74,16 +74,14 @@ int w_wait(lua_State *L)
 
 int w_push(lua_State *L)
 {
-	Message *m = Message::fromLua(L, 1);
+	StrongRef<Message> m(Message::fromLua(L, 1), Acquire::NORETAIN);
 
-	luax_pushboolean(L, m != nullptr);
+	luax_pushboolean(L, m.get() != nullptr);
 
-	if (m == nullptr)
+	if (m.get() == nullptr)
 		return 1;
 
 	instance()->push(m);
-	m->release();
-
 	return 1;
 }
 
@@ -95,18 +93,10 @@ int w_clear(lua_State *)
 
 int w_quit(lua_State *L)
 {
-	std::vector<StrongRef<Variant>> args;
+	std::vector<Variant> args = {Variant::fromLua(L, 1)};
 
-	Variant *v = Variant::fromLua(L, 1);
-	if (v)
-	{
-		args.push_back(v);
-		v->release();
-	}
-
-	Message *m = new Message("quit", args);
+	StrongRef<Message> m(new Message("quit", args), Acquire::NORETAIN);
 	instance()->push(m);
-	m->release();
 
 	luax_pushboolean(L, true);
 	return 1;

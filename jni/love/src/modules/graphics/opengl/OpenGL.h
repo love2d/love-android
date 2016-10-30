@@ -167,6 +167,7 @@ public:
 		size_t textureMemory;
 		int    drawCalls;
 		int    framebufferBinds;
+		int    shaderSwitches;
 	} stats;
 
 	struct Bugs
@@ -306,6 +307,11 @@ public:
 	void bindFramebuffer(GLenum target, GLuint framebuffer);
 
 	/**
+	 * Calls glUseProgram.
+	 **/
+	void useProgram(GLuint program);
+
+	/**
 	 * This will usually be 0 (system drawable), but some platforms require a
 	 * non-zero FBO for rendering.
 	 **/
@@ -377,6 +383,12 @@ public:
 	 **/
 	int getMaxTextureUnits() const;
 
+	/**
+	 * Returns the maximum point size.
+	 **/
+	float getMaxPointSize() const;
+
+
 	void updateTextureMemorySize(size_t oldsize, size_t newsize);
 
 	/**
@@ -408,6 +420,7 @@ private:
 	int maxRenderTargets;
 	int maxRenderbufferSamples;
 	int maxTextureUnits;
+	float maxPointSize;
 
 	Vendor vendor;
 

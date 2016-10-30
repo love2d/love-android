@@ -142,14 +142,14 @@ bool Graphics::getConstant(CompareMode in, const char *&out)
 	return compareModes.find(in, out);
 }
 
-bool Graphics::getConstant(const char *in, Support &out)
+bool Graphics::getConstant(const char *in, Feature &out)
 {
-	return support.find(in, out);
+	return features.find(in, out);
 }
 
-bool Graphics::getConstant(Support in, const char *&out)
+bool Graphics::getConstant(Feature in, const char *&out)
 {
-	return support.find(in, out);
+	return features.find(in, out);
 }
 
 bool Graphics::getConstant(const char *in, SystemLimit &out)
@@ -170,16 +170,6 @@ bool Graphics::getConstant(const char *in, StackType &out)
 bool Graphics::getConstant(StackType in, const char *&out)
 {
 	return stackTypes.find(in, out);
-}
-
-bool Graphics::getConstant(const char *in, StatType &out)
-{
-	return statTypes.find(in, out);
-}
-
-bool Graphics::getConstant(StatType in, const char *&out)
-{
-	return statTypes.find(in, out);
 }
 
 StringMap<Graphics::DrawMode, Graphics::DRAW_MAX_ENUM>::Entry Graphics::drawModeEntries[] =
@@ -263,14 +253,14 @@ StringMap<Graphics::CompareMode, Graphics::COMPARE_MAX_ENUM>::Entry Graphics::co
 
 StringMap<Graphics::CompareMode, Graphics::COMPARE_MAX_ENUM> Graphics::compareModes(Graphics::compareModeEntries, sizeof(Graphics::compareModeEntries));
 
-StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM>::Entry Graphics::supportEntries[] =
+StringMap<Graphics::Feature, Graphics::FEATURE_MAX_ENUM>::Entry Graphics::featureEntries[] =
 {
-	{ "multicanvasformats", SUPPORT_MULTI_CANVAS_FORMATS },
-	{ "clampzero", SUPPORT_CLAMP_ZERO },
-	{ "lighten", SUPPORT_LIGHTEN },
+	{ "multicanvasformats", FEATURE_MULTI_CANVAS_FORMATS },
+	{ "clampzero", FEATURE_CLAMP_ZERO },
+	{ "lighten", FEATURE_LIGHTEN },
 };
 
-StringMap<Graphics::Support, Graphics::SUPPORT_MAX_ENUM> Graphics::support(Graphics::supportEntries, sizeof(Graphics::supportEntries));
+StringMap<Graphics::Feature, Graphics::FEATURE_MAX_ENUM> Graphics::features(Graphics::featureEntries, sizeof(Graphics::featureEntries));
 
 StringMap<Graphics::SystemLimit, Graphics::LIMIT_MAX_ENUM>::Entry Graphics::systemLimitEntries[] =
 {
@@ -289,18 +279,6 @@ StringMap<Graphics::StackType, Graphics::STACK_MAX_ENUM>::Entry Graphics::stackT
 };
 
 StringMap<Graphics::StackType, Graphics::STACK_MAX_ENUM> Graphics::stackTypes(Graphics::stackTypeEntries, sizeof(Graphics::stackTypeEntries));
-
-StringMap<Graphics::StatType, Graphics::STAT_MAX_ENUM>::Entry Graphics::statTypeEntries[] =
-{
-	{ "drawcalls", STAT_DRAW_CALLS },
-	{ "canvasswitches", STAT_CANVAS_SWITCHES },
-	{ "canvases", STAT_CANVASES },
-	{ "images", STAT_IMAGES },
-	{ "fonts", STAT_FONTS },
-	{ "texturememory", STAT_TEXTURE_MEMORY },
-};
-
-StringMap<Graphics::StatType, Graphics::STAT_MAX_ENUM> Graphics::statTypes(Graphics::statTypeEntries, sizeof(Graphics::statTypeEntries));
 
 } // graphics
 } // love

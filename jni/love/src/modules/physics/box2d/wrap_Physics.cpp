@@ -215,12 +215,27 @@ int w_newRevoluteJoint(lua_State *L)
 {
 	Body *body1 = luax_checkbody(L, 1);
 	Body *body2 = luax_checkbody(L, 2);
-	float x = (float)luaL_checknumber(L, 3);
-	float y = (float)luaL_checknumber(L, 4);
-	bool collideConnected = luax_optboolean(L, 5, false);
+	float xA = (float)luaL_checknumber(L, 3);
+	float yA = (float)luaL_checknumber(L, 4);
+	float xB, yB;
+	bool collideConnected;
+	float referenceAngle = 0.0f;
+	if (lua_gettop(L) >= 6)
+	{
+		xB = (float)luaL_checknumber(L, 5);
+		yB = (float)luaL_checknumber(L, 6);
+		collideConnected = luax_optboolean(L, 7, false);
+		referenceAngle = (float)luaL_optnumber(L, 8, referenceAngle);
+	}
+	else
+	{
+		xB = xA;
+		yB = yA;
+		collideConnected = luax_optboolean(L, 5, false);
+	}
 	RevoluteJoint *j;
 	luax_catchexcept(L, [&]() {
-		j = instance()->newRevoluteJoint(body1, body2, x, y, collideConnected);
+		j = instance()->newRevoluteJoint(body1, body2, xA, yA, xB, yB, collideConnected, referenceAngle);
 	});
 	luax_pushtype(L, PHYSICS_REVOLUTE_JOINT_ID, j);
 	j->release();
@@ -235,6 +250,7 @@ int w_newPrismaticJoint(lua_State *L)
 	float yA = (float)luaL_checknumber(L, 4);
 	float xB, yB, ax, ay;
 	bool collideConnected;
+	float referenceAngle = 0.0f;
 	if (lua_gettop(L) >= 8)
 	{
 		xB = (float)luaL_checknumber(L, 5);
@@ -242,6 +258,7 @@ int w_newPrismaticJoint(lua_State *L)
 		ax = (float)luaL_checknumber(L, 7);
 		ay = (float)luaL_checknumber(L, 8);
 		collideConnected = luax_optboolean(L, 9, false);
+		referenceAngle = (float)luaL_optnumber(L, 10, referenceAngle);
 	}
 	else
 	{
@@ -253,7 +270,7 @@ int w_newPrismaticJoint(lua_State *L)
 	}
 	PrismaticJoint *j;
 	luax_catchexcept(L, [&]() {
-		j = instance()->newPrismaticJoint(body1, body2, xA, yA, xB, yB, ax, ay, collideConnected);
+		j = instance()->newPrismaticJoint(body1, body2, xA, yA, xB, yB, ax, ay, collideConnected, referenceAngle);
 	});
 	luax_pushtype(L, PHYSICS_PRISMATIC_JOINT_ID, j);
 	j->release();
@@ -337,11 +354,13 @@ int w_newWeldJoint(lua_State *L)
 	float yA = (float)luaL_checknumber(L, 4);
 	float xB, yB;
 	bool collideConnected;
+	float referenceAngle = 0.0f;
 	if (lua_gettop(L) >= 6)
 	{
 		xB = (float)luaL_checknumber(L, 5);
 		yB = (float)luaL_checknumber(L, 6);
 		collideConnected = luax_optboolean(L, 7, false);
+		referenceAngle = (float)luaL_optnumber(L, 8, referenceAngle);
 	}
 	else
 	{
@@ -351,7 +370,7 @@ int w_newWeldJoint(lua_State *L)
 	}
 	WeldJoint *j;
 	luax_catchexcept(L, [&]() {
-		j = instance()->newWeldJoint(body1, body2, xA, yA, xB, yB, collideConnected);
+		j = instance()->newWeldJoint(body1, body2, xA, yA, xB, yB, collideConnected, referenceAngle);
 	});
 	luax_pushtype(L, PHYSICS_WELD_JOINT_ID, j);
 	j->release();

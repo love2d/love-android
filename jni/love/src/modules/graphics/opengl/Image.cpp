@@ -133,7 +133,11 @@ Image::Image(const std::vector<love::image::CompressedImageData *> &compressedda
 		if (compresseddata[0]->getMipmapCount() == 1)
 			this->flags.mipmaps = false;
 		else
-			throw love::Exception("Image cannot have mipmaps: compressed image data does not have all required mipmap levels.");
+		{
+			throw love::Exception("Image cannot have mipmaps: compressed image data does not have all required mipmap levels (expected %d, got %d)",
+			                      getMipmapCount(width, height),
+			                      compresseddata[0]->getMipmapCount());
+		}
 	}
 
 	for (const auto &cd : compresseddata)
@@ -217,8 +221,8 @@ void Image::loadDefaultTexture()
 	setFilter(filter);
 
 	// A nice friendly checkerboard to signify invalid textures...
-	GLubyte px[] = {0xFF,0xFF,0xFF,0xFF, 0xFF,0xC0,0xC0,0xFF,
-	                0xFF,0xC0,0xC0,0xFF, 0xFF,0xFF,0xFF,0xFF};
+	GLubyte px[] = {0xFF,0xFF,0xFF,0xFF, 0xFF,0xA0,0xA0,0xFF,
+	                0xFF,0xA0,0xA0,0xFF, 0xFF,0xFF,0xFF,0xFF};
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
 }
@@ -308,7 +312,7 @@ bool Image::loadVolatile()
 
 	// NPOT textures don't support mipmapping without full NPOT support.
 	if ((GLAD_ES_VERSION_2_0 && !(GLAD_ES_VERSION_3_0 || GLAD_OES_texture_npot))
-		&& (width != next_p2(width) || height != next_p2(height)))
+		&& (width != nextP2(width) || height != nextP2(height)))
 	{
 		flags.mipmaps = false;
 		filter.mipmap = FILTER_NONE;
@@ -519,7 +523,7 @@ bool Image::setWrap(const Texture::Wrap &w)
 	wrap = w;
 
 	if ((GLAD_ES_VERSION_2_0 && !(GLAD_ES_VERSION_3_0 || GLAD_OES_texture_npot))
-		&& (width != next_p2(width) || height != next_p2(height)))
+		&& (width != nextP2(width) || height != nextP2(height)))
 	{
 		if (wrap.s != WRAP_CLAMP || wrap.t != WRAP_CLAMP)
 			success = false;

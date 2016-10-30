@@ -104,10 +104,7 @@ Source::Source(Pool *pool, love::sound::SoundData *soundData)
 	if (fmt == 0)
 		throw InvalidFormatException(soundData->getChannels(), soundData->getBitDepth());
 
-	staticBuffer.set(new StaticDataBuffer(fmt, soundData->getData(), (ALsizei) soundData->getSize(), soundData->getSampleRate()));
-
-	// The buffer has a +2 retain count right now, but we want it to have +1.
-	staticBuffer->release();
+	staticBuffer.set(new StaticDataBuffer(fmt, soundData->getData(), (ALsizei) soundData->getSize(), sampleRate), Acquire::NORETAIN);
 
 	float z[3] = {0, 0, 0};
 
@@ -179,11 +176,7 @@ Source::Source(const Source &s)
 	if (type == TYPE_STREAM)
 	{
 		if (s.decoder.get())
-		{
-			love::sound::Decoder *dec = s.decoder->clone();
-			decoder.set(dec);
-			dec->release();
-		}
+			decoder.set(s.decoder->clone(), Acquire::NORETAIN);
 
 		alGenBuffers(MAX_BUFFERS, streamBuffers);
 	}
@@ -602,6 +595,11 @@ bool Source::isLooping() const
 
 bool Source::playAtomic()
 {
+	// This Source may now be associated with an OpenAL source that still has
+	// the properties of another love Source. Let's reset it to the settings
+	// of the new one.
+	reset();
+
 	if (type == TYPE_STATIC)
 	{
 		alSourcei(source, AL_BUFFER, staticBuffer->getBuffer());
@@ -624,11 +622,6 @@ bool Source::playAtomic()
 		if (usedBuffers > 0)
 			alSourceQueueBuffers(source, usedBuffers, streamBuffers);
 	}
-
-	// This Source may now be associated with an OpenAL source that still has
-	// the properties of another love Source. Let's reset it to the settings
-	// of the new one.
-	reset();
 
 	// Clear errors.
 	alGetError();
@@ -721,6 +714,7 @@ void Source::rewindAtomic()
 
 void Source::reset()
 {
+	alSourcei(source, AL_BUFFER, 0);
 	alSourcefv(source, AL_POSITION, position);
 	alSourcefv(source, AL_VELOCITY, velocity);
 	alSourcefv(source, AL_DIRECTION, direction);

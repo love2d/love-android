@@ -289,6 +289,10 @@ void OpenGL::initMaxValues()
 		maxRenderbufferSamples = 0;
 
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+
+	GLfloat limits[2];
+	glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
+	maxPointSize = limits[1];
 }
 
 void OpenGL::initMatrices()
@@ -491,6 +495,12 @@ void OpenGL::bindFramebuffer(GLenum target, GLuint framebuffer)
 		++stats.framebufferBinds;
 }
 
+void OpenGL::useProgram(GLuint program)
+{
+	glUseProgram(program);
+	++stats.shaderSwitches;
+}
+
 GLuint OpenGL::getDefaultFBO() const
 {
 #ifdef LOVE_IOS
@@ -654,6 +664,11 @@ int OpenGL::getMaxRenderbufferSamples() const
 int OpenGL::getMaxTextureUnits() const
 {
 	return maxTextureUnits;
+}
+
+float OpenGL::getMaxPointSize() const
+{
+	return maxPointSize;
 }
 
 void OpenGL::updateTextureMemorySize(size_t oldsize, size_t newsize)

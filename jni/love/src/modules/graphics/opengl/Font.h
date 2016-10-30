@@ -195,7 +195,7 @@ public:
 	uint32 getTextureCacheID() const;
 
 	static bool getConstant(const char *in, AlignMode &out);
-	static bool getConstant(AlignMode in, const char  *&out);
+	static bool getConstant(AlignMode in, const char *&out);
 
 	static int fontCount;
 
@@ -222,6 +222,7 @@ private:
 	};
 
 	TextureSize getNextTextureSize() const;
+	GLenum getTextureFormat(FontType fontType, GLenum *internalformat = nullptr) const;
 	void createTexture();
 	love::font::GlyphData *getRasterizerGlyphData(uint32 glyph);
 	const Glyph &addGlyph(uint32 glyph);

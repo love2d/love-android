@@ -111,11 +111,20 @@ int w_getSource(lua_State *L)
 
 int w_mount(lua_State *L)
 {
-	const char *archive = luaL_checkstring(L, 1);
+	std::string archive;
+
+	if (luax_istype(L, 1, FILESYSTEM_DROPPED_FILE_ID))
+	{
+		DroppedFile *file = luax_totype<DroppedFile>(L, 1, FILESYSTEM_DROPPED_FILE_ID);
+		archive = file->getFilename();
+	}
+	else
+		archive = luax_checkstring(L, 1);
+
 	const char *mountpoint = luaL_checkstring(L, 2);
 	bool append = luax_optboolean(L, 3, false);
 
-	luax_pushboolean(L, instance()->mount(archive, mountpoint, append));
+	luax_pushboolean(L, instance()->mount(archive.c_str(), mountpoint, append));
 	return 1;
 }
 
@@ -209,6 +218,11 @@ FileData *luax_getfiledata(lua_State *L, int idx)
 	return data;
 }
 
+bool luax_cangetfiledata(lua_State *L, int idx)
+{
+	return lua_isstring(L, idx) || luax_istype(L, idx, FILESYSTEM_FILE_ID) || luax_istype(L, idx, FILESYSTEM_FILE_DATA_ID);
+}
+
 int w_newFileData(lua_State *L)
 {
 	// Single argument: treat as filepath or File.
@@ -223,17 +237,16 @@ int w_newFileData(lua_State *L)
 		{
 			File *file = luax_checkfile(L, 1);
 
-			FileData *data = 0;
+			StrongRef<FileData> data;
 			try
 			{
-				data = file->read();
+				data.set(file->read(), Acquire::NORETAIN);
 			}
 			catch (love::Exception &e)
 			{
 				return luax_ioError(L, "%s", e.what());
 			}
 			luax_pushtype(L, FILESYSTEM_FILE_DATA_ID, data);
-			data->release();
 			return 1;
 		}
 		else

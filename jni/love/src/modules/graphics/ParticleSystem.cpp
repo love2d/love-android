@@ -242,6 +242,7 @@ void ParticleSystem::initParticle(Particle *p, float t)
 
 	p->position = pos;
 
+	float rand_x, rand_y;
 	switch (areaSpreadDistribution)
 	{
 	case DISTRIBUTION_UNIFORM:
@@ -251,6 +252,12 @@ void ParticleSystem::initParticle(Particle *p, float t)
 	case DISTRIBUTION_NORMAL:
 		p->position.x += (float) rng.randomNormal(areaSpread.getX());
 		p->position.y += (float) rng.randomNormal(areaSpread.getY());
+		break;
+	case DISTRIBUTION_ELLIPSE:
+		rand_x = (float) rng.random(-1, 1);
+		rand_y = (float) rng.random(-1, 1);
+		p->position.x += areaSpread.getX() * (rand_x * sqrt(1 - 0.5f*pow(rand_y, 2)));
+		p->position.y += areaSpread.getY() * (rand_y * sqrt(1 - 0.5f*pow(rand_x, 2)));
 		break;
 	case DISTRIBUTION_NONE:
 	default:
@@ -437,6 +444,9 @@ void ParticleSystem::setEmissionRate(float rate)
 	if (rate < 0.0f)
 		throw love::Exception("Invalid emission rate");
 	emissionRate = rate;
+
+	// Prevent an explosion when dramatically increasing the rate
+	emitCounter = std::min(emitCounter, 1.0f/rate);
 }
 
 float ParticleSystem::getEmissionRate() const
@@ -932,9 +942,6 @@ void ParticleSystem::update(float dt)
 			addParticle(1.0f - (emitCounter - rate) / total);
 			emitCounter -= rate;
 		}
-		/*int particles = (int)(emissionRate * dt);
-		 for (int i = 0; i != particles; i++)
-		 add();*/
 
 		life -= dt;
 		if (lifetime != -1 && life < 0)
@@ -969,6 +976,7 @@ StringMap<ParticleSystem::AreaSpreadDistribution, ParticleSystem::DISTRIBUTION_M
 	{ "none",    DISTRIBUTION_NONE },
 	{ "uniform", DISTRIBUTION_UNIFORM },
 	{ "normal",  DISTRIBUTION_NORMAL },
+	{ "ellipse",  DISTRIBUTION_ELLIPSE },
 };
 
 StringMap<ParticleSystem::AreaSpreadDistribution, ParticleSystem::DISTRIBUTION_MAX_ENUM> ParticleSystem::distributions(ParticleSystem::distributionsEntries, sizeof(ParticleSystem::distributionsEntries));

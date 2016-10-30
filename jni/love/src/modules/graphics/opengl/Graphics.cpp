@@ -203,11 +203,10 @@ void Graphics::checkSetDefaultFont()
 		if (!fontmodule)
 			throw love::Exception("Font module has not been loaded.");
 
-		StrongRef<font::Rasterizer> r(fontmodule->newTrueTypeRasterizer(12, font::TrueTypeRasterizer::HINTING_NORMAL));
-		r->release();
+		auto hinting = font::TrueTypeRasterizer::HINTING_NORMAL;
+		StrongRef<font::Rasterizer> r(fontmodule->newTrueTypeRasterizer(12, hinting), Acquire::NORETAIN);
 
-		defaultFont.set(newFont(r.get()));
-		defaultFont->release();
+		defaultFont.set(newFont(r.get()), Acquire::NORETAIN);
 	}
 
 	states.back().font.set(defaultFont.get());
@@ -252,8 +251,6 @@ bool Graphics::setMode(int width, int height)
 	gl.setupContext();
 
 	created = true;
-
-	setViewportSize(width, height);
 
 	// Enable blending
 	glEnable(GL_BLEND);
@@ -311,6 +308,8 @@ bool Graphics::setMode(int width, int height)
 	if (quadIndices == nullptr)
 		quadIndices = new QuadIndices(20);
 
+	setViewportSize(width, height);
+
 	// Restore the graphics state.
 	restoreState(states.back());
 
@@ -318,18 +317,20 @@ bool Graphics::setMode(int width, int height)
 	pixelSizeStack.reserve(5);
 	pixelSizeStack.push_back(1);
 
+	int gammacorrect = isGammaCorrect() ? 1 : 0;
+
 	// We always need a default shader.
 	if (!Shader::defaultShader)
 	{
 		Renderer renderer = GLAD_ES_VERSION_2_0 ? RENDERER_OPENGLES : RENDERER_OPENGL;
-		Shader::defaultShader = newShader(Shader::defaultCode[renderer]);
+		Shader::defaultShader = newShader(Shader::defaultCode[renderer][gammacorrect]);
 	}
 
 	// and a default video shader.
 	if (!Shader::defaultVideoShader)
 	{
 		Renderer renderer = GLAD_ES_VERSION_2_0 ? RENDERER_OPENGLES : RENDERER_OPENGL;
-		Shader::defaultVideoShader = newShader(Shader::defaultVideoCode[renderer]);
+		Shader::defaultVideoShader = newShader(Shader::defaultVideoCode[renderer][gammacorrect]);
 	}
 
 	// A shader should always be active, but the default shader shouldn't be
@@ -451,8 +452,8 @@ void Graphics::clear(Colorf c)
 	{
 		// This seems to be enough to fix the bug for me. Other methods I've
 		// tried (e.g. dummy draws) don't work in all cases.
-		glUseProgram(0);
-		glUseProgram(Shader::current->getProgram());
+		gl.useProgram(0);
+		gl.useProgram(Shader::current->getProgram());
 	}
 }
 
@@ -529,8 +530,8 @@ void Graphics::clear(const std::vector<OptionalColorf> &colors)
 	{
 		// This seems to be enough to fix the bug for me. Other methods I've
 		// tried (e.g. dummy draws) don't work in all cases.
-		glUseProgram(0);
-		glUseProgram(Shader::current->getProgram());
+		gl.useProgram(0);
+		gl.useProgram(Shader::current->getProgram());
 	}
 }
 
@@ -609,6 +610,7 @@ void Graphics::present()
 	// Reset the per-frame stat counts.
 	gl.stats.drawCalls = 0;
 	gl.stats.framebufferBinds = 0;
+	gl.stats.shaderSwitches = 0;
 }
 
 int Graphics::getWidth() const
@@ -1106,7 +1108,7 @@ void Graphics::setBlendMode(BlendMode mode, BlendAlpha alphamode)
 
 	if (mode == BLEND_LIGHTEN || mode == BLEND_DARKEN)
 	{
-		if (!isSupported(SUPPORT_LIGHTEN))
+		if (!isSupported(FEATURE_LIGHTEN))
 			throw love::Exception("The 'lighten' and 'darken' blend modes are not supported on this system.");
 	}
 
@@ -1652,6 +1654,7 @@ Graphics::Stats Graphics::getStats() const
 
 	stats.drawCalls = gl.stats.drawCalls;
 	stats.canvasSwitches = gl.stats.framebufferBinds;
+	stats.shaderSwitches = gl.stats.shaderSwitches;
 	stats.canvases = Canvas::canvasCount;
 	stats.images = Image::imageCount;
 	stats.fonts = Font::fontCount;
@@ -1662,13 +1665,10 @@ Graphics::Stats Graphics::getStats() const
 
 double Graphics::getSystemLimit(SystemLimit limittype) const
 {
-	GLfloat limits[2];
-
 	switch (limittype)
 	{
 	case Graphics::LIMIT_POINT_SIZE:
-		glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, limits);
-		return (double) limits[1];
+		return (double) gl.getMaxPointSize();
 	case Graphics::LIMIT_TEXTURE_SIZE:
 		return (double) gl.getMaxTextureSize();
 	case Graphics::LIMIT_MULTI_CANVAS:
@@ -1680,15 +1680,15 @@ double Graphics::getSystemLimit(SystemLimit limittype) const
 	}
 }
 
-bool Graphics::isSupported(Support feature) const
+bool Graphics::isSupported(Feature feature) const
 {
 	switch (feature)
 	{
-	case SUPPORT_MULTI_CANVAS_FORMATS:
+	case FEATURE_MULTI_CANVAS_FORMATS:
 		return Canvas::isMultiFormatMultiCanvasSupported();
-	case SUPPORT_CLAMP_ZERO:
+	case FEATURE_CLAMP_ZERO:
 		return gl.isClampZeroTextureWrapSupported();
-	case SUPPORT_LIGHTEN:
+	case FEATURE_LIGHTEN:
 		return GLAD_VERSION_1_4 || GLAD_ES_VERSION_3_0 || GLAD_EXT_blend_minmax;
 	default:
 		return false;

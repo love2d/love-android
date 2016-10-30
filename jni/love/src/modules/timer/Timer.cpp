@@ -21,6 +21,7 @@
 // LOVE
 #include "common/config.h"
 #include "common/int.h"
+#include "common/delay.h"
 #include "Timer.h"
 
 #if defined(LOVE_WINDOWS)
@@ -85,6 +86,12 @@ void Timer::step()
 	}
 }
 
+void Timer::sleep(double seconds) const
+{
+	if (seconds > 0)
+		love::sleep((unsigned int)(seconds*1000));
+}
+
 double Timer::getDelta() const
 {
 	return dt;
@@ -114,7 +121,7 @@ double Timer::getTimerPeriod()
 	return 0;
 }
 
-double Timer::getTimeSinceEpoch()
+double Timer::getTime()
 {
 	// The timer period (reciprocal of the frequency.)
 	static const double timerPeriod = getTimerPeriod();
@@ -143,11 +150,6 @@ double Timer::getTimeSinceEpoch()
 	QueryPerformanceCounter(&microTime);
 	return (double) microTime.QuadPart * timerPeriod;
 #endif
-}
-
-double Timer::getTime() const
-{
-	return getTimeSinceEpoch();
 }
 
 } // timer

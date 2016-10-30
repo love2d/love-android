@@ -43,7 +43,7 @@ class Video : public love::video::Video
 {
 public:
 	Video();
-	~Video();
+	virtual ~Video();
 
 	// Implements Module
 	virtual const char *getName() const;
@@ -58,7 +58,7 @@ class Worker : public love::thread::Threadable
 {
 public:
 	Worker();
-	~Worker();
+	virtual ~Worker();
 
 	// Implements Threadable
 	void threadFunction();
@@ -68,10 +68,13 @@ public:
 	void stop();
 
 private:
-	std::vector<StrongRef<VideoStream>> streams;
-	love::thread::MutexRef mutex;
 
-	volatile bool stopping;
+	std::vector<StrongRef<VideoStream>> streams;
+
+	love::thread::MutexRef mutex;
+	love::thread::ConditionalRef cond;
+
+	bool stopping;
 }; // Worker
 
 } // theora

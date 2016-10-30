@@ -1346,52 +1346,45 @@ int w_getShader(lua_State *L)
 int w_setDefaultShaderCode(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
+	luaL_checktype(L, 2, LUA_TTABLE);
 
-	lua_getfield(L, 1, "opengl");
-	lua_rawgeti(L, -1, 1);
-	lua_rawgeti(L, -2, 2);
-	lua_rawgeti(L, -3, 3);
+	for (int i = 0; i < 2; i++)
+	{
+		for (int renderer = 0; renderer < Graphics::RENDERER_MAX_ENUM; renderer++)
+		{
+			const char *lang = renderer == Graphics::RENDERER_OPENGLES ? "glsles" : "glsl";
 
-	Shader::ShaderSource openglcode;
-	openglcode.vertex = luax_checkstring(L, -3);
-	openglcode.pixel = luax_checkstring(L, -2);
+			lua_getfield(L, i + 1, lang);
 
-	Shader::ShaderSource openglVideocode;
-	openglVideocode.vertex = luax_checkstring(L, -3);
-	openglVideocode.pixel = luax_checkstring(L, -1);
+			lua_getfield(L, -1, "vertex");
+			lua_getfield(L, -2, "pixel");
+			lua_getfield(L, -3, "videopixel");
 
-	lua_pop(L, 4);
+			Shader::ShaderSource code;
+			code.vertex = luax_checkstring(L, -3);
+			code.pixel = luax_checkstring(L, -2);
 
-	lua_getfield(L, 1, "opengles");
-	lua_rawgeti(L, -1, 1);
-	lua_rawgeti(L, -2, 2);
-	lua_rawgeti(L, -3, 3);
+			Shader::ShaderSource videocode;
+			videocode.vertex = luax_checkstring(L, -3);
+			videocode.pixel = luax_checkstring(L, -1);
 
-	Shader::ShaderSource openglescode;
-	openglescode.vertex = luax_checkstring(L, -3);
-	openglescode.pixel = luax_checkstring(L, -2);
+			lua_pop(L, 4);
 
-	Shader::ShaderSource openglesVideocode;
-	openglesVideocode.vertex = luax_checkstring(L, -3);
-	openglesVideocode.pixel = luax_checkstring(L, -1);
-
-	lua_pop(L, 4);
-
-	Shader::defaultCode[Graphics::RENDERER_OPENGL]   = openglcode;
-	Shader::defaultCode[Graphics::RENDERER_OPENGLES] = openglescode;
-	Shader::defaultVideoCode[Graphics::RENDERER_OPENGL]   = openglVideocode;
-	Shader::defaultVideoCode[Graphics::RENDERER_OPENGLES] = openglesVideocode;
+			Shader::defaultCode[renderer][i] = code;
+			Shader::defaultVideoCode[renderer][i] = videocode;
+		}
+	}
 
 	return 0;
 }
 
 int w_getSupported(lua_State *L)
 {
-	lua_createtable(L, 0, (int) Graphics::SUPPORT_MAX_ENUM);
+	lua_createtable(L, 0, (int) Graphics::FEATURE_MAX_ENUM);
 
-	for (int i = 0; i < (int) Graphics::SUPPORT_MAX_ENUM; i++)
+	for (int i = 0; i < (int) Graphics::FEATURE_MAX_ENUM; i++)
 	{
-		Graphics::Support feature = (Graphics::Support) i;
+		auto feature = (Graphics::Feature) i;
 		const char *name = nullptr;
 
 		if (!Graphics::getConstant(feature, name))
@@ -1480,33 +1473,28 @@ int w_getStats(lua_State *L)
 {
 	Graphics::Stats stats = instance()->getStats();
 
-	lua_createtable(L, 0, (int) Graphics::STAT_MAX_ENUM);
+	lua_createtable(L, 0, 7);
 
-	const char *sname = nullptr;
-
-	Graphics::getConstant(Graphics::STAT_DRAW_CALLS, sname);
 	lua_pushinteger(L, stats.drawCalls);
-	lua_setfield(L, -2, sname);
+	lua_setfield(L, -2, "drawcalls");
 
-	Graphics::getConstant(Graphics::STAT_CANVAS_SWITCHES, sname);
 	lua_pushinteger(L, stats.canvasSwitches);
-	lua_setfield(L, -2, sname);
+	lua_setfield(L, -2, "canvasswitches");
 
-	Graphics::getConstant(Graphics::STAT_CANVASES, sname);
+	lua_pushinteger(L, stats.shaderSwitches);
+	lua_setfield(L, -2, "shaderswitches");
+
 	lua_pushinteger(L, stats.canvases);
-	lua_setfield(L, -2, sname);
+	lua_setfield(L, -2, "canvases");
 
-	Graphics::getConstant(Graphics::STAT_IMAGES, sname);
 	lua_pushinteger(L, stats.images);
-	lua_setfield(L, -2, sname);
+	lua_setfield(L, -2, "images");
 
-	Graphics::getConstant(Graphics::STAT_FONTS, sname);
 	lua_pushinteger(L, stats.fonts);
-	lua_setfield(L, -2, sname);
+	lua_setfield(L, -2, "fonts");
 
-	Graphics::getConstant(Graphics::STAT_TEXTURE_MEMORY, sname);
-	lua_pushnumber(L, (lua_Number) stats.textureMemory);
-	lua_setfield(L, -2, sname);
+	lua_pushinteger(L, stats.textureMemory);
+	lua_setfield(L, -2, "texturememory");
 
 	return 1;
 }

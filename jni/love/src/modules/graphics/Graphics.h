@@ -136,12 +136,12 @@ public:
 		COMPARE_MAX_ENUM
 	};
 
-	enum Support
+	enum Feature
 	{
-		SUPPORT_MULTI_CANVAS_FORMATS,
-		SUPPORT_CLAMP_ZERO,
-		SUPPORT_LIGHTEN,
-		SUPPORT_MAX_ENUM
+		FEATURE_MULTI_CANVAS_FORMATS,
+		FEATURE_CLAMP_ZERO,
+		FEATURE_LIGHTEN,
+		FEATURE_MAX_ENUM
 	};
 
 	enum Renderer
@@ -167,17 +167,6 @@ public:
 		STACK_MAX_ENUM
 	};
 
-	enum StatType
-	{
-		STAT_DRAW_CALLS,
-		STAT_CANVAS_SWITCHES,
-		STAT_CANVASES,
-		STAT_IMAGES,
-		STAT_FONTS,
-		STAT_TEXTURE_MEMORY,
-		STAT_MAX_ENUM
-	};
-
 	struct RendererInfo
 	{
 		std::string name;
@@ -190,6 +179,7 @@ public:
 	{
 		int drawCalls;
 		int canvasSwitches;
+		int shaderSwitches;
 		int canvases;
 		int images;
 		int fonts;
@@ -291,17 +281,14 @@ public:
 	static bool getConstant(const char *in, CompareMode &out);
 	static bool getConstant(CompareMode in, const char *&out);
 
-	static bool getConstant(const char *in, Support &out);
-	static bool getConstant(Support in, const char *&out);
+	static bool getConstant(const char *in, Feature &out);
+	static bool getConstant(Feature in, const char *&out);
 
 	static bool getConstant(const char *in, SystemLimit &out);
 	static bool getConstant(SystemLimit in, const char *&out);
 
 	static bool getConstant(const char *in, StackType &out);
 	static bool getConstant(StackType in, const char *&out);
-
-	static bool getConstant(const char *in, StatType &out);
-	static bool getConstant(StatType in, const char *&out);
 
 private:
 
@@ -329,17 +316,14 @@ private:
 	static StringMap<CompareMode, COMPARE_MAX_ENUM>::Entry compareModeEntries[];
 	static StringMap<CompareMode, COMPARE_MAX_ENUM> compareModes;
 
-	static StringMap<Support, SUPPORT_MAX_ENUM>::Entry supportEntries[];
-	static StringMap<Support, SUPPORT_MAX_ENUM> support;
+	static StringMap<Feature, FEATURE_MAX_ENUM>::Entry featureEntries[];
+	static StringMap<Feature, FEATURE_MAX_ENUM> features;
 
 	static StringMap<SystemLimit, LIMIT_MAX_ENUM>::Entry systemLimitEntries[];
 	static StringMap<SystemLimit, LIMIT_MAX_ENUM> systemLimits;
 
 	static StringMap<StackType, STACK_MAX_ENUM>::Entry stackTypeEntries[];
 	static StringMap<StackType, STACK_MAX_ENUM> stackTypes;
-
-	static StringMap<StatType, STAT_MAX_ENUM>::Entry statTypeEntries[];
-	static StringMap<StatType, STAT_MAX_ENUM> statTypes;
 
 }; // Graphics
 
