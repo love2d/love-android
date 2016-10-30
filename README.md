@@ -1,5 +1,5 @@
 Android Port of LÖVE, the awesome 2D game engine LÖVE (http://love2d.org)
-Copyright (c) 2013-2014 Martin Felis <martin@fysx.org>
+Copyright (c) 2013-2016 Martin Felis <martin@fysx.org>
 
 Instructions:
 -------------
@@ -10,7 +10,7 @@ Download:
 ---------
 
 You can download pre-built Android packages from
-[https://bitbucket.org/MartinFelis/love-android-sdl2/downloads](https://bitbucket.org/MartinFelis/love-android-sdl2/downloads)
+[https://bitbucket.org/rude/love/downloads](https://bitbucket.org/rude/love/downloads)
 that allow you to run .love files by opening them using a file manager of
 your choice.
 
@@ -41,8 +41,12 @@ Bugs and feature requests should be reported to the issue tracker at [https://bi
 Changelog:
 ----------
 
+0.10.2:
+* Contains all relevant changes for desktop LÖVE 0.10.2.
+* Upgrade of SDL2 to 2.0.5 (fixes an issue with the accelerometer)
+
 0.10.1:
-This release contains all bugfixes of the desktor 0.10.1 release. Android
+This release contains all bugfixes of the desktop 0.10.1 release. Android
 specific fixes are:
 * Added a new love.conf flag t.externalstorage, which determines whether files are saved in internal or external storage on Android devices.
 * Fixed audio on Android to pause when the app is inactive, and resume when the app becomes active again.
