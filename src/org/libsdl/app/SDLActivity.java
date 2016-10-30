@@ -123,10 +123,6 @@ public class SDLActivity extends Activity {
         Log.v(TAG, "onCreate(): " + mSingleton);
         super.onCreate(savedInstanceState);
 
-        SDLActivity.initialize();
-        // So we can call stuff from static callbacks
-        mSingleton = this;
-
         // Load shared libraries
         String errorMsgBrokenLib = "";
         try {
@@ -163,21 +159,8 @@ public class SDLActivity extends Activity {
            return;
         }
 
-        // Set up the surface
-        mSurface = new SDLSurface(getApplication());
+        startNative();
 
-        if(Build.VERSION.SDK_INT >= 12) {
-            mJoystickHandler = new SDLJoystickHandler_API12();
-        }
-        else {
-            mJoystickHandler = new SDLJoystickHandler();
-        }
-
-        mLayout = new RelativeLayout(this);
-        mLayout.addView(mSurface);
-
-        setContentView(mLayout);
-        
         // Get filename from "Open with" of another application
         Intent intent = getIntent();
 
@@ -254,26 +237,62 @@ public class SDLActivity extends Activity {
            return;
         }
 
-        // Send a quit message to the application
-        SDLActivity.mExitCalledFromJava = true;
-        SDLActivity.nativeQuit();
-
-        // Now wait for the SDL thread to quit
-        if (SDLActivity.mSDLThread != null) {
-            try {
-                SDLActivity.mSDLThread.join();
-            } catch(Exception e) {
-                Log.v(TAG, "Problem stopping thread: " + e);
-            }
-            SDLActivity.mSDLThread = null;
-
-            //Log.v(TAG, "Finished waiting for SDL thread");
-        }
+        // love2d-mod-start: end main thread when opening new .love file
+        resetNative();
+        // love2d-mod-end
 
         super.onDestroy();
         // Reset everything in case the user re opens the app
         SDLActivity.initialize();
     }
+
+     // love2d-mod-start: end main thread when opening new .love file
+    /** Ends the native thread.
+     */
+    public void resetNative() {
+      Log.v("SDL", "resetNative()");
+
+      // Send a quit message to the application
+      SDLActivity.mExitCalledFromJava = true;
+      SDLActivity.nativeQuit();
+
+      // Now wait for the SDL thread to quit
+      if (SDLActivity.mSDLThread != null) {
+        try {
+          SDLActivity.mSDLThread.join();
+        } catch(Exception e) {
+          Log.v("SDL", "Problem stopping thread: " + e);
+        }
+        SDLActivity.mSDLThread = null;
+
+        //Log.v("SDL", "Finished waiting for SDL thread");
+      }
+
+      SDLActivity.initialize();
+    }
+
+    public void startNative() {
+      Log.v("SDL", "startNative()");
+      SDLActivity.initialize();
+      // So we can call stuff from static callbacks
+      mSingleton = this;
+
+      // Set up the surface
+      mSurface = new SDLSurface(getApplication());
+
+      if(Build.VERSION.SDK_INT >= 12) {
+        mJoystickHandler = new SDLJoystickHandler_API12();
+      }
+      else {
+        mJoystickHandler = new SDLJoystickHandler();
+      }
+
+      mLayout = new RelativeLayout(this);
+      mLayout.addView(mSurface);
+
+      setContentView(mLayout);
+    }
+    // love2d-mod-end
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
