@@ -42,6 +42,9 @@ android {
             path "src/jni/Android.mk"
         }
     }
+    lintOptions {
+        abortOnError false
+    }
 }
 
 dependencies {
