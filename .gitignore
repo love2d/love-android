@@ -14,3 +14,15 @@ local.properties
 *.a
 *.orig
 *.rej
+
+
+# Downloaded gradle wrapper
+.gradle
+
+# Android Studio project files
+.idea
+*.iml
+
+# Gradle build files
+build
+.externalNativeBuild
