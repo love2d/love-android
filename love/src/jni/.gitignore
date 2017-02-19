@@ -1,5 +1,6 @@
 !LuaJIT-2.1/android/armeabi/libluajit.a
 !LuaJIT-2.1/android/armeabi-v7a/libluajit.a
+!LuaJIT-2.1/android/x86/libluajit.a
 
 LuaJIT-2.1/src/host/buildvm
 LuaJIT-2.1/src/host/buildvm_arch.h
