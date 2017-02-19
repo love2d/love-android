@@ -21,17 +21,15 @@ Install the Android NDK and the Android SDK with SDK API 23, set the
 environment variables ```ANDROID_NDK```, ```ANDROID_SDK```, and
 ```ANDROID_HOME``` and run
 
-    ndk-build -j4
+    ./gradlew build
 
-and after that
+in the root folder of this project. This should give you a .apk file in the
+app/build/outputs/apk/ subdirectory that you can then install on your phone.
 
-    ant debug
+Alternatively, you can install Android Studio. After opening it for the first time,
+open it's SDK Manager and on the tab "SDK Tools", select NDK. After that, open the
+repository root.
 
-in the root folder of this project or load the project using Eclipse and
-compile/run it using Eclipse.
-
-This should give you a .apk file in the bin/ subdirectory that you can then
-install on your phone.
 
 Bugs:
 -----
@@ -152,7 +150,7 @@ License:
 --------
 
 This project contains code from multiple projects using various licenses.
-Please look into the folders of jni/<projectname>/ for the respective
+Please look into the folders of love/src/jni/<projectname>/ for the respective
 licenses. A possibly incomplete overview of dependent and included
 libraries and licenses is the following:
 
