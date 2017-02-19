@@ -8,4 +8,8 @@ APP_LDFLAGS := -llog -landroid -lz
 APP_PLATFORM := 10
 NDK_TOOLCHAIN_VERSION := 4.9
 
+# Fix for building on Windows
+# http://stackoverflow.com/questions/12598933/ndk-build-createprocess-make-e-87-the-parameter-is-incorrect
+APP_SHORT_COMMANDS := true
+
 # APP_OPTIM := debug
