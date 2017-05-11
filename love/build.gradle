@@ -1,0 +1,53 @@
+apply plugin: 'com.android.library'
+
+android {
+    // If you want to use the debugger for JNI code, you want to compile this lib-project in Debug!
+    // And due to gradle limitations/bugs, the best way is to always compile it in debug.
+    // See https://code.google.com/p/android/issues/detail?id=52962
+    // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
+    // defaultPublishConfig "debug"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+
+    defaultConfig {
+        compileSdkVersion 25
+        buildToolsVersion "25.0.2"
+        minSdkVersion 10
+        externalNativeBuild {
+            ndkBuild {
+                arguments "-j2"
+            }
+        }
+        ndk {
+            // Specifies the ABI configurations of your native
+            // libraries Gradle should build and package with your APK.
+            abiFilters 'armeabi-v7a', 'armeabi'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    sourceSets {
+        main {
+            java {
+                srcDirs('src/main/java', 'src/jni/SDL2-2.0.5/android-project/src')
+            }
+        }
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path "src/jni/Android.mk"
+        }
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:25.0.0'
+}
