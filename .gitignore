@@ -15,21 +15,14 @@ local.properties
 *.orig
 *.rej
 
-!jni/LuaJIT-2.0.1/android/armeabi/libluajit.a
-!jni/LuaJIT-2.0.1/android/armeabi-v7a/libluajit.a
 
-jni/LuaJIT-2.0.1/buildandroid.sh
-jni/LuaJIT-2.0.1/src/host/buildvm
-jni/LuaJIT-2.0.1/src/host/buildvm_arch.h
-jni/LuaJIT-2.0.1/src/host/minilua
-jni/LuaJIT-2.0.1/src/jit/vmdef.lua
-jni/LuaJIT-2.0.1/src/libluajit.a
-jni/LuaJIT-2.0.1/src/lj_bcdef.h
-jni/LuaJIT-2.0.1/src/lj_ffdef.h
-jni/LuaJIT-2.0.1/src/lj_folddef.h
-jni/LuaJIT-2.0.1/src/lj_libdef.h
-jni/LuaJIT-2.0.1/src/lj_recdef.h
-jni/LuaJIT-2.0.1/src/lj_vm.s
-jni/LuaJIT-2.0.1/src/luajit
+# Downloaded gradle wrapper
+.gradle
 
-jni/love/src/Makefile.am
+# Android Studio project files
+.idea
+*.iml
+
+# Gradle build files
+build
+.externalNativeBuild
