@@ -1,5 +1,5 @@
 Android Port of LÖVE, the awesome 2D game engine LÖVE (http://love2d.org)
-Copyright (c) 2013-2016 Martin Felis <martin@fysx.org>
+Copyright (c) 2013-2017 Martin Felis <martin@fysx.org>
 
 Instructions:
 -------------
@@ -18,8 +18,14 @@ Quick Start:
 ------------
 
 Install the Android NDK and the Android SDK with SDK API 23, set the
-environment variables ```ANDROID_NDK```, ```ANDROID_SDK```, and
-```ANDROID_HOME``` and run
+environment variables ```ANDROID_NDK```, ```ANDROID_SDK```and
+```ANDROID_HOME```, create a file ```local.properties``` with contents:
+
+    ndk.dir=/opt/android-ndk
+    sdk.dir=/opt/android-sdk
+
+(you may have to adjust the paths to the install directories of the Android
+SDK and Android NDK on your system) and run
 
     ./gradlew build
 
