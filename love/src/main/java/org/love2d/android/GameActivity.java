@@ -2,9 +2,11 @@ package org.love2d.android;
 
 import org.libsdl.app.SDLActivity;
 
+import java.util.Arrays;
 import java.util.List;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +41,7 @@ public class GameActivity extends SDLActivity {
     private static Context context;
     private static Vibrator vibrator = null;
     private static boolean immersiveActive = false;
-
+    private static boolean mustCacheArchive = false;
 		@Override 
 		protected String[] getLibraries() {
 			return new String[] {
@@ -76,14 +78,13 @@ public class GameActivity extends SDLActivity {
       handleIntent (intent);
       resetNative();
       startNative();
-    };
+    }
 
     protected void handleIntent (Intent intent) {
       Uri game = intent.getData();
       if (game != null) {
         if (game.getScheme().equals ("file")) {
           Log.d("GameActivity", "Received intent with path: " + game.getPath());
-
           // If we were given the path of a main.lua then use its
           // directory. Otherwise use full path.
           List<String> path_segments = game.getPathSegments();
@@ -93,12 +94,36 @@ public class GameActivity extends SDLActivity {
             gamePath = game.getPath();
           }
         } else {
-          copyGameToCache (game);
+            // if archive exists, copy it to the cache
+            copyGameToCache (game);
+            return;
         }
-
         Log.d("GameActivity", "new gamePath: " + gamePath);
+
+      } else {          
+          boolean archiveExists = false;
+          try {
+              List<String> assets = Arrays.asList(getAssets().list(""));
+              archiveExists = assets.contains("game.love");
+          } catch (Exception e) {
+              Log.d("GameActivity", "could not list application assets:" + e.getMessage());
+          }
+          if (archiveExists) {
+              String df = this.getCacheDir().getPath()+"/game.love";
+              if (mustCacheArchive && copyAssetFile("game.love",df))
+                  gamePath = df;
+              else
+                  gamePath = "game.love";
+          } else {
+              File ext = Environment.getExternalStorageDirectory();              
+              if ((new File(ext,"/lovegame/main.lua")).exists()) {
+                  gamePath = ext.getPath() + "/lovegame/";
+              }
+          }
+
+          Log.d("GameActivity", "new gamePath: " + gamePath);
       }
-    };
+    }
 
     @Override
     protected void onDestroy() {
@@ -198,7 +223,56 @@ public class GameActivity extends SDLActivity {
       i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       context.startActivity(i);
     }
-  
+
+    boolean copyAssetFile(String fileName, String destF)
+    {
+        boolean success = false;
+
+        // open streams
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(new FileOutputStream(destF, false));
+        } catch (IOException e) {
+            Log.d ("GameActivity", "Could not open destination file:" + e.getMessage());
+        }
+        InputStream ins = null;
+        try {            
+            ins = getAssets().open(fileName);
+        } catch (IOException e) {
+            Log.d("GameActivity", "Could not open game file:" + e.getMessage());
+        }
+
+        // copy
+        int bytes_written = 0;            
+        if (ins != null && bos != null) {
+            int chunk_read = 0;
+            try {
+                byte[] buf = new byte[8192];
+                chunk_read = ins.read(buf);
+                do {
+                    bos.write(buf, 0, chunk_read);
+                    bytes_written += chunk_read;
+                    chunk_read = ins.read(buf);
+                } while(chunk_read != -1);
+            } catch (IOException e) {
+                Log.d ("GameActivity", "Copying failed:" + e.getMessage());            
+            }
+        }
+        
+        // close streams
+        try {
+            if (ins != null) ins.close();
+            if (bos != null) bos.close();
+            success = true;
+        } catch (IOException e) {
+            Log.d ("GameActivity", "Copying failed: " + e.getMessage());
+        }
+
+        Log.d("GameActivity", "Copied " + fileName + " to " + destF
+              + ". Wrote:" + bytes_written + " bytes");
+        return success;
+    }
+
     void copyGameToCache (Uri sourceuri)
     {
       String destinationFilename = this.getCacheDir().getPath()+"/downloaded.love";
