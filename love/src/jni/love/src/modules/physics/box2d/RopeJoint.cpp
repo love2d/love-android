@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2017 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -32,6 +32,8 @@ namespace physics
 namespace box2d
 {
 
+love::Type RopeJoint::type("RopeJoint", &Joint::type);
+
 RopeJoint::RopeJoint(Body *body1, Body *body2, float x1, float y1, float x2, float y2, float maxLength, bool collideConnected)
 	: Joint(body1, body2)
 	, joint(NULL)
@@ -59,6 +61,10 @@ float RopeJoint::getMaxLength() const
 	return Physics::scaleUp(joint->GetMaxLength());
 }
 
+void RopeJoint::setMaxLength(float maxLength)
+{
+	joint->SetMaxLength(Physics::scaleDown(maxLength));
+}
 
 } // box2d
 } // physics
