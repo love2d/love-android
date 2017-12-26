@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2017 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -24,6 +24,7 @@
 // STD
 #include <cstdlib>
 #include <cstring>
+#include <map>
 
 // LOVE
 #include "filesystem/Filesystem.h"
@@ -35,7 +36,7 @@ namespace filesystem
 namespace physfs
 {
 
-class Filesystem : public love::filesystem::Filesystem
+class Filesystem final : public love::filesystem::Filesystem
 {
 public:
 
@@ -43,62 +44,57 @@ public:
 	virtual ~Filesystem();
 
 	// Implements Module.
-	const char *getName() const;
+	const char *getName() const override;
 
-	void init(const char *arg0);
+	void init(const char *arg0) override;
 
-	void setFused(bool fused);
-	bool isFused() const;
+	void setFused(bool fused) override;
+	bool isFused() const override;
 
-	bool setupWriteDirectory();
+	bool setupWriteDirectory() override;
 
-	bool setIdentity(const char *ident, bool appendToPath = false);
-	const char *getIdentity() const;
+	bool setIdentity(const char *ident, bool appendToPath = false) override;
+	const char *getIdentity() const override;
 
-	bool setSource(const char *source);
+	bool setSource(const char *source) override;
 
-	const char *getSource() const;
+	const char *getSource() const override;
 
-	bool mount(const char *archive, const char *mountpoint, bool appendToPath = false);
-	bool unmount(const char *archive);
+	bool mount(const char *archive, const char *mountpoint, bool appendToPath = false) override;
+	bool mount(Data *data, const char *archivename, const char *mountpoint, bool appendToPath = false) override;
 
-	love::filesystem::File *newFile(const char *filename) const;
+	bool unmount(const char *archive) override;
+	bool unmount(Data *data) override;
 
-	FileData *newFileData(void *data, unsigned int size, const char *filename) const;
-	FileData *newFileData(const char *b64, const char *filename) const;
+	love::filesystem::File *newFile(const char *filename) const override;
 
-	const char *getWorkingDirectory();
-	std::string getUserDirectory();
-	std::string getAppdataDirectory();
-	const char *getSaveDirectory();
-	std::string getSourceBaseDirectory() const;
+	const char *getWorkingDirectory() override;
+	std::string getUserDirectory() override;
+	std::string getAppdataDirectory() override;
+	const char *getSaveDirectory() override;
+	std::string getSourceBaseDirectory() const override;
 
-	std::string getRealDirectory(const char *filename) const;
+	std::string getRealDirectory(const char *filename) const override;
 
-	bool exists(const char *path) const;
-	bool isDirectory(const char *dir) const;
-	bool isFile(const char *file) const;
-	bool isSymlink(const char *filename) const;
+	bool getInfo(const char *filepath, Info &info) const override;
 
-	bool createDirectory(const char *dir);
+	bool createDirectory(const char *dir) override;
 
-	bool remove(const char *file);
+	bool remove(const char *file) override;
 
-	FileData *read(const char *filename, int64 size = File::ALL) const;
-	void write(const char *filename, const void *data, int64 size) const;
-	void append(const char *filename, const void *data, int64 size) const;
+	FileData *read(const char *filename, int64 size = File::ALL) const override;
+	void write(const char *filename, const void *data, int64 size) const override;
+	void append(const char *filename, const void *data, int64 size) const override;
 
-	void getDirectoryItems(const char *dir, std::vector<std::string> &items);
+	void getDirectoryItems(const char *dir, std::vector<std::string> &items) override;
 
-	int64 getLastModified(const char *filename) const;
-	int64 getSize(const char *filename) const;
+	void setSymlinksEnabled(bool enable) override;
+	bool areSymlinksEnabled() const override;
 
-	void setSymlinksEnabled(bool enable);
-	bool areSymlinksEnabled() const;
+	std::vector<std::string> &getRequirePath() override;
+	std::vector<std::string> &getCRequirePath() override;
 
-	std::vector<std::string> &getRequirePath();
-
-	void allowMountingForPath(const std::string &path);
+	void allowMountingForPath(const std::string &path) override;
 
 private:
 
@@ -127,8 +123,11 @@ private:
 
 	// Search path for require
 	std::vector<std::string> requirePath;
+	std::vector<std::string> cRequirePath;
 
 	std::vector<std::string> allowedMountPaths;
+
+	std::map<std::string, StrongRef<Data>> mountedData;
 
 }; // Filesystem
 

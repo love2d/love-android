@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2017 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -63,6 +63,16 @@ std::string getExecutablePath();
  * Causes devices with vibration support to vibrate for about 0.5 seconds.
  **/
 void vibrate();
+
+/**
+ * Enable mix mode (e.g. with background music apps) and playback with a muted device.
+ **/
+void setAudioMixWithOthers(bool mixEnabled);
+
+/**
+ * Returns whether another application is playing audio.
+ **/
+bool hasBackgroundMusic();
 
 } // ios
 } // love

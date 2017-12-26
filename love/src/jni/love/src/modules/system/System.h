@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2017 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -105,6 +105,14 @@ public:
 	 * @param number of seconds to vibrate.
 	 */
 	virtual void vibrate(double seconds) const;
+
+	/**
+	 * Gets if the user is playing music on background.
+	 * Throws an exception on unsupported platforms.
+	 *
+	 * @return Whether a music is playing on background.
+	 **/
+	bool hasBackgroundMusic() const;
 
 	static bool getConstant(const char *in, PowerState &out);
 	static bool getConstant(PowerState in, const char *&out);

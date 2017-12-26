@@ -7,7 +7,7 @@ android {
         applicationId "org.love2d.android"
         versionCode 22
         versionName "0.10.2"
-        minSdkVersion 10
+        minSdkVersion 16
         targetSdkVersion 25
     }
     buildTypes {

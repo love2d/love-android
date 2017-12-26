@@ -43,7 +43,6 @@ public class GameActivity extends SDLActivity {
 		@Override 
 		protected String[] getLibraries() {
 			return new String[] {
-       "gnustl_shared",
        "mpg123",
        "openal",
        "love",
