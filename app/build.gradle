@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion "26.0.2"
     defaultConfig {
         applicationId "org.love2d.android"
         versionCode 22
         versionName "0.10.2"
         minSdkVersion 10
-        targetSdkVersion 18
+        targetSdkVersion 25
     }
     buildTypes {
         release {
