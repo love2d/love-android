@@ -17,7 +17,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libraries/ \
 	${LOCAL_PATH}/src/libraries/glslang \
 	${LOCAL_PATH}/src/libraries/enet/libenet/include \
-	${LOCAL_PATH}/../SDL2-2.0.5/include \
+	${LOCAL_PATH}/../SDL2-2.0.7/include \
 	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
 	${LOCAL_PATH}/../lcms2-2.5/include \
@@ -117,7 +117,7 @@ LOCAL_STATIC_LIBRARIES := libvorbis libogg libtheora libmodplug libfreetype libl
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
 
-SDL_PATH := ../SDL2-2.0.5
+SDL_PATH := ../SDL2-2.0.7
 LOCAL_SRC_FILES += $(SDL_PATH)/src/main/android/SDL_android_main.c 
 LOCAL_LDLIBS := -lz -lGLESv1_CM -lGLESv2 -ldl -landroid
 LOCAL_LDFLAGS := -Wl,--allow-multiple-definition

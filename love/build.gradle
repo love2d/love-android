@@ -33,7 +33,7 @@ android {
     sourceSets {
         main {
             java {
-                srcDirs('src/main/java', 'src/jni/SDL2-2.0.5/android-project/src')
+                srcDirs('src/main/java', 'src/jni/SDL2-2.0.7/android-project/src')
             }
         }
     }
