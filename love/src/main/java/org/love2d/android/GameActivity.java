@@ -2,9 +2,11 @@ package org.love2d.android;
 
 import org.libsdl.app.SDLActivity;
 
+import java.util.Arrays;
 import java.util.List;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +15,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -39,7 +42,7 @@ public class GameActivity extends SDLActivity {
     private static Context context;
     private static Vibrator vibrator = null;
     private static boolean immersiveActive = false;
-
+    private static boolean mustCacheArchive = false;
 		@Override 
 		protected String[] getLibraries() {
 			return new String[] {
@@ -75,14 +78,18 @@ public class GameActivity extends SDLActivity {
       handleIntent (intent);
       resetNative();
       startNative();
-    };
+    }
 
     protected void handleIntent (Intent intent) {
       Uri game = intent.getData();
+
       if (game != null) {
+        // If we have a game via the intent data we we try to figure out how we have to load it. We
+        // support the following variations:
+        // * a main.lua file: set gamePath to the directory containing main.lua
+        // * otherwise: set gamePath to the file
         if (game.getScheme().equals ("file")) {
           Log.d("GameActivity", "Received intent with path: " + game.getPath());
-
           // If we were given the path of a main.lua then use its
           // directory. Otherwise use full path.
           List<String> path_segments = game.getPathSegments();
@@ -92,12 +99,52 @@ public class GameActivity extends SDLActivity {
             gamePath = game.getPath();
           }
         } else {
-          copyGameToCache (game);
-        }
+            Log.e("GameActivity", "Unsupported scheme: '" + game.getScheme() + "'.");
 
-        Log.d("GameActivity", "new gamePath: " + gamePath);
+            AlertDialog.Builder alert_dialog  = new AlertDialog.Builder(this);
+            alert_dialog.setMessage("Could not load LÖVE game '" + game.getPath()
+                    + "' as it uses unsupported scheme '" + game.getScheme()
+                    + "'. Please contact the developer.");
+            alert_dialog.setTitle("LÖVE for Android Error");
+            alert_dialog.setPositiveButton("Exit",
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog,int id) {
+                            finish();
+                        }
+                    });
+            alert_dialog.setCancelable(false);
+            alert_dialog.create().show();
+        }
+      } else {
+          // No game specified via the intent data -> check whether we have a game.love in our assets.
+          boolean game_love_in_assets = false;
+          try {
+              List<String> assets = Arrays.asList(getAssets().list(""));
+              game_love_in_assets = assets.contains("game.love");
+          } catch (Exception e) {
+              Log.d("GameActivity", "could not list application assets:" + e.getMessage());
+          }
+
+          if (game_love_in_assets) {
+              // If we have a game.love in our assets folder copy it to the cache folder
+              // so that we can load it from native LÖVE code
+              String destination_file = this.getCacheDir().getPath()+"/game.love";
+              if (mustCacheArchive && copyAssetFile("game.love", destination_file))
+                  gamePath = destination_file;
+              else
+                  gamePath = "game.love";
+          } else {
+              // If no game.love was found fall back to the game in <external storage>/lovegame
+              File ext = Environment.getExternalStorageDirectory();              
+              if ((new File(ext,"/lovegame/main.lua")).exists()) {
+                  gamePath = ext.getPath() + "/lovegame/";
+              }
+          }
       }
-    };
+
+      Log.d("GameActivity", "new gamePath: " + gamePath);
+    }
 
     @Override
     protected void onDestroy() {
@@ -197,56 +244,60 @@ public class GameActivity extends SDLActivity {
       i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       context.startActivity(i);
     }
-  
-    void copyGameToCache (Uri sourceuri)
+
+    /**
+     * Copies a given file from the assets folder to the destination.
+     * @return true if successful
+     */
+    boolean copyAssetFile(String fileName, String destinationFileName)
     {
-      String destinationFilename = this.getCacheDir().getPath()+"/downloaded.love";
-      gamePath = destinationFilename;
+        boolean success = false;
 
-      BufferedOutputStream bos = null;
-      try {
-        bos = new BufferedOutputStream(new FileOutputStream(destinationFilename, false));
-      } catch (IOException e) {
-        Log.d ("GameActivity", "Could not open destination file:" + e.getMessage());
-      }
-
-      int chunk_read = 0;
-      int bytes_written = 0;
-
-      BufferedInputStream bis = null;
-      if (sourceuri.getScheme().equals("content")) {
+        // open source and destination streams
+        InputStream source_stream = null;
         try {
-          bis = new BufferedInputStream(getContentResolver().openInputStream(sourceuri));
+            source_stream = getAssets().open(fileName);
         } catch (IOException e) {
-          Log.d ("GameActivity", "Could not open game file:" + e.getMessage());
+            Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
         }
-      } else {
-        Log.d ("GameActivity", "Unsupported scheme: " + sourceuri.getScheme());
-      }
 
-      if (bis != null) {
-        // actual copying
+        BufferedOutputStream destination_stream = null;
         try {
-          byte[] buf = new byte[1024];
-          chunk_read = bis.read(buf);
-          do {
-            bos.write(buf, 0, chunk_read);
-            bytes_written += chunk_read;
-            chunk_read = bis.read(buf);        
-          } while(chunk_read != -1);
+            destination_stream = new BufferedOutputStream(new FileOutputStream(destinationFileName, false));
         } catch (IOException e) {
-          Log.d ("GameActivity", "Copying failed:" + e.getMessage());
-        } 
-      }
+            Log.d ("GameActivity", "Could not open destination file: " + e.getMessage());
+        }
 
-      // close streams
-      try {
-        if (bis != null) bis.close();
-        if (bos != null) bos.close();
-      } catch (IOException e) {
-        Log.d ("GameActivity", "Copying failed: " + e.getMessage());
-      }
+        // perform the copying
+        int chunk_read = 0;
+        int bytes_written = 0;
 
-      Log.d("GameActivity", "Copied " + bytes_written + " bytes");
+        assert (source_stream != null && destination_stream != null);
+
+        try {
+            byte[] buf = new byte[1024];
+            chunk_read = source_stream.read(buf);
+            do {
+                destination_stream.write(buf, 0, chunk_read);
+                bytes_written += chunk_read;
+                chunk_read = source_stream.read(buf);
+            } while (chunk_read != -1);
+        } catch (IOException e) {
+            Log.d("GameActivity", "Copying failed:" + e.getMessage());
+        }
+
+        // close streams
+        try {
+            if (source_stream != null) source_stream.close();
+            if (destination_stream != null) destination_stream.close();
+            success = true;
+        } catch (IOException e) {
+            Log.d ("GameActivity", "Copying failed: " + e.getMessage());
+        }
+
+        Log.d("GameActivity", "Successfully copied " + fileName
+                + " to " + destinationFileName
+                + " (" + bytes_written + " bytes written).");
+        return success;
     }
 }
