@@ -21,6 +21,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -30,6 +31,7 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
 import android.os.Vibrator;
+import android.support.annotation.Keep;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
@@ -299,5 +301,11 @@ public class GameActivity extends SDLActivity {
                 + " to " + destinationFileName
                 + " (" + bytes_written + " bytes written).");
         return success;
+    }
+
+    @Keep
+    public boolean hasBackgroundMusic() {
+      AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+      return audioManager.isMusicActive();
     }
 }
