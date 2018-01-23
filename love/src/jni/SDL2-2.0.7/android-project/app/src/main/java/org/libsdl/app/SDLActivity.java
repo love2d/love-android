@@ -187,30 +187,9 @@ public class SDLActivity extends Activity {
            return;
         }
 
-        // Set up JNI
-        SDL.setupJNI();
-
-        // Initialize state
-        SDL.initialize();
-
-        // So we can call stuff from static callbacks
-        mSingleton = this;
-        SDL.setContext(this);
-
-        if (Build.VERSION.SDK_INT >= 11) {
-            mClipboardHandler = new SDLClipboardHandler_API11();
-        } else {
-            /* Before API 11, no clipboard notification (eg no SDL_CLIPBOARDUPDATE) */
-            mClipboardHandler = new SDLClipboardHandler_Old();
-        }
-
-        // Set up the surface
-        mSurface = new SDLSurface(getApplication());
-
-        mLayout = new RelativeLayout(this);
-        mLayout.addView(mSurface);
-
-        setContentView(mLayout);
+        // love2d-mod-start: allow restarting of the native thread
+        startNative();
+        // love2d-mod-end: allow restarting of the native thread
 
         /* 
          * Per SDL_androidwindow.c, Android will only ever have one window, and that window 
@@ -312,6 +291,17 @@ public class SDLActivity extends Activity {
         mNextNativeState = NativeState.PAUSED;
         SDLActivity.handleNativeState();
 
+        // love2d-mod-start: allow restarting of the native thread
+        resetNative();
+        // love2d-mod-end: allow restarting of the native thread
+
+        super.onDestroy();
+    }
+
+    // love2d-mod-start: allow restarting of the native thread
+    public void resetNative() {
+        Log.v("SDL", "resetNative()");
+
         // Send a quit message to the application
         SDLActivity.mExitCalledFromJava = true;
         SDLActivity.nativeQuit();
@@ -321,18 +311,47 @@ public class SDLActivity extends Activity {
             try {
                 SDLActivity.mSDLThread.join();
             } catch(Exception e) {
-                Log.v(TAG, "Problem stopping thread: " + e);
+                Log.v("SDL", "Problem stopping thread: " + e);
             }
             SDLActivity.mSDLThread = null;
 
-            //Log.v(TAG, "Finished waiting for SDL thread");
+            //Log.v("SDL", "Finished waiting for SDL thread");
         }
 
-        super.onDestroy();
-
-        // Reset everything in case the user re opens the app
         SDLActivity.initialize();
     }
+
+    public void startNative() {
+        Log.v("SDL", "startNative()");
+
+        SDLActivity.initialize();
+
+        // Set up JNI
+        SDL.setupJNI();
+
+        // Initialize state
+        SDL.initialize();
+
+        // So we can call stuff from static callbacks
+        mSingleton = this;
+        SDL.setContext(this);
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            mClipboardHandler = new SDLClipboardHandler_API11();
+        } else {
+            /* Before API 11, no clipboard notification (eg no SDL_CLIPBOARDUPDATE) */
+            mClipboardHandler = new SDLClipboardHandler_Old();
+        }
+
+        // Set up the surface
+        mSurface = new SDLSurface(getApplication());
+
+        mLayout = new RelativeLayout(this);
+        mLayout.addView(mSurface);
+
+        setContentView(mLayout);
+    }
+    // love2d-mod-end: allow restarting of the native thread
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
