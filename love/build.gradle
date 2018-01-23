@@ -1,8 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    // If you want to use the debugger for JNI code, you want to compile this lib-project in Debug!
-    // And due to gradle limitations/bugs, the best way is to always compile it in debug.
+    // If you want to use the debugger for JNI code, you want to debug this lib-project in Debug!
+    // And due to gradle limitations/bugs, the best way is to always debug it in debug.
     // See https://code.google.com/p/android/issues/detail?id=52962
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
@@ -33,7 +33,7 @@ android {
     sourceSets {
         main {
             java {
-                srcDirs('src/main/java', 'src/jni/SDL2-2.0.5/android-project/src')
+                srcDirs('src/main/java', 'src/jni/SDL2-2.0.7/android-project/app/src/main/java')
             }
         }
     }
