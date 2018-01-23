@@ -25,7 +25,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../openal-soft-1.17.0/OpenAL32/Include \
 	${LOCAL_PATH}/../freetype2-android/include \
 	${LOCAL_PATH}/../freetype2-android/src \
-	${LOCAL_PATH}/../physfs-2.1.0/src \
+	${LOCAL_PATH}/../physfs-3.0.1/src \
 	${LOCAL_PATH}/../mpg123-1.17.0/src/libmpg123 \
 	${LOCAL_PATH}/../libmodplug-0.8.8.4/src \
 	${LOCAL_PATH}/../libvorbis-1.3.5/include \

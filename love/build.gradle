@@ -7,15 +7,15 @@ android {
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion "26.0.2"
 
     defaultConfig {
         compileSdkVersion 25
-        buildToolsVersion "25.0.2"
+        buildToolsVersion "26.0.2"
         minSdkVersion 10
         externalNativeBuild {
             ndkBuild {
-                arguments "-j2"
+                arguments "-j4"
             }
         }
         ndk {
@@ -49,5 +49,5 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:25.0.0'
+    compile 'com.android.support:appcompat-v7:25.1.0'
 }
