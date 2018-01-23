@@ -8,17 +8,17 @@ import android.os.Bundle;
 public class DownloadActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-     	super.onCreate(savedInstanceState);
+        super.onCreate(savedInstanceState);
 
-    	Uri uri = this.getIntent().getData();
+        Uri uri = this.getIntent().getData();
 
-     	if (uri.getScheme().equals("http")) {
-          String url = uri.toString();
-      	  Intent intent = new Intent(this, DownloadService.class);
-      	  intent.putExtra("url", url);
-      	  startService(intent);
-     	};
+        if (uri.getScheme().equals("http")) {
+            String url = uri.toString();
+            Intent intent = new Intent(this, DownloadService.class);
+            intent.putExtra("url", url);
+            startService(intent);
+        }
 
-     	finish();
+        finish();
     }
- }
+}
