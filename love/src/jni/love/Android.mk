@@ -21,8 +21,8 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/../libmng-1.0.10/ \
 	${LOCAL_PATH}/../lcms2-2.5/include \
 	${LOCAL_PATH}/../tiff-3.9.5/libtiff \
-	${LOCAL_PATH}/../openal-soft-1.17.0/include \
-	${LOCAL_PATH}/../openal-soft-1.17.0/OpenAL32/Include \
+	${LOCAL_PATH}/../openal-soft-1.18.2/include \
+	${LOCAL_PATH}/../openal-soft-1.18.2/OpenAL32/Include \
 	${LOCAL_PATH}/../freetype2-android/include \
 	${LOCAL_PATH}/../freetype2-android/src \
 	${LOCAL_PATH}/../physfs-3.0.1/src \
