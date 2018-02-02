@@ -1,5 +1,6 @@
 repo: d362ae6ab7f5005b8dbc7cba9ce592637de60f99
-node: 228a26ab99bbb41e47d7ff792c670dba220fca88
-branch: android
-latesttag: 0.9.1
-latesttagdistance: 105
+node: a2e84c9fdb8ca18d073d0e782d68205b9aa9ec96
+branch: default
+latesttag: 0.10.2
+latesttagdistance: 381
+changessincelatesttag: 550

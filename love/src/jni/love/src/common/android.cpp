@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2018 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -223,6 +223,22 @@ bool createStorageDirectories()
 		return false;
 
 	return true;
+}
+
+bool hasBackgroundMusic()
+{
+	JNIEnv *env = (JNIEnv*) SDL_AndroidGetJNIEnv();
+	jobject activity = (jobject) SDL_AndroidGetActivity();
+
+	jclass clazz(env->GetObjectClass(activity));
+	jmethodID method_id = env->GetMethodID(clazz, "hasBackgroundMusic", "()Z");
+
+	jboolean result = env->CallBooleanMethod(activity, method_id);
+
+	env->DeleteLocalRef(activity);
+	env->DeleteLocalRef(clazz);
+
+	return result;
 }
 
 } // android
