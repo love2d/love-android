@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2018 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -29,7 +29,7 @@ namespace box2d
 
 RopeJoint *luax_checkropejoint(lua_State *L, int idx)
 {
-	RopeJoint *j = luax_checktype<RopeJoint>(L, idx, PHYSICS_ROPE_JOINT_ID);
+	RopeJoint *j = luax_checktype<RopeJoint>(L, idx);
 	if (!j->isValid())
 		luaL_error(L, "Attempt to use destroyed joint.");
 	return j;
@@ -42,15 +42,24 @@ int w_RopeJoint_getMaxLength(lua_State *L)
 	return 1;
 }
 
+int w_RopeJoint_setMaxLength(lua_State *L)
+{
+	RopeJoint *t = luax_checkropejoint(L, 1);
+	float arg1 = (float)luaL_checknumber(L, 2);
+	t->setMaxLength(arg1);
+	return 0;
+}
+	
 static const luaL_Reg w_RopeJoint_functions[] =
 {
 	{ "getMaxLength", w_RopeJoint_getMaxLength },
+	{ "setMaxLength", w_RopeJoint_setMaxLength },
 	{ 0, 0 }
 };
 
 extern "C" int luaopen_ropejoint(lua_State *L)
 {
-	return luax_register_type(L, PHYSICS_ROPE_JOINT_ID, "RopeJoint", w_Joint_functions, w_RopeJoint_functions, nullptr);
+	return luax_register_type(L, &RopeJoint::type, w_Joint_functions, w_RopeJoint_functions, nullptr);
 }
 
 } // box2d

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2018 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -44,13 +44,15 @@ int w_getProcessorCount(lua_State *L)
 int w_setClipboardText(lua_State *L)
 {
 	const char *text = luaL_checkstring(L, 1);
-	instance()->setClipboardText(text);
+	luax_catchexcept(L, [&]() { instance()->setClipboardText(text); });
 	return 0;
 }
 
 int w_getClipboardText(lua_State *L)
 {
-	luax_pushstring(L, instance()->getClipboardText());
+	std::string text;
+	luax_catchexcept(L, [&]() { text = instance()->getClipboardText(); });
+	luax_pushstring(L, text);
 	return 1;
 }
 
@@ -93,6 +95,12 @@ int w_vibrate(lua_State *L)
 	return 0;
 }
 
+int w_hasBackgroundMusic(lua_State *L)
+{
+	lua_pushboolean(L, instance()->hasBackgroundMusic());
+	return 1;
+}
+
 static const luaL_Reg functions[] =
 {
 	{ "getOS", w_getOS },
@@ -102,6 +110,7 @@ static const luaL_Reg functions[] =
 	{ "getPowerInfo", w_getPowerInfo },
 	{ "openURL", w_openURL },
 	{ "vibrate", w_vibrate },
+	{ "hasBackgroundMusic", w_hasBackgroundMusic },
 	{ 0, 0 }
 };
 
@@ -118,7 +127,7 @@ extern "C" int luaopen_love_system(lua_State *L)
 	WrappedModule w;
 	w.module = instance;
 	w.name = "system";
-	w.type = MODULE_ID;
+	w.type = &Module::type;
 	w.functions = functions;
 	w.types = nullptr;
 

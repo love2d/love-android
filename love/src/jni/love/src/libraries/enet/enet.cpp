@@ -712,8 +712,14 @@ static int peer_send(lua_State *l) {
 	ENetPacket *packet = read_packet(l, 2, &channel_id);
 
 	// printf("sending, channel_id=%d\n", channel_id);
-	enet_peer_send(peer, channel_id, packet);
-	return 0;
+	int ret = enet_peer_send(peer, channel_id, packet);
+	if (ret < 0) {
+		enet_packet_destroy(packet);
+	}
+
+	lua_pushinteger(l, ret);
+
+	return 1;
 }
 
 static const struct luaL_Reg enet_funcs [] = {
@@ -734,9 +740,6 @@ static const struct luaL_Reg enet_host_funcs [] = {
 	// Since ENetSocket isn't part of enet-lua, we should try to keep
 	// naming conventions the same as the rest of the lib.
 	{"get_socket_address", host_get_socket_address},
-	// TODO: Remove the line below in future versions, it's for backward
-	// compatibility only.
-	{"socket_get_address", host_get_socket_address},
 	// We need this function to free up our ports when needed!
 	{"destroy", host_gc},
 
@@ -803,7 +806,7 @@ int luaopen_enet(lua_State *l) {
 
 	lua_setfield(l, LUA_REGISTRYINDEX, "enet_peers");
 
-	luax_register(l, "enet", enet_funcs);
+	luax_register(l, nullptr, enet_funcs);
 
 	// return the enet table created with luaL_register
 	return 1;

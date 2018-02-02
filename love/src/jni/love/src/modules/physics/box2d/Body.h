@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2018 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -69,7 +69,7 @@ public:
 	friend class Shape;
 	friend class Fixture;
 
-	// The Box2D body. (Should not be public?)
+	// Public because joints et al ask for b2body
 	b2Body *body;
 
 	/**
@@ -382,6 +382,8 @@ public:
 	void setFixedRotation(bool fixed);
 	bool isFixedRotation() const;
 
+	bool isTouching(Body *other) const;
+
 	/**
 	 * Get the World this Body resides in.
 	 */
@@ -391,19 +393,19 @@ public:
 	 * Get an array of all the Fixtures attached to this Body.
 	 * @return An array of Fixtures.
 	 **/
-	int getFixtureList(lua_State *L) const;
+	int getFixtures(lua_State *L) const;
 
 	/**
 	 * Get an array of all Joints attached to this Body.
 	 **/
-	int getJointList(lua_State *L) const;
+	int getJoints(lua_State *L) const;
 
 	/**
 	 * Get an array of all active Contacts attached to this Body.
 	 * This list changes during World:update and you may miss some collisions
 	 * if you don't use the collision callbacks.
 	 **/
-	int getContactList(lua_State *L) const;
+	int getContacts(lua_State *L) const;
 
 	/**
 	 * Destroy this body.

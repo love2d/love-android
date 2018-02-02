@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2016 LOVE Development Team
+ * Copyright (c) 2006-2018 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -21,8 +21,8 @@
 // LOVE
 #include "common/config.h"
 #include "common/version.h"
+#include "common/deprecation.h"
 #include "common/runtime.h"
-#include "common/wrap_Data.h"
 
 #include "love.h"
 
@@ -33,6 +33,14 @@
 #ifdef LOVE_WINDOWS
 #include <windows.h>
 #endif // LOVE_WINDOWS
+
+#ifdef LOVE_ANDROID
+#include <SDL.h>
+extern "C"
+{
+#include "luajit.h"
+}
+#endif // LOVE_ANDROID
 
 #ifdef LOVE_LEGENDARY_CONSOLE_IO_HACK
 #include <fcntl.h>
@@ -52,8 +60,8 @@
 #ifdef LOVE_ENABLE_ENET
 #	include "libraries/enet/lua-enet.h"
 #endif
-#ifdef LOVE_ENABLE_LUAUTF8
-#	include "libraries/luautf8/lutf8lib.h"
+#ifdef LOVE_ENABLE_LUA53
+#	include "libraries/lua53/lutf8lib.h"
 #endif
 
 // For love::graphics::setGammaCorrect.
@@ -72,6 +80,9 @@ extern "C"
 {
 #if defined(LOVE_ENABLE_AUDIO)
 	extern int luaopen_love_audio(lua_State*);
+#endif
+#if defined(LOVE_ENABLE_DATA)
+	extern int luaopen_love_data(lua_State*);
 #endif
 #if defined(LOVE_ENABLE_EVENT)
 	extern int luaopen_love_event(lua_State*);
@@ -132,6 +143,9 @@ static const luaL_Reg modules[] = {
 #if defined(LOVE_ENABLE_AUDIO)
 	{ "love.audio", luaopen_love_audio },
 #endif
+#if defined(LOVE_ENABLE_DATA)
+	{ "love.data", luaopen_love_data },
+#endif
 #if defined(LOVE_ENABLE_EVENT)
 	{ "love.event", luaopen_love_event },
 #endif
@@ -168,11 +182,11 @@ static const luaL_Reg modules[] = {
 #if defined(LOVE_ENABLE_SYSTEM)
 	{ "love.system", luaopen_love_system },
 #endif
-#if defined(LOVE_ENABLE_TIMER)
-	{ "love.timer", luaopen_love_timer },
-#endif
 #if defined(LOVE_ENABLE_THREAD)
 	{ "love.thread", luaopen_love_thread },
+#endif
+#if defined(LOVE_ENABLE_TIMER)
+	{ "love.timer", luaopen_love_timer },
 #endif
 #if defined(LOVE_ENABLE_TOUCH)
 	{ "love.touch", luaopen_love_touch },
@@ -194,6 +208,39 @@ int w__openConsole(lua_State *L);
 
 #ifdef LOVE_LEGENDARY_ACCELEROMETER_AS_JOYSTICK_HACK
 int w__setAccelerometerAsJoystick(lua_State *L);
+#endif
+
+#ifdef LOVE_ANDROID
+static int w_print_sdl_log(lua_State *L)
+{
+	int nargs = lua_gettop(L);
+
+	lua_getglobal(L, "tostring");
+
+	std::string outstring;
+
+	for (int i = 1; i <= nargs; i++)
+	{
+		// Call tostring(arg) and leave the result on the top of the stack.
+		lua_pushvalue(L, -1);
+		lua_pushvalue(L, i);
+		lua_call(L, 1, 1);
+
+		const char *s = lua_tostring(L, -1);
+		if (s == nullptr)
+			return luaL_error(L, "'tostring' must return a string to 'print'");
+
+		if (i > 1)
+			outstring += "\t";
+
+		outstring += s;
+
+		lua_pop(L, 1); // Pop the result of tostring(arg).
+	}
+
+	SDL_Log("[LOVE] %s", outstring.c_str());
+	return 0;
+}
 #endif
 
 const char *love_version()
@@ -225,9 +272,9 @@ static int w_love_isVersionCompatible(lua_State *L)
 		version = luaL_checkstring(L, 1);
 	else
 	{
-		int major = (int) luaL_checknumber(L, 1);
-		int minor = (int) luaL_checknumber(L, 2);
-		int rev   = (int) luaL_checknumber(L, 3);
+		int major = (int) luaL_checkinteger(L, 1);
+		int minor = (int) luaL_checkinteger(L, 2);
+		int rev   = (int) luaL_checkinteger(L, 3);
 
 		// Convert the numbers to a string, since VERSION_COMPATIBILITY is an
 		// array of version strings.
@@ -258,6 +305,25 @@ static int w__setGammaCorrect(lua_State *L)
 	return 0;
 }
 
+static int w_love_setDeprecationOutput(lua_State *L)
+{
+	bool enable = love::luax_checkboolean(L, 1);
+	love::setDeprecationOutputEnabled(enable);
+	return 0;
+}
+
+static int w_love_hasDeprecationOutput(lua_State *L)
+{
+	love::luax_pushboolean(L, love::isDeprecationOutputEnabled());
+	return 1;
+}
+
+static int w_deprecation__gc(lua_State *)
+{
+	love::deinitDeprecation();
+	return 0;
+}
+
 int luaopen_love(lua_State *L)
 {
 	love::luax_insistpinnedthread(L);
@@ -277,6 +343,11 @@ int luaopen_love(lua_State *L)
 
 	lua_pushstring(L, love::VERSION_CODENAME);
 	lua_setfield(L, -2, "_version_codename");
+
+#ifdef LOVE_ANDROID
+	luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_OFF);
+	lua_register(L, "print", w_print_sdl_log);
+#endif
 
 #ifdef LOVE_LEGENDARY_CONSOLE_IO_HACK
 	lua_pushcfunction(L, w__openConsole);
@@ -324,12 +395,34 @@ int luaopen_love(lua_State *L)
 #endif
 	lua_setfield(L, -2, "_os");
 
+	{
+		love::initDeprecation();
+
+		// Any old data that we can attach a metatable to, for __gc. We want to
+		// call deinitDeprecation when love is garbage collected.
+		lua_newuserdata(L, sizeof(int));
+
+		luaL_newmetatable(L, "love_deprecation");
+		lua_pushcfunction(L, w_deprecation__gc);
+		lua_setfield(L, -2, "__gc");
+		lua_setmetatable(L, -2);
+
+		lua_setfield(L, -2, "_deprecation");
+
+		lua_pushcfunction(L, w_love_setDeprecationOutput);
+		lua_setfield(L, -2, "setDeprecationOutput");
+
+		lua_pushcfunction(L, w_love_hasDeprecationOutput);
+		lua_setfield(L, -2, "hasDeprecationOutput");
+	}
+
 	// Preload module loaders.
 	for (int i = 0; modules[i].name != nullptr; i++)
 		love::luax_preload(L, modules[i].func, modules[i].name);
 
-	// Load "common" types.
-	love::w_Data_open(L);
+	// Necessary for Data-creating methods to work properly in Data subclasses.
+	love::luax_require(L, "love.data");
+	lua_pop(L, 1);
 
 #ifdef LOVE_ENABLE_LUASOCKET
 	love::luasocket::__open(L);
@@ -337,7 +430,7 @@ int luaopen_love(lua_State *L)
 #ifdef LOVE_ENABLE_ENET
 	love::luax_preload(L, luaopen_enet, "enet");
 #endif
-#ifdef LOVE_ENABLE_LUAUTF8
+#ifdef LOVE_ENABLE_LUA53
 	love::luax_preload(L, luaopen_luautf8, "utf8");
 #endif
 
@@ -362,15 +455,13 @@ static bool IsWindowsVistaOrGreater()
 	return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, mask) != FALSE;
 }
 
-int w__openConsole(lua_State *L)
+bool love_openConsole(const char *&err)
 {
 	static bool is_open = false;
+	err = nullptr;
 
 	if (is_open)
-	{
-		love::luax_pushboolean(L, is_open);
-		return 1;
-	}
+		return true;
 
 	is_open = true;
 
@@ -383,8 +474,8 @@ int w__openConsole(lua_State *L)
 		if (!AllocConsole())
 		{
 			is_open = false;
-			love::luax_pushboolean(L, is_open);
-			return 1;
+			err = "Could not create console.";
+			return is_open;
 		}
 
 		SetConsoleTitle(TEXT("LOVE Console"));
@@ -402,20 +493,38 @@ int w__openConsole(lua_State *L)
 
 	// Redirect stdout.
 	fp = freopen("CONOUT$", "w", stdout);
-	if (L && fp == NULL)
-		return luaL_error(L, "Console redirection of stdout failed.");
+	if (fp == NULL)
+	{
+		err = "Console redirection of stdout failed.";
+		return is_open;
+	}
 
 	// Redirect stdin.
 	fp = freopen("CONIN$", "r", stdin);
-	if (L && fp == NULL)
-		return luaL_error(L, "Console redirection of stdin failed.");
+	if (fp == NULL)
+	{
+		err = "Console redirection of stdin failed.";
+		return is_open;
+	}
 
 	// Redirect stderr.
 	fp = freopen("CONOUT$", "w", stderr);
-	if (L && fp == NULL)
-		return luaL_error(L, "Console redirection of stderr failed.");
+	if (fp == NULL)
+	{
+		err = "Console redirection of stderr failed.";
+		return is_open;
+	}
 
-	love::luax_pushboolean(L, is_open);
+	return is_open;
+}
+
+int w__openConsole(lua_State *L)
+{
+	const char *err = nullptr;
+	bool isopen = love_openConsole(err);
+	if (err != nullptr)
+		return luaL_error(L, err);
+	love::luax_pushboolean(L, isopen);
 	return 1;
 }
 
