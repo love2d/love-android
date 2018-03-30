@@ -199,8 +199,18 @@ bool JoystickModule::setGamepadMapping(const std::string &guid, Joystick::Gamepa
 	}
 	else
 	{
-		// Use a generic name if we have to create a new mapping string.
-		mapstr = guid + ",Controller,";
+		std::string name = "Controller";
+
+		for (love::joystick::Joystick *stick : joysticks)
+		{
+			if (stick->getGUID() == guid)
+			{
+				name = stick->getName();
+				break;
+			}
+		}
+
+		mapstr = guid + "," + name + ",";
 	}
 
 	std::stringstream joyinputstream;
@@ -432,7 +442,9 @@ void JoystickModule::loadGamepadMappings(const std::string &mappings)
 		}
 	}
 
-	if (!success)
+	// Don't error when an empty string is given, since saveGamepadMappings can
+	// produce an empty string if there are no recently seen gamepads to save.
+	if (!success && !mappings.empty())
 		throw love::Exception("Invalid gamepad mappings.");
 }
 
