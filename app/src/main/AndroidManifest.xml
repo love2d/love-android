@@ -30,13 +30,7 @@
         <intent-filter>
           <action android:name="android.intent.action.VIEW" />
           <category android:name="android.intent.category.DEFAULT" />
-          <data android:scheme="file" />
-          <data android:scheme="content" />
-          <data android:mimeType="application/x-love-game" />
-        </intent-filter>
-        <intent-filter>
-          <action android:name="android.intent.action.VIEW" />
-          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
           <data android:scheme="file" />
           <data android:mimeType="*/*" />
           <data android:pathPattern=".*\\.love" />
@@ -52,12 +46,10 @@
           <category android:name="android.intent.category.BROWSABLE" />
           <data android:scheme="http"
             android:host="*"
-            android:pathPrefix="*"
             android:mimeType="*/*"
             android:pathPattern=".*\\.love" />
           <data android:scheme="https"
             android:host="*"
-            android:pathPrefix="*"
             android:mimeType="*/*"
             android:pathPattern=".*\\.love" />
         </intent-filter>
