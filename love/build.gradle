@@ -12,7 +12,7 @@ android {
     defaultConfig {
         compileSdkVersion 25
         buildToolsVersion "26.0.2"
-        minSdkVersion 10
+        minSdkVersion 14
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4"
