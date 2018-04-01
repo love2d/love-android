@@ -5,14 +5,14 @@ android {
     buildToolsVersion "26.0.2"
     defaultConfig {
         applicationId "org.love2d.android"
-        versionCode 23
-        versionName "0.11.0-alpha1"
-        minSdkVersion 10
+        versionCode 24
+        versionName "11.0.0"
+        minSdkVersion 14
         targetSdkVersion 25
     }
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
