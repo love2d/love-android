@@ -18,7 +18,7 @@
       <service android:name="org.love2d.android.DownloadService" />
       <activity
         android:name="org.love2d.android.GameActivity"
-        android:configChanges="orientation|screenSize"
+        android:configChanges="orientation|screenSize|keyboard|keyboardHidden|navigation"
         android:label="LÖVE for Android"
         android:launchMode="singleTop"
         android:screenOrientation="landscape" >
