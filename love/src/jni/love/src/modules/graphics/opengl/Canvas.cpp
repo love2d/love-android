@@ -20,6 +20,7 @@
 
 #include "Canvas.h"
 #include "graphics/Graphics.h"
+#include "Graphics.h"
 
 #include <algorithm> // For min/max
 
@@ -270,6 +271,15 @@ bool Canvas::loadVolatile()
 
 void Canvas::unloadVolatile()
 {
+	if (fbo != 0 || renderbuffer != 0 || texture != 0)
+	{
+		// This is a bit ugly, but we need some way to destroy the cached FBO
+		// when this Canvas' texture is destroyed.
+		auto gfx = Module::getInstance<Graphics>(Module::M_GRAPHICS);
+		if (gfx != nullptr)
+			gfx->cleanupCanvas(this);
+	}
+
 	if (fbo != 0)
 		gl.deleteFramebuffer(fbo);
 
@@ -502,6 +512,18 @@ bool Canvas::isFormatSupported(PixelFormat format, bool readable)
 	// test with an actual FBO.
 	GLuint texture = 0;
 	GLuint renderbuffer = 0;
+
+	// Avoid the test for depth/stencil formats - not every GL version
+	// guarantees support for depth/stencil-only render targets (which we would
+	// need for the test below to work), and we already do some finagling in
+	// convertPixelFormat to try to use the best-supported internal
+	// depth/stencil format for a particular driver.
+	if (isPixelFormatDepthStencil(format))
+	{
+		checkedFormats[format].set(readable, true);
+		supportedFormats[format].set(readable, true);
+		return true;
+	}
 
 	bool unusedSRGB = false;
 	OpenGL::TextureFormat fmt = OpenGL::convertPixelFormat(format, readable, unusedSRGB);
