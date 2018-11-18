@@ -201,10 +201,30 @@ SDL_cosf(float x)
 }
 
 double
+SDL_exp(double x)
+{
+#if defined(HAVE_EXP)
+    return exp(x);
+#else
+    return SDL_uclibc_exp(x);
+#endif
+}
+
+float
+SDL_expf(float x)
+{
+#if defined(HAVE_EXPF)
+    return expf(x);
+#else
+    return (float)SDL_exp((double)x);
+#endif
+}
+
+double
 SDL_fabs(double x)
 {
 #if defined(HAVE_FABS)
-    return fabs(x); 
+    return fabs(x);
 #else
     return SDL_uclibc_fabs(x);
 #endif
@@ -214,7 +234,7 @@ float
 SDL_fabsf(float x)
 {
 #if defined(HAVE_FABSF)
-    return fabsf(x); 
+    return fabsf(x);
 #else
     return (float)SDL_fabs((double)x);
 #endif
@@ -277,6 +297,26 @@ SDL_logf(float x)
     return logf(x);
 #else
     return (float)SDL_log((double)x);
+#endif
+}
+
+double
+SDL_log10(double x)
+{
+#if defined(HAVE_LOG10)
+    return log10(x);
+#else
+    return SDL_uclibc_log10(x);
+#endif
+}
+
+float
+SDL_log10f(float x)
+{
+#if defined(HAVE_LOG10F)
+    return log10f(x);
+#else
+    return (float)SDL_log10((double)x);
 #endif
 }
 

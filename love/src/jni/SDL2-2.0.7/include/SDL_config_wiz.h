@@ -94,6 +94,8 @@
 #define HAVE_COPYSIGNF  1
 #define HAVE_COS    1
 #define HAVE_COSF   1
+#define HAVE_EXP    1
+#define HAVE_EXPF   1
 #define HAVE_FABS   1
 #define HAVE_FABSF  1
 #define HAVE_FLOOR  1
@@ -102,6 +104,8 @@
 #define HAVE_FMODF  1
 #define HAVE_LOG    1
 #define HAVE_LOGF   1
+#define HAVE_LOG10  1
+#define HAVE_LOG10F 1
 #define HAVE_POW    1
 #define HAVE_POWF   1
 #define HAVE_SCALBN 1
@@ -124,6 +128,8 @@
 #define SDL_INPUT_TSLIB 1
 #define SDL_JOYSTICK_LINUX 1
 #define SDL_HAPTIC_LINUX 1
+
+#define SDL_SENSOR_DUMMY  1
 
 #define SDL_LOADSO_DLOPEN 1
 

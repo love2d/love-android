@@ -33,13 +33,10 @@
 
 @implementation SDL_cocoametalview
 
-/* The synthesized getter should be called by super's viewWithTag. */
-@synthesize tag = _tag;
-
 /* Return a Metal-compatible layer. */
 + (Class)layerClass
 {
-	return NSClassFromString(@"CAMetalLayer");
+    return NSClassFromString(@"CAMetalLayer");
 }
 
 /* Indicate the view wants to draw using a backing layer instead of drawRect. */
@@ -57,20 +54,41 @@
 }
 
 - (instancetype)initWithFrame:(NSRect)frame
-                   useHighDPI:(bool)useHighDPI
+                      highDPI:(BOOL)highDPI
 {
-	if ((self = [super initWithFrame:frame])) {
+    if ((self = [super initWithFrame:frame])) {
+        self.highDPI = highDPI;
         self.wantsLayer = YES;
 
         /* Allow resize. */
         self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-        _tag = METALVIEW_TAG;
 
-        _useHighDPI = useHighDPI;
         [self updateDrawableSize];
-	}
+    }
   
-	return self;
+    return self;
+}
+
+- (NSInteger)tag
+{
+    return METALVIEW_TAG;
+}
+
+- (void)updateDrawableSize
+{
+    CAMetalLayer *metalLayer = (CAMetalLayer *)self.layer;
+    CGSize size = self.bounds.size;
+    CGSize backingSize = size;
+
+    if (self.highDPI) {
+        /* Note: NSHighResolutionCapable must be set to true in the app's
+         * Info.plist in order for the backing size to be high res.
+         */
+        backingSize = [self convertSizeToBacking:size];
+    }
+
+    metalLayer.contentsScale = backingSize.height / size.height;
+    metalLayer.drawableSize = backingSize;
 }
 
 /* Set the size of the metal drawables when the view is resized. */
@@ -80,26 +98,17 @@
     [self updateDrawableSize];
 }
 
-- (void)updateDrawableSize
-{
-    NSRect bounds = [self bounds];
-    if (_useHighDPI) {
-        bounds = [self convertRectToBacking:bounds];
-    }
-    ((CAMetalLayer *) self.layer).drawableSize = NSSizeToCGSize(bounds.size);
-}
-
 @end
 
 SDL_cocoametalview*
 Cocoa_Mtl_AddMetalView(SDL_Window* window)
 {
-    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    SDL_WindowData* data = (__bridge SDL_WindowData *)window->driverdata;
     NSView *view = data->nswindow.contentView;
+    BOOL highDPI = (window->flags & SDL_WINDOW_ALLOW_HIGHDPI) != 0;
+    SDL_cocoametalview *metalview;
 
-    SDL_cocoametalview *metalview
-        = [[SDL_cocoametalview alloc] initWithFrame:view.frame
-                       useHighDPI:(window->flags & SDL_WINDOW_ALLOW_HIGHDPI)];
+    metalview = [[SDL_cocoametalview alloc] initWithFrame:view.frame highDPI:highDPI];
     [view addSubview:metalview];
     return metalview;
 }
@@ -119,6 +128,8 @@ Cocoa_Mtl_GetDrawableSize(SDL_Window * window, int * w, int * h)
         if (h) {
             *h = layer.drawableSize.height;
         }
+    } else {
+        SDL_GetWindowSize(window, w, h);
     }
 }
 

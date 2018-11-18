@@ -31,9 +31,11 @@
 typedef struct joystick_hwdata
 {
     SDL_bool accelerometer;
+    SDL_bool remote;
 
     GCController __unsafe_unretained *controller;
     int num_pause_presses;
+    Uint32 pause_button_down_time;
 
     char *name;
     SDL_Joystick *joystick;
@@ -43,9 +45,6 @@ typedef struct joystick_hwdata
     int naxes;
     int nbuttons;
     int nhats;
-
-    /* Steam Controller support */
-    SDL_bool m_bSteamController;
 
     struct joystick_hwdata *next;
 } joystick_hwdata;
