@@ -52,6 +52,7 @@ public class GameActivity extends SDLActivity {
                 "c++_shared",
                 "mpg123",
                 "openal",
+                "hidapi",
                 "love",
         };
     }

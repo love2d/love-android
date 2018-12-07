@@ -6,11 +6,11 @@ android {
     // See https://code.google.com/p/android/issues/detail?id=52962
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
-    compileSdkVersion 22
+    compileSdkVersion 26
     buildToolsVersion '28.0.3'
 
     defaultConfig {
-        compileSdkVersion 22
+        compileSdkVersion 26
         buildToolsVersion "28.0.3"
         minSdkVersion 14
         externalNativeBuild {
@@ -33,7 +33,7 @@ android {
     sourceSets {
         main {
             java {
-                srcDirs('src/main/java', 'src/jni/SDL2-2.0.7/android-project/app/src/main/java')
+                srcDirs('src/main/java', 'src/jni/SDL2-2.0.9/android-project/app/src/main/java')
             }
         }
     }
@@ -49,7 +49,7 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'com.android.support:appcompat-v7:22.2.0'
+    api 'com.android.support:appcompat-v7:26.1.0'
 }
 
 repositories {

@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 22
+    compileSdkVersion 26
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "org.love2d.android"
         versionCode 26
         versionName "11.1"
         minSdkVersion 14
-        targetSdkVersion 22
+        targetSdkVersion 26
     }
     buildTypes {
         release {
@@ -24,7 +24,7 @@ android {
 dependencies {
     api 'com.android.support:multidex:1.0.1'
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'com.android.support:appcompat-v7:22.2.0'
+    api 'com.android.support:appcompat-v7:26.1.0'
     api project(':love')
 }
 
