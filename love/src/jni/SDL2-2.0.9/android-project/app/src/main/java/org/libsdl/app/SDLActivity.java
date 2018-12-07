@@ -233,50 +233,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
            return;
         }
 
-        // Set up JNI
-        SDL.setupJNI();
-
-        // Initialize state
-        SDL.initialize();
-
-        // So we can call stuff from static callbacks
-        mSingleton = this;
-        SDL.setContext(this);
-
-        if (Build.VERSION.SDK_INT >= 11) {
-            mClipboardHandler = new SDLClipboardHandler_API11();
-        } else {
-            /* Before API 11, no clipboard notification (eg no SDL_CLIPBOARDUPDATE) */
-            mClipboardHandler = new SDLClipboardHandler_Old();
-        }
-
-        mHIDDeviceManager = HIDDeviceManager.acquire(this);
-
-        // Set up the surface
-        mSurface = new SDLSurface(getApplication());
-
-        mLayout = new RelativeLayout(this);
-        mLayout.addView(mSurface);
-
-        // Get our current screen orientation and pass it down.
-        mCurrentOrientation = SDLActivity.getCurrentOrientation();
-        SDLActivity.onNativeOrientationChanged(mCurrentOrientation);
-
-        setContentView(mLayout);
-
-        setWindowStyle(false);
-
-        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
-
-        // Get filename from "Open with" of another application
-        Intent intent = getIntent();
-        if (intent != null && intent.getData() != null) {
-            String filename = intent.getData().getPath();
-            if (filename != null) {
-                Log.v(TAG, "Got filename: " + filename);
-                SDLActivity.onNativeDropFile(filename);
-            }
-        }
+        // love2d-mod-start: allow restarting of the native thread
+        startNative();
+        // love2d-mod-end: allow restarting of the native thread
     }
 
     // Events
@@ -394,6 +353,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         mNextNativeState = NativeState.PAUSED;
         SDLActivity.handleNativeState();
 
+        // love2d-mod-start: allow restarting of the native thread
+        resetNative();
+        // love2d-mod-end: allow restarting of the native thread
+
+        super.onDestroy();
+    }
+
+    // love2d-mod-start: allow restarting of the native thread
+    public void resetNative() {
+        Log.v("SDL", "resetNative()");
+
         // Send a quit message to the application
         SDLActivity.mExitCalledFromJava = true;
         SDLActivity.nativeQuit();
@@ -403,18 +373,67 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
             try {
                 SDLActivity.mSDLThread.join();
             } catch(Exception e) {
-                Log.v(TAG, "Problem stopping thread: " + e);
+                Log.v("SDL", "Problem stopping thread: " + e);
             }
             SDLActivity.mSDLThread = null;
 
-            //Log.v(TAG, "Finished waiting for SDL thread");
+            //Log.v("SDL", "Finished waiting for SDL thread");
         }
 
-        super.onDestroy();
-
-        // Reset everything in case the user re opens the app
         SDLActivity.initialize();
     }
+
+    public void startNative() {
+        Log.v("SDL", "startNative()");
+
+        SDLActivity.initialize();
+
+        // Set up JNI
+        SDL.setupJNI();
+
+        // Initialize state
+        SDL.initialize();
+
+        // So we can call stuff from static callbacks
+        mSingleton = this;
+        SDL.setContext(this);
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            mClipboardHandler = new SDLClipboardHandler_API11();
+        } else {
+            /* Before API 11, no clipboard notification (eg no SDL_CLIPBOARDUPDATE) */
+            mClipboardHandler = new SDLClipboardHandler_Old();
+        }
+
+        mHIDDeviceManager = HIDDeviceManager.acquire(this);
+
+        // Set up the surface
+        mSurface = new SDLSurface(getApplication());
+
+        mLayout = new RelativeLayout(this);
+        mLayout.addView(mSurface);
+
+        // Get our current screen orientation and pass it down.
+        mCurrentOrientation = SDLActivity.getCurrentOrientation();
+        SDLActivity.onNativeOrientationChanged(mCurrentOrientation);
+
+        setContentView(mLayout);
+
+        setWindowStyle(false);
+
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
+
+        // Get filename from "Open with" of another application
+        Intent intent = getIntent();
+        if (intent != null && intent.getData() != null) {
+            String filename = intent.getData().getPath();
+            if (filename != null) {
+                Log.v(TAG, "Got filename: " + filename);
+                SDLActivity.onNativeDropFile(filename);
+            }
+        }
+    }
+    // love2d-mod-end: allow restarting of the native thread
 
     @Override
     public void onBackPressed() {
