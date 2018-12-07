@@ -1,4 +1,4 @@
-AC_INIT([love], [11.1])
+AC_INIT([love], [11.2])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([platform/unix])
 AC_CONFIG_MACRO_DIR([platform/unix/m4])
@@ -63,6 +63,7 @@ ACLOVE_DEP_LUA
 ACLOVE_DEP_SDL2
 ACLOVE_DEP_LIBM
 ACLOVE_DEP_ZLIB
+ACLOVE_DEP_PTHREAD
 
 # Conditional dependencies
 AS_VAR_IF([enable_module_audio], [yes], [ACLOVE_DEP_OPENAL], [])
