@@ -51,8 +51,3 @@ dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
     api 'androidx.appcompat:appcompat:1.1.0-alpha01'
 }
-
-repositories {
-    google()
-    jcenter()
-}
