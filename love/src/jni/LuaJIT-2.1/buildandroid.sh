@@ -27,27 +27,27 @@ if [[ x$NDK = "x" ]]; then
     exit 1
 fi
 
-NDKABI=9
+NDKABI=16
 
 # Since OSX still has bash 3, we don't have associative arrays, fake them instead
 armeabi=0
 armeabiv7a=1
 x86=2
 
-NDKVER[$armeabi]="$NDK/toolchains/arm-linux-androideabi-4.8"
+NDKVER[$armeabi]="$NDK/toolchains/arm-linux-androideabi-4.9"
 NDKP[$armeabi]="${NDKVER[$armeabi]}/prebuilt/${host_os}-${host_arch}/bin/arm-linux-androideabi-"
 NDKF[$armeabi]="--sysroot \"$NDK/platforms/android-$NDKABI/arch-arm\""
-CFLAGS[$armeabi]=""
+CFLAGS[$armeabi]="-I \"$NDK/sysroot/usr/include\" -I \"$NDK/sysroot/usr/include/arm-linux-androideabi\""
 
 NDKVER[$armeabiv7a]="${NDKVER[$armeabi]}"
 NDKP[$armeabiv7a]="${NDKP[$armeabi]}"
 NDKF[$armeabiv7a]="${NDKF[$armeabi]}"
 CFLAGS[$armeabiv7a]="${CFLAGS[$armeabi]}"
 
-NDKVER[$x86]="$NDK/toolchains/x86-4.8"
+NDKVER[$x86]="$NDK/toolchains/x86-4.9"
 NDKP[$x86]="${NDKVER[$x86]}/prebuilt/${host_os}-${host_arch}/bin/i686-linux-android-"
 NDKF[$x86]="--sysroot \"$NDK/platforms/android-$NDKABI/arch-x86\""
-CFLAGS[$x86]="-DLUAJIT_NO_LOG2"
+CFLAGS[$x86]="-I \"$NDK/sysroot/usr/include\" -I \"$NDK/sysroot/usr/include/i686-linux-android\" -DLUAJIT_NO_LOG2"
 
 buildLuaJIT()
 {
@@ -58,7 +58,7 @@ buildLuaJIT()
     mkdir -p $DESTDIR 2>/dev/null
     rm "$DESTDIR"/*.a 2>/dev/null
     make clean
-    make HOST_CC="gcc -m32" CROSS="${NDKP[$archkey]}" TARGET_SYS=Linux TARGET_FLAGS="${NDKF[$archkey]} $ndkarch" TARGET_CFLAGS="${CFLAGS[$archkey]}" libluajit.a
+    make HOST_CC="gcc -m32" CROSS="${NDKP[$archkey]}" TARGET_SYS=Linux TARGET_FLAGS="${NDKF[$archkey]} $ndkarch" TARGET_CFLAGS="${CFLAGS[$archkey]}" libluajit.a -j4
 
     if [ -f libluajit.a ]; then
         mv libluajit.a $DESTDIR/libluajit.a
