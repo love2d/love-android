@@ -36,6 +36,10 @@ public class GameActivity extends SDLActivity {
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 1;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
+    public int safeAreaTop = 0;
+    public int safeAreaLeft = 0;
+    public int safeAreaBottom = 0;
+    public int safeAreaRight = 0;
 
     @Override
     protected String[] getLibraries() {
@@ -66,6 +70,10 @@ public class GameActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
     }
 
     @Override
@@ -94,6 +102,8 @@ public class GameActivity extends SDLActivity {
                 } else {
                     gamePath = game.getPath();
                 }
+            // FIXME: Add support for "content://" URI, which is mandatory in Android Nougat
+            // as using "file://" protocol in that (and later) version is forbidden!
             } else {
                 Log.e("GameActivity", "Unsupported scheme: '" + game.getScheme() + "'.");
 
@@ -396,5 +406,22 @@ public class GameActivity extends SDLActivity {
         }
 
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Keep
+    public boolean initializeSafeArea() {
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            DisplayCutout cutout = getWindow().getDecorView().getRootWindowInsets().getDisplayCutout();
+
+            if (cutout != null) {
+                safeAreaTop = cutout.getSafeInsetTop();
+                safeAreaLeft = cutout.getSafeInsetLeft();
+                safeAreaBottom = cutout.getSafeInsetBottom();
+                safeAreaRight = cutout.getSafeInsetRight();
+                return true;
+            }
+        }
+
+        return false;
     }
 }
