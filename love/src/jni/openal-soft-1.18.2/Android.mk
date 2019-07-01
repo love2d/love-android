@@ -8,11 +8,6 @@ LOCAL_CFLAGS    := -DAL_ALEXT_PROTOTYPES -DAL_BUILD_LIBRARY -D_GNU_SOURCE=1 -D_P
 
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
-ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-	# ARM64 have log2f function
-	LOCAL_CFLAGS += -DHAVE_LOG2F
-endif
-
 LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/include \
 	${LOCAL_PATH}/common \
@@ -41,5 +36,15 @@ LOCAL_SRC_FILES := \
 	))
 
 LOCAL_LDLIBS := -lOpenSLES
+
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+	# ARM64 have log2f function
+	LOCAL_CFLAGS += -DHAVE_LOG2F
+else ifeq ($(NDK_R17),yes)
+	# NDK r17 and later always add log2f
+	LOCAL_CFLAGS += -DHAVE_LOG2F
+	# Also make sure to link with android_support
+	LOCAL_LDLIBS += -landroid_support
+endif
 
 include $(BUILD_SHARED_LIBRARY)
