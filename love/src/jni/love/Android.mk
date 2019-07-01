@@ -11,6 +11,14 @@ LOCAL_CFLAGS    := -fexceptions -g -Dlinux -Dunix \
 
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS} 
 
+# I don't think there's armeabi-v7a device without NEON instructions in 2018
+LOCAL_ARM_NEON := true
+
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+	# ARM64 does have socklen_t
+	LOCAL_CFLAGS += -DHAS_SOCKLEN_T=1
+endif
+
 LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src \
 	${LOCAL_PATH}/src/modules \

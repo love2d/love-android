@@ -21,7 +21,7 @@ android {
         ndk {
             // Specifies the ABI configurations of your native
             // libraries Gradle should build and package with your APK.
-            abiFilters 'armeabi-v7a'
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
     }
     buildTypes {
@@ -44,6 +44,10 @@ android {
     }
     lintOptions {
         abortOnError false
+    }
+    packagingOptions {
+        exclude 'lib/arm64-v8a/libSDL2.so'
+        exclude 'lib/armeabi-v7a/libSDL2.so'
     }
 }
 
