@@ -52,6 +52,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/common \
 	$(LOCAL_PATH)/Alc \
 	$(LOCAL_PATH)/OpenAL32/Include
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
 
 LOCAL_SRC_FILES := \
 	common/alcomplex.c \

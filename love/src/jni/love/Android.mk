@@ -25,7 +25,6 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libraries/physfs \
 	${LOCAL_PATH}/src/libraries/glslang/glslang/Include \
 	${LOCAL_PATH}/../SDL2-2.0.9/include \
-	${LOCAL_PATH}/../openal-soft-1.19.1/include \
 	${LOCAL_PATH}/../freetype2-android/include \
 	${LOCAL_PATH}/../freetype2-android/src \
 	${LOCAL_PATH}/../mpg123-1.17.0/src/libmpg123 \
