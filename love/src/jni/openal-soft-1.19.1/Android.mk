@@ -130,13 +130,13 @@ else ifneq (,$(findstring HAVE_NEON,${LOCAL_CFLAGS}))
 endif
 
 # NDK R17 Support library
-ifeq ($(NDK_R17),yes)
+ifeq ($(IS_NDK_R17),yes)
 	# Well, NDK r17 (is it?) defines all function regardless of API level
 	ifeq (,$(findstring HAVE_LOG2F,${LOCAL_CFLAGS}))
 		LOCAL_CFLAGS += -DHAVE_LOG2F
 	endif
 	# Also only link with android_support for older than 21
-	ifeq ($(ANDROID_21_OR_LATER),no)
+	ifeq ($(IS_ANDROID_21),no)
 		LOCAL_STATIC_LIBRARIES += android_support
 	endif
 endif
