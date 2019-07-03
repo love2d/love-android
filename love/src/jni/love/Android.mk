@@ -1,6 +1,4 @@
 LOCAL_PATH:= $(call my-dir)
-
-# libogg
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := liblove
@@ -14,8 +12,8 @@ LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 # I don't think there's armeabi-v7a device without NEON instructions in 2018
 LOCAL_ARM_NEON := true
 
-ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-	# ARM64 does have socklen_t
+ifeq ($(IS_ANDROID_21),yes)
+	# API21 defines socklen_t
 	LOCAL_CFLAGS += -DHAS_SOCKLEN_T=1
 endif
 
@@ -27,12 +25,6 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libraries/physfs \
 	${LOCAL_PATH}/src/libraries/glslang/glslang/Include \
 	${LOCAL_PATH}/../SDL2-2.0.9/include \
-	${LOCAL_PATH}/../jasper-1.900.1/src/libjasper/include \
-	${LOCAL_PATH}/../libmng-1.0.10/ \
-	${LOCAL_PATH}/../lcms2-2.5/include \
-	${LOCAL_PATH}/../tiff-3.9.5/libtiff \
-	${LOCAL_PATH}/../openal-soft-1.18.2/include \
-	${LOCAL_PATH}/../openal-soft-1.18.2/OpenAL32/Include \
 	${LOCAL_PATH}/../freetype2-android/include \
 	${LOCAL_PATH}/../freetype2-android/src \
 	${LOCAL_PATH}/../mpg123-1.17.0/src/libmpg123 \
@@ -117,10 +109,8 @@ LOCAL_SRC_FILES := \
   $(wildcard ${LOCAL_PATH}/src/libraries/xxHash/*.c) \
   ))
 
-LOCAL_CXXFLAGS := -std=c++0x
-
+LOCAL_CXXFLAGS := -std=c++11
 LOCAL_SHARED_LIBRARIES := libopenal libmpg123 
-
 LOCAL_STATIC_LIBRARIES := libvorbis libogg libtheora libmodplug libfreetype libluajit SDL2_static
 
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
