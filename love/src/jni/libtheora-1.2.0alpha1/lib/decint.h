@@ -105,7 +105,7 @@ struct oc_dec_pipeline_state{
   const ogg_uint16_t *dequant[3][3][2];
   int                 fragy0[3];
   int                 fragy_end[3];
-  int                 pred_last[3][4];
+  int                 pred_last[3][3];
   int                 mcu_nvfrags;
   int                 loop_filter;
   int                 pp_level;

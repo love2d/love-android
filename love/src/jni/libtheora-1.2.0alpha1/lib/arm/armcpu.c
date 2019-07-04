@@ -20,7 +20,7 @@
 #include "armcpu.h"
 
 #if !defined(OC_ARM_ASM)|| \
- !defined(OC_ARM_ASM_EDSP)&&!defined(OC_ARM_ASM_MEDIA)&& \
+ !defined(OC_ARM_ASM_EDSP)&&!defined(OC_ARM_ASM_ARMV6)&& \
  !defined(OC_ARM_ASM_NEON)
 ogg_uint32_t oc_cpu_flags_get(void){
   return 0;

@@ -572,8 +572,6 @@ static void oc_enc_pipeline_init(oc_enc_ctx *_enc,oc_enc_pipeline_state *_pipe){
   flimit=_enc->state.loop_filter_limits[_enc->state.qis[0]];
   _pipe->loop_filter=flimit!=0;
   if(flimit!=0)oc_loop_filter_init(&_enc->state,_pipe->bounding_values,flimit);
-  /*Clear the temporary DCT scratch space.*/
-  memset(_pipe->dct_data,0,sizeof(_pipe->dct_data));
 }
 
 /*Sets the current MCU stripe to super block row _sby.
@@ -612,13 +610,14 @@ static int oc_enc_pipeline_set_stripe(oc_enc_ctx *_enc,
 
 static void oc_enc_pipeline_finish_mcu_plane(oc_enc_ctx *_enc,
  oc_enc_pipeline_state *_pipe,int _pli,int _sdelay,int _edelay){
+  int refi;
   /*Copy over all the uncoded fragments from this plane and advance the uncoded
      fragment list.*/
   if(_pipe->nuncoded_fragis[_pli]>0){
     _pipe->uncoded_fragis[_pli]-=_pipe->nuncoded_fragis[_pli];
     oc_frag_copy_list(&_enc->state,
-     _enc->state.ref_frame_data[OC_FRAME_SELF],
-     _enc->state.ref_frame_data[OC_FRAME_PREV],
+     _enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_SELF]],
+     _enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_PREV]],
      _enc->state.ref_ystride[_pli],_pipe->uncoded_fragis[_pli],
      _pipe->nuncoded_fragis[_pli],_enc->state.frag_buf_offs);
     _pipe->nuncoded_fragis[_pli]=0;
@@ -637,18 +636,17 @@ static void oc_enc_pipeline_finish_mcu_plane(oc_enc_ctx *_enc,
   _pipe->coded_fragis[_pli]+=_pipe->ncoded_fragis[_pli];
   _pipe->ncoded_fragis[_pli]=0;
   /*Apply the loop filter if necessary.*/
+  refi=_enc->state.ref_frame_idx[OC_FRAME_SELF];
   if(_pipe->loop_filter){
-    oc_state_loop_filter_frag_rows(&_enc->state,
-     _pipe->bounding_values,OC_FRAME_SELF,_pli,
-     _pipe->fragy0[_pli]-_sdelay,_pipe->fragy_end[_pli]-_edelay);
+    oc_state_loop_filter_frag_rows(&_enc->state,_pipe->bounding_values,
+     refi,_pli,_pipe->fragy0[_pli]-_sdelay,_pipe->fragy_end[_pli]-_edelay);
   }
   else _sdelay=_edelay=0;
   /*To fill borders, we have an additional two pixel delay, since a fragment
      in the next row could filter its top edge, using two pixels from a
      fragment in this row.
     But there's no reason to delay a full fragment between the two.*/
-  oc_state_borders_fill_rows(&_enc->state,
-   _enc->state.ref_frame_idx[OC_FRAME_SELF],_pli,
+  oc_state_borders_fill_rows(&_enc->state,refi,_pli,
    (_pipe->fragy0[_pli]-_sdelay<<3)-(_sdelay<<1),
    (_pipe->fragy_end[_pli]-_edelay<<3)-(_edelay<<1));
 }
@@ -669,9 +667,8 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
  oc_enc_pipeline_state *_pipe,int _pli,ptrdiff_t _fragi,
  unsigned _rd_scale,unsigned _rd_iscale,oc_rd_metric *_mo,
  oc_fr_state *_fr,oc_token_checkpoint **_stack){
-  ogg_int16_t            *data;
   ogg_int16_t            *dct;
-  ogg_int16_t            *idct;
+  ogg_int16_t            *data;
   oc_qii_state            qs;
   const ogg_uint16_t     *dequant;
   ogg_uint16_t            dequant_dc;
@@ -686,7 +683,6 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
   oc_token_checkpoint    *checkpoint;
   oc_fragment            *frags;
   int                     mb_mode;
-  int                     refi;
   int                     mv_offs[2];
   int                     nmv_offs;
   int                     ac_bits;
@@ -699,29 +695,30 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
   frags=_enc->state.frags;
   frag_offs=_enc->state.frag_buf_offs[_fragi];
   ystride=_enc->state.ref_ystride[_pli];
-  src=_enc->state.ref_frame_data[OC_FRAME_IO]+frag_offs;
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]]
+   +frag_offs;
   borderi=frags[_fragi].borderi;
   qii=frags[_fragi].qii;
   data=_enc->pipe.dct_data;
   dct=data+64;
-  idct=data+128;
   if(qii&~3){
 #if !defined(OC_COLLECT_METRICS)
     if(_enc->sp_level>=OC_SP_LEVEL_EARLY_SKIP){
       /*Enable early skip detection.*/
       frags[_fragi].coded=0;
-      frags[_fragi].refi=OC_FRAME_NONE;
       oc_fr_skip_block(_fr);
       return 0;
     }
 #endif
     /*Try and code this block anyway.*/
     qii&=3;
+    frags[_fragi].qii=qii;
   }
-  refi=frags[_fragi].refi;
   mb_mode=frags[_fragi].mb_mode;
-  ref=_enc->state.ref_frame_data[refi]+frag_offs;
-  dst=_enc->state.ref_frame_data[OC_FRAME_SELF]+frag_offs;
+  ref=_enc->state.ref_frame_data[
+   _enc->state.ref_frame_idx[OC_FRAME_FOR_MODE(mb_mode)]]+frag_offs;
+  dst=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_SELF]]
+   +frag_offs;
   /*Motion compensation:*/
   switch(mb_mode){
     case OC_MODE_INTRA:{
@@ -736,7 +733,7 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
     }break;
     default:{
       const oc_mv *frag_mvs;
-      frag_mvs=_enc->state.frag_mvs;
+      frag_mvs=(const oc_mv *)_enc->state.frag_mvs;
       nmv_offs=oc_state_get_mv_offsets(&_enc->state,mv_offs,
        _pli,frag_mvs[_fragi]);
       if(nmv_offs>1){
@@ -749,25 +746,19 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
   }
 #if defined(OC_COLLECT_METRICS)
   {
-    unsigned sad;
     unsigned satd;
+    unsigned dc;
     switch(nmv_offs){
-      case 0:{
-        sad=oc_enc_frag_intra_sad(_enc,src,ystride);
-        satd=oc_enc_frag_intra_satd(_enc,&dc,src,ystride);
-      }break;
+      case 0:satd=oc_enc_frag_intra_satd(_enc,&dc,src,ystride);break;
       case 1:{
-        sad=oc_enc_frag_sad_thresh(_enc,src,ref+mv_offs[0],ystride,UINT_MAX);
         satd=oc_enc_frag_satd(_enc,&dc,src,ref+mv_offs[0],ystride);
-        satd+=abs(dc);
+        satd+=dc;
       }break;
       default:{
-        sad=oc_enc_frag_sad_thresh(_enc,src,dst,ystride,UINT_MAX);
         satd=oc_enc_frag_satd(_enc,&dc,src,dst,ystride);
-        satd+=abs(dc);
+        satd+=dc;
       }break;
     }
-    _enc->frag_sad[_fragi]=sad;
     _enc->frag_satd[_fragi]=satd;
   }
 #endif
@@ -781,12 +772,12 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
   /*Tokenize.*/
   checkpoint=*_stack;
   if(_enc->sp_level<OC_SP_LEVEL_FAST_ANALYSIS){
-    ac_bits=oc_enc_tokenize_ac(_enc,_pli,_fragi,idct,data,dequant,dct,
-     nonzero+1,_stack,OC_RD_ISCALE(_enc->lambda,_rd_iscale),qti?0:3);
+    ac_bits=oc_enc_tokenize_ac(_enc,_pli,_fragi,data,dequant,dct,nonzero+1,
+     _stack,OC_RD_ISCALE(_enc->lambda,_rd_iscale),qti?0:3);
   }
   else{
-    ac_bits=oc_enc_tokenize_ac_fast(_enc,_pli,_fragi,idct,data,dequant,dct,
-     nonzero+1,_stack,OC_RD_ISCALE(_enc->lambda,_rd_iscale),qti?0:3);
+    ac_bits=oc_enc_tokenize_ac_fast(_enc,_pli,_fragi,data,dequant,dct,nonzero+1,
+     _stack,OC_RD_ISCALE(_enc->lambda,_rd_iscale),qti?0:3);
   }
   /*Reconstruct.
     TODO: nonzero may need to be adjusted after tokenization.*/
@@ -808,11 +799,9 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
     else if(qi01>=0)qii=0;
   }
   else{
-    idct[0]=dc*dequant_dc;
-    /*Note: This clears idct[] back to zero for the next block.*/
-    oc_idct8x8(&_enc->state,data,idct,nonzero+1);
+    data[0]=dc*dequant_dc;
+    oc_idct8x8(&_enc->state,data,data,nonzero+1);
   }
-  frags[_fragi].qii=qii;
   if(nqis>1){
     oc_qii_state_advance(&qs,_pipe->qs+_pli,qii);
     ac_bits+=qs.bits-_pipe->qs[_pli].bits;
@@ -862,7 +851,6 @@ static int oc_enc_block_transform_quantize(oc_enc_ctx *_enc,
         oc_enc_tokenlog_rollback(_enc,checkpoint,(*_stack)-checkpoint);
         *_stack=checkpoint;
         frags[_fragi].coded=0;
-        frags[_fragi].refi=OC_FRAME_NONE;
         oc_fr_skip_block(_fr);
         return 0;
       }
@@ -899,7 +887,6 @@ static int oc_enc_mb_transform_quantize_inter_luma(oc_enc_ctx *_enc,
   oc_fr_state          fr_checkpoint;
   oc_qii_state         qs_checkpoint;
   int                  mb_mode;
-  int                  refi;
   int                  ncoded;
   ptrdiff_t            fragi;
   int                  bi;
@@ -913,13 +900,11 @@ static int oc_enc_mb_transform_quantize_inter_luma(oc_enc_ctx *_enc,
   uncoded_fragis=_pipe->uncoded_fragis[0];
   nuncoded_fragis=_pipe->nuncoded_fragis[0];
   mb_mode=mb_modes[_mbi];
-  refi=OC_FRAME_FOR_MODE(mb_mode);
   ncoded=0;
   stackptr=stack;
   memset(&mo,0,sizeof(mo));
   for(bi=0;bi<4;bi++){
     fragi=sb_maps[_mbi>>2][_mbi&3][bi];
-    frags[fragi].refi=refi;
     frags[fragi].mb_mode=mb_mode;
     if(oc_enc_block_transform_quantize(_enc,_pipe,0,fragi,
      _rd_scale[bi],_rd_iscale[bi],&mo,_pipe->fr+0,&stackptr)){
@@ -945,7 +930,6 @@ static int oc_enc_mb_transform_quantize_inter_luma(oc_enc_ctx *_enc,
         if(frags[fragi].coded){
           *(uncoded_fragis-++nuncoded_fragis)=fragi;
           frags[fragi].coded=0;
-          frags[fragi].refi=OC_FRAME_NONE;
         }
         oc_fr_skip_block(_pipe->fr+0);
       }
@@ -1067,11 +1051,6 @@ static void oc_enc_sb_transform_quantize_inter_chroma(oc_enc_ctx *_enc,
  +((1<<OC_BIT_SCALE)>>1)>>OC_BIT_SCALE)
 
 static void oc_enc_mode_rd_init(oc_enc_ctx *_enc){
-#if !defined(OC_COLLECT_METRICS)
-  const
-#endif
-  oc_mode_rd (*oc_mode_rd_table)[3][2][OC_COMP_BINS]=
-   _enc->sp_level<OC_SP_LEVEL_NOSATD?OC_MODE_RD_SATD:OC_MODE_RD_SAD;
   int qii;
 #if defined(OC_COLLECT_METRICS)
   oc_enc_mode_metrics_load(_enc);
@@ -1098,15 +1077,15 @@ static void oc_enc_mode_rd_init(oc_enc_ctx *_enc){
         dx=OC_MODE_LOGQ[modeline][pli][qti]-log_plq;
         dq=OC_MODE_LOGQ[modeline][pli][qti]-OC_MODE_LOGQ[modeline+1][pli][qti];
         if(dq==0)dq=1;
-        for(bin=0;bin<OC_COMP_BINS;bin++){
+        for(bin=0;bin<OC_SAD_BINS;bin++){
           int y0;
           int z0;
           int dy;
           int dz;
-          y0=oc_mode_rd_table[modeline][pli][qti][bin].rate;
-          z0=oc_mode_rd_table[modeline][pli][qti][bin].rmse;
-          dy=oc_mode_rd_table[modeline+1][pli][qti][bin].rate-y0;
-          dz=oc_mode_rd_table[modeline+1][pli][qti][bin].rmse-z0;
+          y0=OC_MODE_RD[modeline][pli][qti][bin].rate;
+          z0=OC_MODE_RD[modeline][pli][qti][bin].rmse;
+          dy=OC_MODE_RD[modeline+1][pli][qti][bin].rate-y0;
+          dz=OC_MODE_RD[modeline+1][pli][qti][bin].rmse-z0;
           _enc->mode_rd[qii][pli][qti][bin].rate=
            (ogg_int16_t)OC_CLAMPI(-32768,y0+(dy*dx+(dq>>1))/dq,32767);
           _enc->mode_rd[qii][pli][qti][bin].rmse=
@@ -1122,7 +1101,6 @@ static void oc_enc_mode_rd_init(oc_enc_ctx *_enc){
 static unsigned oc_dct_cost2(oc_enc_ctx *_enc,unsigned *_ssd,
  int _qii,int _pli,int _qti,int _satd){
   unsigned rmse;
-  int      shift;
   int      bin;
   int      dx;
   int      y0;
@@ -1132,16 +1110,15 @@ static unsigned oc_dct_cost2(oc_enc_ctx *_enc,unsigned *_ssd,
   /*SATD metrics for chroma planes vary much less than luma, so we scale them
      by 4 to distribute them into the mode decision bins more evenly.*/
   _satd<<=_pli+1&2;
-  shift=_enc->sp_level<OC_SP_LEVEL_NOSATD?OC_SATD_SHIFT:OC_SAD_SHIFT;
-  bin=OC_MINI(_satd>>shift,OC_COMP_BINS-2);
-  dx=_satd-(bin<<shift);
+  bin=OC_MINI(_satd>>OC_SAD_SHIFT,OC_SAD_BINS-2);
+  dx=_satd-(bin<<OC_SAD_SHIFT);
   y0=_enc->mode_rd[_qii][_pli][_qti][bin].rate;
   z0=_enc->mode_rd[_qii][_pli][_qti][bin].rmse;
   dy=_enc->mode_rd[_qii][_pli][_qti][bin+1].rate-y0;
   dz=_enc->mode_rd[_qii][_pli][_qti][bin+1].rmse-z0;
-  rmse=OC_MAXI(z0+(dz*dx>>shift),0);
+  rmse=OC_MAXI(z0+(dz*dx>>OC_SAD_SHIFT),0);
   *_ssd=rmse*rmse>>2*OC_RMSE_SCALE-OC_BIT_SCALE;
-  return OC_MAXI(y0+(dy*dx>>shift),0);
+  return OC_MAXI(y0+(dy*dx>>OC_SAD_SHIFT),0);
 }
 
 /*activity_avg must be positive, or flat regions could get a zero weight, which
@@ -1152,17 +1129,17 @@ static unsigned oc_dct_cost2(oc_enc_ctx *_enc,unsigned *_ssd,
 
 static unsigned oc_mb_activity(oc_enc_ctx *_enc,unsigned _mbi,
  unsigned _activity[4]){
-  const unsigned char *src;
-  const ptrdiff_t     *frag_buf_offs;
-  const ptrdiff_t     *sb_map;
-  unsigned             luma;
-  int                  ystride;
-  ptrdiff_t            frag_offs;
-  ptrdiff_t            fragi;
-  int                  bi;
+  const unsigned char   *src;
+  const ptrdiff_t       *frag_buf_offs;
+  const ptrdiff_t       *sb_map;
+  unsigned               luma;
+  int                    ystride;
+  ptrdiff_t              frag_offs;
+  ptrdiff_t              fragi;
+  int                    bi;
   frag_buf_offs=_enc->state.frag_buf_offs;
   sb_map=_enc->state.sb_maps[_mbi>>2][_mbi&3];
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
   ystride=_enc->state.ref_ystride[0];
   luma=0;
   for(bi=0;bi<4;bi++){
@@ -1237,8 +1214,8 @@ static unsigned oc_mb_activity(oc_enc_ctx *_enc,unsigned _mbi,
   return luma;
 }
 
-static void oc_mb_activity_fast(oc_enc_ctx *_enc,unsigned _mbi,
- unsigned _activity[4],const unsigned _intra_satd[12]){
+static unsigned oc_mb_activity_fast(oc_enc_ctx *_enc,unsigned _mbi,
+ unsigned _activity[4], unsigned _intra_satd[12]){
   int bi;
   for(bi=0;bi<4;bi++){
     unsigned act;
@@ -1249,6 +1226,9 @@ static void oc_mb_activity_fast(oc_enc_ctx *_enc,unsigned _mbi,
     }
     _activity[bi]=act;
   }
+  /*TODO: Once frag_intra_satd returns the signed DC value instead
+     of the absolute value, this should pass it through.*/
+  return 1;
 }
 
 /*Compute the masking scales for the blocks in a macro block.
@@ -1358,7 +1338,7 @@ static unsigned oc_mb_masking(unsigned _rd_scale[5],unsigned _rd_iscale[5],
   return activity_sum;
 }
 
-static int oc_mb_intra_satd(oc_enc_ctx *_enc,unsigned _mbi,
+static void oc_mb_intra_satd(oc_enc_ctx *_enc,unsigned _mbi,
  unsigned _frag_satd[12]){
   const unsigned char   *src;
   const ptrdiff_t       *frag_buf_offs;
@@ -1373,18 +1353,15 @@ static int oc_mb_intra_satd(oc_enc_ctx *_enc,unsigned _mbi,
   int                    bi;
   ptrdiff_t              fragi;
   ptrdiff_t              frag_offs;
-  unsigned               luma;
-  int                    dc;
+  unsigned               dc;
   frag_buf_offs=_enc->state.frag_buf_offs;
   sb_map=_enc->state.sb_maps[_mbi>>2][_mbi&3];
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
   ystride=_enc->state.ref_ystride[0];
-  luma=0;
   for(bi=0;bi<4;bi++){
     fragi=sb_map[bi];
     frag_offs=frag_buf_offs[fragi];
     _frag_satd[bi]=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
-    luma+=dc;
   }
   mb_map=(const oc_mb_map_plane *)_enc->state.mb_maps[_mbi];
   map_idxs=OC_MB_MAP_IDXS[_enc->state.info.pixel_fmt];
@@ -1399,7 +1376,6 @@ static int oc_mb_intra_satd(oc_enc_ctx *_enc,unsigned _mbi,
     frag_offs=frag_buf_offs[fragi];
     _frag_satd[mapii]=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
   }
-  return luma;
 }
 
 /*Select luma block-level quantizers for a MB in an INTRA frame.*/
@@ -1417,7 +1393,7 @@ static unsigned oc_analyze_intra_mb_luma(oc_enc_ctx *_enc,
   unsigned             rate[4][3];
   int                  prev[3][3];
   unsigned             satd;
-  int                  dc;
+  unsigned             dc;
   unsigned             best_cost;
   unsigned             best_ssd;
   unsigned             best_rate;
@@ -1429,16 +1405,11 @@ static unsigned oc_analyze_intra_mb_luma(oc_enc_ctx *_enc,
   int                  bi;
   frag_buf_offs=_enc->state.frag_buf_offs;
   sb_maps=(const oc_sb_map *)_enc->state.sb_maps;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
   ystride=_enc->state.ref_ystride[0];
   fragi=sb_maps[_mbi>>2][_mbi&3][0];
   frag_offs=frag_buf_offs[fragi];
-  if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-    satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
-  }
-  else{
-    satd=oc_enc_frag_intra_sad(_enc,src+frag_offs,ystride);
-  }
+  satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
   nqis=_enc->state.nqis;
   lambda=_enc->lambda;
   for(qii=0;qii<nqis;qii++){
@@ -1451,12 +1422,7 @@ static unsigned oc_analyze_intra_mb_luma(oc_enc_ctx *_enc,
   for(bi=1;bi<4;bi++){
     fragi=sb_maps[_mbi>>2][_mbi&3][bi];
     frag_offs=frag_buf_offs[fragi];
-    if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-      satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
-    }
-    else{
-      satd=oc_enc_frag_intra_sad(_enc,src+frag_offs,ystride);
-    }
+    satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
     for(qii=0;qii<nqis;qii++){
       oc_qii_state qt[3];
       unsigned     cur_ssd;
@@ -1521,22 +1487,17 @@ static unsigned oc_analyze_intra_chroma_block(oc_enc_ctx *_enc,
   oc_qii_state         qt[3];
   unsigned             cost[3];
   unsigned             satd;
-  int                  dc;
+  unsigned             dc;
   unsigned             best_cost;
   int                  best_qii;
   int                  qii;
   int                  lambda;
   int                  ystride;
   int                  nqis;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
   ystride=_enc->state.ref_ystride[_pli];
   frag_offs=_enc->state.frag_buf_offs[_fragi];
-  if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-    satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
-  }
-  else{
-    satd=oc_enc_frag_intra_sad(_enc,src+frag_offs,ystride);
-  }
+  satd=oc_enc_frag_intra_satd(_enc,&dc,src+frag_offs,ystride);
   /*Most chroma blocks have no AC coefficients to speak of anyway, so it's not
      worth spending the bits to change the AC quantizer.
     TODO: This may be worth revisiting when we separate out DC and AC
@@ -1576,20 +1537,23 @@ static void oc_enc_mb_transform_quantize_intra_luma(oc_enc_ctx *_enc,
   oc_token_checkpoint  stack[64*4];
   oc_token_checkpoint *stackptr;
   const oc_sb_map     *sb_maps;
+  signed char         *mb_modes;
   oc_fragment         *frags;
   ptrdiff_t           *coded_fragis;
   ptrdiff_t            ncoded_fragis;
+  int                  mb_mode;
   ptrdiff_t            fragi;
   int                  bi;
   sb_maps=(const oc_sb_map *)_enc->state.sb_maps;
+  mb_modes=_enc->state.mb_modes;
   frags=_enc->state.frags;
   coded_fragis=_pipe->coded_fragis[0];
   ncoded_fragis=_pipe->ncoded_fragis[0];
+  mb_mode=mb_modes[_mbi];
   stackptr=stack;
   for(bi=0;bi<4;bi++){
     fragi=sb_maps[_mbi>>2][_mbi&3][bi];
-    frags[fragi].refi=OC_FRAME_SELF;
-    frags[fragi].mb_mode=OC_MODE_INTRA;
+    frags[fragi].mb_mode=mb_mode;
     oc_enc_block_transform_quantize(_enc,_pipe,0,fragi,
      _rd_scale[bi],_rd_iscale[bi],NULL,NULL,&stackptr);
     coded_fragis[ncoded_fragis++]=fragi;
@@ -1711,8 +1675,8 @@ void oc_enc_analyze_intra(oc_enc_ctx *_enc,int _recode){
         }
         else{
           unsigned intra_satd[12];
-          luma=oc_mb_intra_satd(_enc,mbi,intra_satd);
-          oc_mb_activity_fast(_enc,mbi,activity,intra_satd);
+          oc_mb_intra_satd(_enc,mbi,intra_satd);
+          luma=oc_mb_activity_fast(_enc,mbi,activity,intra_satd);
           for(bi=0;bi<4;bi++)frags[sb_maps[mbi>>2][mbi&3][bi]].qii=0;
         }
         activity_sum+=oc_mb_masking(rd_scale,rd_iscale,
@@ -1737,7 +1701,6 @@ void oc_enc_analyze_intra(oc_enc_ctx *_enc,int _recode){
           pli=mapi>>2;
           bi=mapi&3;
           fragi=mb_maps[mbi][pli][bi];
-          frags[fragi].refi=OC_FRAME_SELF;
           frags[fragi].mb_mode=OC_MODE_INTRA;
         }
         /*Save masking scale factors for chroma blocks.*/
@@ -1866,7 +1829,7 @@ static void oc_analyze_mb_mode_luma(oc_enc_ctx *_enc,
         best_qii=qii;
       }
     }
-    if(_skip_ssd[bi]<(UINT_MAX>>OC_BIT_SCALE+2)&&nskipped<3){
+    if(_skip_ssd[bi]<(UINT_MAX>>OC_BIT_SCALE)&&nskipped<3){
       *(ft+1)=*&fr;
       oc_fr_skip_block(ft+1);
       cur_overhead=ft[1].bits-fr.bits<<OC_BIT_SCALE;
@@ -1947,7 +1910,7 @@ static void oc_analyze_mb_mode_chroma(oc_enc_ctx *_enc,
           best_qii=qii;
         }
       }
-      if(_skip_ssd[bi]<(UINT_MAX>>OC_BIT_SCALE+2)){
+      if(_skip_ssd[bi]<(UINT_MAX>>OC_BIT_SCALE)){
         cur_ssd=_skip_ssd[bi]<<OC_BIT_SCALE;
         cur_cost=OC_MODE_RD_COST(ssd+cur_ssd,rate,lambda);
         if(cur_cost<=best_cost){
@@ -1986,8 +1949,8 @@ static void oc_skip_cost(oc_enc_ctx *_enc,oc_enc_pipeline_state *_pipe,
   ptrdiff_t              fragi;
   ptrdiff_t              frag_offs;
   int                    borderi;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[OC_FRAME_PREV];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_PREV]];
   ystride=_enc->state.ref_ystride[0];
   frags=_enc->state.frags;
   frag_buf_offs=_enc->state.frag_buf_offs;
@@ -2080,9 +2043,10 @@ static void oc_cost_inter(oc_enc_ctx *_enc,oc_mode_choice *_modec,
   int                    bi;
   ptrdiff_t              fragi;
   ptrdiff_t              frag_offs;
-  int                    dc;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[OC_FRAME_FOR_MODE(_mb_mode)];
+  unsigned               dc;
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[
+   _enc->state.ref_frame_idx[OC_FRAME_FOR_MODE(_mb_mode)]];
   ystride=_enc->state.ref_ystride[0];
   frag_buf_offs=_enc->state.frag_buf_offs;
   sb_map=_enc->state.sb_maps[_mbi>>2][_mbi&3];
@@ -2091,30 +2055,18 @@ static void oc_cost_inter(oc_enc_ctx *_enc,oc_mode_choice *_modec,
     for(bi=0;bi<4;bi++){
       fragi=sb_map[bi];
       frag_offs=frag_buf_offs[fragi];
-      if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-        frag_satd[bi]=oc_enc_frag_satd2(_enc,&dc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride);
-        frag_satd[bi]+=abs(dc);
-      }
-      else{
-        frag_satd[bi]=oc_enc_frag_sad2_thresh(_enc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride,UINT_MAX);
-      }
+      frag_satd[bi]=oc_enc_frag_satd2(_enc,&dc,src+frag_offs,
+       ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride);
+      frag_satd[bi]+=dc;
     }
   }
   else{
     for(bi=0;bi<4;bi++){
       fragi=sb_map[bi];
       frag_offs=frag_buf_offs[fragi];
-      if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-        frag_satd[bi]=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ystride);
-        frag_satd[bi]+=abs(dc);
-      }
-      else{
-        frag_satd[bi]=oc_enc_frag_sad(_enc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ystride);
-      }
+      frag_satd[bi]=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
+       ref+frag_offs+mv_offs[0],ystride);
+      frag_satd[bi]+=dc;
     }
   }
   mb_map=(const oc_mb_map_plane *)_enc->state.mb_maps[_mbi];
@@ -2129,15 +2081,9 @@ static void oc_cost_inter(oc_enc_ctx *_enc,oc_mode_choice *_modec,
       bi=mapi&3;
       fragi=mb_map[pli][bi];
       frag_offs=frag_buf_offs[fragi];
-      if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-        frag_satd[mapii]=oc_enc_frag_satd2(_enc,&dc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride);
-        frag_satd[mapii]+=abs(dc);
-      }
-      else{
-        frag_satd[mapii]=oc_enc_frag_sad2_thresh(_enc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride,UINT_MAX);
-      }
+      frag_satd[mapii]=oc_enc_frag_satd2(_enc,&dc,src+frag_offs,
+       ref+frag_offs+mv_offs[0],ref+frag_offs+mv_offs[1],ystride);
+      frag_satd[mapii]+=dc;
     }
   }
   else{
@@ -2147,15 +2093,9 @@ static void oc_cost_inter(oc_enc_ctx *_enc,oc_mode_choice *_modec,
       bi=mapi&3;
       fragi=mb_map[pli][bi];
       frag_offs=frag_buf_offs[fragi];
-      if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-        frag_satd[mapii]=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ystride);
-        frag_satd[mapii]+=abs(dc);
-      }
-      else{
-        frag_satd[mapii]=oc_enc_frag_sad(_enc,src+frag_offs,
-         ref+frag_offs+mv_offs[0],ystride);
-      }
+      frag_satd[mapii]=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
+       ref+frag_offs+mv_offs[0],ystride);
+      frag_satd[mapii]+=dc;
     }
   }
   oc_analyze_mb_mode_luma(_enc,_modec,_fr,_qs,frag_satd,_skip_ssd,_rd_scale,1);
@@ -2215,9 +2155,9 @@ static void oc_cost_inter4mv(oc_enc_ctx *_enc,oc_mode_choice *_modec,
   int                    bits0;
   int                    bits1;
   unsigned               satd;
-  int                    dc;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[OC_FRAME_PREV];
+  unsigned               dc;
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_PREV]];
   ystride=_enc->state.ref_ystride[0];
   frag_buf_offs=_enc->state.frag_buf_offs;
   frag_mvs=_enc->state.frag_mvs;
@@ -2237,7 +2177,7 @@ static void oc_cost_inter4mv(oc_enc_ctx *_enc,oc_mode_choice *_modec,
       satd=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
        ref+frag_offs+mv_offs[0],ystride);
     }
-    frag_satd[OC_MB_PHASE[_mbi&3][bi]]=satd+abs(dc);
+    frag_satd[OC_MB_PHASE[_mbi&3][bi]]=satd+dc;
   }
   oc_analyze_mb_mode_luma(_enc,_modec,_fr,_qs,frag_satd,
    _enc->vp3_compatible?OC_NOSKIP:_skip_ssd,_rd_scale,1);
@@ -2275,7 +2215,7 @@ static void oc_cost_inter4mv(oc_enc_ctx *_enc,oc_mode_choice *_modec,
       satd=oc_enc_frag_satd(_enc,&dc,src+frag_offs,
        ref+frag_offs+mv_offs[0],ystride);
     }
-    frag_satd[mapii]=satd+abs(dc);
+    frag_satd[mapii]=satd+dc;
   }
   oc_analyze_mb_mode_chroma(_enc,_modec,_fr,_qs,
    frag_satd,_skip_ssd,_rd_scale[4],1);
@@ -2380,7 +2320,6 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
         int            mb_gmv_bits_0;
         int            inter_mv_pref;
         int            mb_mode;
-        int            refi;
         int            mv;
         unsigned       mbi;
         int            mapii;
@@ -2388,12 +2327,14 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
         int            bi;
         ptrdiff_t      fragi;
         mbi=sbi<<2|quadi;
-        luma=oc_mb_intra_satd(_enc,mbi,intra_satd);
+        oc_mb_intra_satd(_enc,mbi,intra_satd);
         /*Activity masking.*/
         if(sp_level<OC_SP_LEVEL_FAST_ANALYSIS){
-          oc_mb_activity(_enc,mbi,activity);
+          luma=oc_mb_activity(_enc,mbi,activity);
         }
-        else oc_mb_activity_fast(_enc,mbi,activity,intra_satd);
+        else{
+          luma=oc_mb_activity_fast(_enc,mbi,activity,intra_satd);
+        }
         luma_sum+=luma;
         activity_sum+=oc_mb_masking(rd_scale,rd_iscale,
          chroma_rd_scale,activity,activity_avg,luma,luma_avg);
@@ -2564,7 +2505,6 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
           int orig_mb_mode;
           orig_mb_mode=mb_mode;
           mb_mode=mb_modes[mbi];
-          refi=OC_FRAME_FOR_MODE(mb_mode);
           switch(mb_mode){
             case OC_MODE_INTER_MV:{
               prior_mv=last_mv;
@@ -2617,9 +2557,8 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
                 pli=mapi>>2;
                 bi=mapi&3;
                 fragi=mb_maps[mbi][pli][bi];
-                frags[fragi].qii=modes[OC_MODE_INTER_MV_FOUR].qii[mapii];
-                frags[fragi].refi=refi;
                 frags[fragi].mb_mode=mb_mode;
+                frags[fragi].qii=modes[OC_MODE_INTER_MV_FOUR].qii[mapii];
                 frag_mvs[fragi]=cbmvs[bi];
               }
             }break;
@@ -2631,7 +2570,6 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
         else{
           *(uncoded_mbis-++nuncoded_mbis)=mbi;
           mb_mode=OC_MODE_INTER_NOMV;
-          refi=OC_FRAME_PREV;
           mv=0;
         }
         /*Propagate final MB mode and MVs to the chroma blocks.
@@ -2643,12 +2581,11 @@ int oc_enc_analyze_inter(oc_enc_ctx *_enc,int _allow_keyframe,int _recode){
             pli=mapi>>2;
             bi=mapi&3;
             fragi=mb_maps[mbi][pli][bi];
+            frags[fragi].mb_mode=mb_mode;
             /*If we switched from 4MV mode to INTER_MV mode, then the qii
                values won't have been chosen with the right MV, but it's
                probaby not worth re-estimating them.*/
             frags[fragi].qii=modes[mb_mode].qii[mapii];
-            frags[fragi].refi=refi;
-            frags[fragi].mb_mode=mb_mode;
             frag_mvs[fragi]=mv;
           }
         }

@@ -51,9 +51,6 @@ typedef struct oc_token_checkpoint    oc_token_checkpoint;
 #   include "x86/x86enc.h"
 #  endif
 # endif
-# if defined(OC_ARM_ASM)
-#  include "arm/armenc.h"
-# endif
 
 # if !defined(oc_enc_accel_init)
 #  define oc_enc_accel_init oc_enc_accel_init_c
@@ -78,10 +75,6 @@ typedef struct oc_token_checkpoint    oc_token_checkpoint;
 #  if !defined(oc_enc_frag_sad2_thresh)
 #   define oc_enc_frag_sad2_thresh(_enc,_src,_ref1,_ref2,_ystride,_thresh) \
   ((*(_enc)->opt_vtable.frag_sad2_thresh)(_src,_ref1,_ref2,_ystride,_thresh))
-#  endif
-#  if !defined(oc_enc_frag_intra_sad)
-#   define oc_enc_frag_intra_sad(_enc,_src,_ystride) \
-  ((*(_enc)->opt_vtable.frag_intra_sad)(_src,_ystride))
 #  endif
 #  if !defined(oc_enc_frag_satd)
 #   define oc_enc_frag_satd(_enc,_dc,_src,_ref,_ystride) \
@@ -152,10 +145,6 @@ typedef struct oc_token_checkpoint    oc_token_checkpoint;
 #   define oc_enc_frag_sad2_thresh(_enc,_src,_ref1,_ref2,_ystride,_thresh) \
   oc_enc_frag_sad2_thresh_c(_src,_ref1,_ref2,_ystride,_thresh)
 #  endif
-#  if !defined(oc_enc_frag_intra_sad)
-#   define oc_enc_frag_intra_sad(_enc,_src,_ystride) \
-  oc_enc_frag_intra_sad_c(_src,_ystride)
-#  endif
 #  if !defined(oc_enc_frag_satd)
 #   define oc_enc_frag_satd(_enc,_dc,_src,_ref,_ystride) \
   oc_enc_frag_satd_c(_dc,_src,_ref,_ystride)
@@ -220,12 +209,10 @@ typedef struct oc_token_checkpoint    oc_token_checkpoint;
 #define OC_SP_LEVEL_EARLY_SKIP    (1)
 /*Use analysis shortcuts, single quantizer, and faster tokenization.*/
 #define OC_SP_LEVEL_FAST_ANALYSIS (2)
-/*Use SAD instead of SATD*/
-#define OC_SP_LEVEL_NOSATD        (3)
 /*Disable motion compensation.*/
-#define OC_SP_LEVEL_NOMC          (4)
+#define OC_SP_LEVEL_NOMC          (3)
 /*Maximum valid speed level.*/
-#define OC_SP_LEVEL_MAX           (4)
+#define OC_SP_LEVEL_MAX           (3)
 
 
 /*The number of extra bits of precision at which to store rate metrics.*/
@@ -235,12 +222,12 @@ typedef struct oc_token_checkpoint    oc_token_checkpoint;
 # define OC_RMSE_SCALE (5)
 /*The number of quantizer bins to partition statistics into.*/
 # define OC_LOGQ_BINS  (8)
-/*The number of SAD/SATD bins to partition statistics into.*/
-# define OC_COMP_BINS   (24)
-/*The number of bits of precision to drop from SAD and SATD scores
-   to assign them to a bin.*/
-# define OC_SAD_SHIFT  (6)
-# define OC_SATD_SHIFT (9)
+/*The number of SATD bins to partition statistics into.*/
+# define OC_SAD_BINS   (24)
+/*The number of bits of precision to drop from SAD scores to assign them to a
+   bin.*/
+# define OC_SAD_SHIFT  (9)
+
 
 /*Masking is applied by scaling the D used in R-D optimization (via rd_scale)
    or the lambda parameter (via rd_iscale).
@@ -302,12 +289,12 @@ struct oc_enc_opt_vtable{
   unsigned (*frag_sad2_thresh)(const unsigned char *_src,
    const unsigned char *_ref1,const unsigned char *_ref2,int _ystride,
    unsigned _thresh);
-  unsigned (*frag_intra_sad)(const unsigned char *_src,int _ystride);
-  unsigned (*frag_satd)(int *_dc,const unsigned char *_src,
+  unsigned (*frag_satd)(unsigned *_dc,const unsigned char *_src,
    const unsigned char *_ref,int _ystride);
-  unsigned (*frag_satd2)(int *_dc,const unsigned char *_src,
+  unsigned (*frag_satd2)(unsigned *_dc,const unsigned char *_src,
    const unsigned char *_ref1,const unsigned char *_ref2,int _ystride);
-  unsigned (*frag_intra_satd)(int *_dc,const unsigned char *_src,int _ystride);
+  unsigned (*frag_intra_satd)(unsigned *_dc,const unsigned char *_src,
+   int _ystride);
   unsigned (*frag_ssd)(const unsigned char *_src,
    const unsigned char *_ref,int _ystride);
   unsigned (*frag_border_ssd)(const unsigned char *_src,
@@ -457,7 +444,7 @@ struct oc_enc_pipeline_state{
     This is kept off the stack because a) gcc can't align things on the stack
      reliably on ARM, and b) it avoids (unintentional) data hazards between
      ARM and NEON code.*/
-  OC_ALIGN16(ogg_int16_t dct_data[64*3]);
+  OC_ALIGN16(ogg_int16_t dct_data[128]);
   OC_ALIGN16(signed char bounding_values[256]);
   oc_fr_state         fr[3];
   oc_qii_state        qs[3];
@@ -524,8 +511,6 @@ struct oc_frame_metrics{
   unsigned      dup_count:31;
   /*The frame type from pass 1.*/
   unsigned      frame_type:1;
-  /*The frame activity average from pass 1.*/
-  unsigned      activity_avg;
 };
 
 
@@ -691,10 +676,8 @@ struct th_enc_ctx{
   /*The offset of the first DCT token for each coefficient for each plane.*/
   unsigned char            dct_token_offs[3][64];
   /*The last DC coefficient for each plane and reference frame.*/
-  int                      dc_pred_last[3][4];
+  int                      dc_pred_last[3][3];
 #if defined(OC_COLLECT_METRICS)
-  /*Fragment SAD statistics for MB mode estimation metrics.*/
-  unsigned                *frag_sad;
   /*Fragment SATD statistics for MB mode estimation metrics.*/
   unsigned                *frag_satd;
   /*Fragment SSD statistics for MB mode estimation metrics.*/
@@ -721,7 +704,7 @@ struct th_enc_ctx{
   /*Storage for the quantization tables.*/
   unsigned char           *enquant_table_data;
   /*An "average" quantizer for each frame type (INTRA or INTER) and qi value.
-    This is used to parameterize the rate control decisions.
+    This is used to paramterize the rate control decisions.
     They are kept in the log domain to simplify later processing.
     These are DCT domain quantizers, and so are scaled by an additional factor
      of 4 from the pixel domain.*/
@@ -738,7 +721,7 @@ struct th_enc_ctx{
   ogg_uint16_t             chroma_rd_scale[2][64][2];
   /*The interpolated mode decision R-D lookup tables for the current
      quantizers, color plane, and quantization type.*/
-  oc_mode_rd               mode_rd[3][3][2][OC_COMP_BINS];
+  oc_mode_rd               mode_rd[3][3][2][OC_SAD_BINS];
   /*The buffer state used to drive rate control.*/
   oc_rc_state              rc;
 # if defined(OC_ENC_USE_VTABLE)
@@ -782,12 +765,10 @@ struct oc_token_checkpoint{
 
 void oc_enc_tokenize_start(oc_enc_ctx *_enc);
 int oc_enc_tokenize_ac(oc_enc_ctx *_enc,int _pli,ptrdiff_t _fragi,
- ogg_int16_t *_qdct_out,const ogg_int16_t *_qdct_in,
- const ogg_uint16_t *_dequant,const ogg_int16_t *_dct,
+ ogg_int16_t *_qdct,const ogg_uint16_t *_dequant,const ogg_int16_t *_dct,
  int _zzi,oc_token_checkpoint **_stack,int _lambda,int _acmin);
 int oc_enc_tokenize_ac_fast(oc_enc_ctx *_enc,int _pli,ptrdiff_t _fragi,
- ogg_int16_t *_qdct_out,const ogg_int16_t *_qdct_in,
- const ogg_uint16_t *_dequant,const ogg_int16_t *_dct,
+ ogg_int16_t *_qdct,const ogg_uint16_t *_dequant,const ogg_int16_t *_dct,
  int _zzi,oc_token_checkpoint **_stack,int _lambda,int _acmin);
 void oc_enc_tokenlog_rollback(oc_enc_ctx *_enc,
  const oc_token_checkpoint *_stack,int _n);
@@ -822,13 +803,12 @@ unsigned oc_enc_frag_sad_thresh_c(const unsigned char *_src,
 unsigned oc_enc_frag_sad2_thresh_c(const unsigned char *_src,
  const unsigned char *_ref1,const unsigned char *_ref2,int _ystride,
  unsigned _thresh);
-unsigned oc_enc_frag_intra_sad_c(const unsigned char *_src, int _ystride);
-unsigned oc_enc_frag_satd_c(int *_dc,const unsigned char *_src,
+unsigned oc_enc_frag_satd_c(unsigned *_dc,const unsigned char *_src,
  const unsigned char *_ref,int _ystride);
-unsigned oc_enc_frag_satd2_c(int *_dc,const unsigned char *_src,
+unsigned oc_enc_frag_satd2_c(unsigned *_dc,const unsigned char *_src,
  const unsigned char *_ref1,const unsigned char *_ref2,int _ystride);
-unsigned oc_enc_frag_intra_satd_c(int *_dc,
- const unsigned char *_src,int _ystride);
+unsigned oc_enc_frag_intra_satd_c(unsigned *_dc,const unsigned char *_src,
+ int _ystride);
 unsigned oc_enc_frag_ssd_c(const unsigned char *_src,
  const unsigned char *_ref,int _ystride);
 unsigned oc_enc_frag_border_ssd_c(const unsigned char *_src,

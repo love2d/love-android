@@ -229,7 +229,7 @@ int oc_enc_quantize_c(ogg_int16_t _qdct[64],const ogg_int16_t _dct[64],
   enquant=(const oc_iquant *)_enquant;
   nonzero=0;
   for(zzi=0;zzi<64;zzi++){
-    val=_dct[zzi];
+    val=_dct[OC_FZIG_ZAG[zzi]];
     d=_dequant[zzi];
     val=val<<1;
     if(abs(val)>=d){

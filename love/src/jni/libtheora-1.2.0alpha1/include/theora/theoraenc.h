@@ -58,7 +58,7 @@ extern "C" {
  *
  * \param[in] _buf #th_quant_info
  * \retval TH_EFAULT \a _enc is <tt>NULL</tt>.
- * \retval TH_EINVAL Encoding has already begun, \a _buf is
+ * \retval TH_EINVAL Encoding has already begun, \a _buf is 
  *                    <tt>NULL</tt> and \a _buf_sz is not zero,
  *                    or \a _buf is non-<tt>NULL</tt> and
  *                    \a _buf_sz is not <tt>sizeof(#th_quant_info)</tt>.
@@ -330,11 +330,7 @@ extern "C" {
  * \retval 0             Success.
  * \retval TH_EFAULT     \a _enc or \a _buf is <tt>NULL</tt>.
  * \retval TH_EINVAL     The target bitrate was not positive.
- *                       A future version of this library may allow passing 0
- *                        to disabled rate-controlled mode and return to a
- *                        quality-based mode, in which case this function will
- *                        not return an error for that value.
- * \retval TH_EIMPL      Not supported by this implementation.*/
+ * \retval TH_EIMPL       Not supported by this implementation.*/
 #define TH_ENCCTL_SET_BITRATE (30)
 /**Sets the configuration to be compatible with that from the given setup
  *  header.
@@ -386,8 +382,7 @@ extern "C" {
 /*@{*/
 /**Drop frames to keep within bitrate buffer constraints.
  * This can have a severe impact on quality, but is the only way to ensure that
- *  bitrate targets are met at low rates during sudden bursts of activity.
- * It is enabled by default.*/
+ *  bitrate targets are met at low rates during sudden bursts of activity.*/
 #define TH_RATECTL_DROP_FRAMES   (0x1)
 /**Ignore bitrate buffer overflows.
  * If the encoder uses so few bits that the reservoir of available bits
@@ -395,14 +390,14 @@ extern "C" {
  * The encoder will not try to use these extra bits in future frames.
  * At high rates this may cause the result to be undersized, but allows a
  *  client to play the stream using a finite buffer; it should normally be
- *  enabled, which is the default.*/
+ *  enabled.*/
 #define TH_RATECTL_CAP_OVERFLOW  (0x2)
 /**Ignore bitrate buffer underflows.
  * If the encoder uses so many bits that the reservoir of available bits
  *  underflows, ignore the deficit.
  * The encoder will not try to make up these extra bits in future frames.
  * At low rates this may cause the result to be oversized; it should normally
- *  be disabled, which is the default.*/
+ *  be disabled.*/
 #define TH_RATECTL_CAP_UNDERFLOW (0x4)
 /*@}*/
 
@@ -446,8 +441,8 @@ typedef struct th_enc_ctx    th_enc_ctx;
  *    packets.
  * - For each uncompressed frame:
  *   - Submit the uncompressed frame via th_encode_ycbcr_in()
- *   - Repeatedly call th_encode_packetout() to retrieve any video
- *      data packets that are ready.
+ *   - Repeatedly call th_encode_packetout() to retrieve any video data packets
+ *      that are ready.
  * - Call th_encode_free() to release all encoder memory.*/
 /*@{*/
 /**Allocates an encoder instance.
@@ -462,10 +457,7 @@ extern th_enc_ctx *th_encode_alloc(const th_info *_info);
  *                See \ref encctlcodes "the list of available control codes"
  *                 for details.
  * \param _buf    The parameters for this control code.
- * \param _buf_sz The size of the parameter buffer.
- * \return Possible return values depend on the control code used.
- *          See \ref encctlcodes "the list of control codes" for
- *          specific values. Generally 0 indicates success.*/
+ * \param _buf_sz The size of the parameter buffer.*/
 extern int th_encode_ctl(th_enc_ctx *_enc,int _req,void *_buf,size_t _buf_sz);
 /**Outputs the next header packet.
  * This should be called repeatedly after encoder initialization until it
@@ -500,7 +492,7 @@ extern int th_encode_flushheader(th_enc_ctx *_enc,
  *                picture offsets may require an unexpected chroma plane size,
  *                and their use is generally discouraged, as they will not be
  *                well-supported by players and other media frameworks.
- *               See Section 4.4 of
+ *               See Section 4.4 of 
  *                <a href="http://www.theora.org/doc/Theora.pdf">the Theora
  *                specification</a> for details if you wish to use them anyway.
  * \retval 0         Success.

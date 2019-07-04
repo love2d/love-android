@@ -88,7 +88,7 @@ static const int OC_SQUARE_SITES[11][8]={
 };
 
 
-static void oc_mcenc_find_candidates_a(oc_enc_ctx *_enc,oc_mcenc_ctx *_mcenc,
+static void oc_mcenc_find_candidates(oc_enc_ctx *_enc,oc_mcenc_ctx *_mcenc,
  oc_mv _accum,int _mbi,int _frame){
   oc_mb_enc_info *embs;
   int             accum_x;
@@ -115,8 +115,8 @@ static void oc_mcenc_find_candidates_a(oc_enc_ctx *_enc,oc_mcenc_ctx *_mcenc,
   accum_y=OC_MV_Y(_accum);
   /*Add a few additional vectors to set A: the vectors used in the previous
      frames and the (0,0) vector.*/
-  _mcenc->candidates[ncandidates][0]=accum_x;
-  _mcenc->candidates[ncandidates][1]=accum_y;
+  _mcenc->candidates[ncandidates][0]=OC_CLAMPI(-31,accum_x,31);
+  _mcenc->candidates[ncandidates][1]=OC_CLAMPI(-31,accum_y,31);
   ncandidates++;
   _mcenc->candidates[ncandidates][0]=OC_CLAMPI(-31,
    OC_MV_X(embs[_mbi].analysis_mv[1][_frame])+accum_x,31);
@@ -137,33 +137,30 @@ static void oc_mcenc_find_candidates_a(oc_enc_ctx *_enc,oc_mcenc_ctx *_mcenc,
   OC_SORT2I(a[0][1],a[1][1]);
   _mcenc->candidates[0][0]=a[1][0];
   _mcenc->candidates[0][1]=a[1][1];
-  _mcenc->setb0=ncandidates;
-}
-
-static void oc_mcenc_find_candidates_b(oc_enc_ctx *_enc,oc_mcenc_ctx *_mcenc,
- oc_mv _accum,int _mbi,int _frame){
-  oc_mb_enc_info *embs;
-  int             accum_x;
-  int             accum_y;
-  int             ncandidates;
-  embs=_enc->mb_info;
-  accum_x=OC_MV_X(_accum);
-  accum_y=OC_MV_Y(_accum);
   /*Fill in set B: accelerated predictors for this and adjacent macro blocks.*/
-  ncandidates=_mcenc->setb0;
-  /*Use only the current block. Using more did not appear to be helpful
-    with the current selection logic due to escaping the local search too
-    quickly.*/
-  _mcenc->candidates[ncandidates][0]=OC_CLAMPI(-31,
-   2*OC_MV_X(embs[_mbi].analysis_mv[1][_frame])
-   -OC_MV_X(embs[_mbi].analysis_mv[2][_frame])+accum_x,31);
-  _mcenc->candidates[ncandidates][1]=OC_CLAMPI(-31,
-   2*OC_MV_Y(embs[_mbi].analysis_mv[1][_frame])
-   -OC_MV_Y(embs[_mbi].analysis_mv[2][_frame])+accum_y,31);
-  ncandidates++;
+  _mcenc->setb0=ncandidates;
+  /*The first time through the loop use the current macro block.*/
+  nmbi=_mbi;
+  for(i=0;;i++){
+    _mcenc->candidates[ncandidates][0]=OC_CLAMPI(-31,
+     2*OC_MV_X(embs[_mbi].analysis_mv[1][_frame])
+     -OC_MV_X(embs[_mbi].analysis_mv[2][_frame])+accum_x,31);
+    _mcenc->candidates[ncandidates][1]=OC_CLAMPI(-31,
+     2*OC_MV_Y(embs[_mbi].analysis_mv[1][_frame])
+     -OC_MV_Y(embs[_mbi].analysis_mv[2][_frame])+accum_y,31);
+    ncandidates++;
+    if(i>=embs[_mbi].npneighbors)break;
+    nmbi=embs[_mbi].pneighbors[i];
+  }
+  /*Truncate to full-pel positions.*/
+  for(i=0;i<ncandidates;i++){
+    _mcenc->candidates[i][0]=OC_DIV2(_mcenc->candidates[i][0]);
+    _mcenc->candidates[i][1]=OC_DIV2(_mcenc->candidates[i][1]);
+  }
   _mcenc->ncandidates=ncandidates;
 }
 
+#if 0
 static unsigned oc_sad16_halfpel(const oc_enc_ctx *_enc,
  const ptrdiff_t *_frag_buf_offs,const ptrdiff_t _fragis[4],
  int _mvoffset0,int _mvoffset1,const unsigned char *_src,
@@ -179,13 +176,14 @@ static unsigned oc_sad16_halfpel(const oc_enc_ctx *_enc,
   }
   return err;
 }
+#endif
 
 static unsigned oc_satd16_halfpel(const oc_enc_ctx *_enc,
  const ptrdiff_t *_frag_buf_offs,const ptrdiff_t _fragis[4],
  int _mvoffset0,int _mvoffset1,const unsigned char *_src,
  const unsigned char *_ref,int _ystride,unsigned _best_err){
   unsigned err;
-  int      dc;
+  unsigned dc;
   int      bi;
   err=0;
   for(bi=0;bi<4;bi++){
@@ -193,7 +191,7 @@ static unsigned oc_satd16_halfpel(const oc_enc_ctx *_enc,
     frag_offs=_frag_buf_offs[_fragis[bi]];
     err+=oc_enc_frag_satd2(_enc,&dc,_src+frag_offs,
      _ref+frag_offs+_mvoffset0,_ref+frag_offs+_mvoffset1,_ystride);
-    err+=abs(dc);
+    err+=dc;
   }
   return err;
 }
@@ -229,17 +227,11 @@ static int oc_mcenc_ysatd_check_mbcandidate_fullpel(const oc_enc_ctx *_enc,
   err=0;
   for(bi=0;bi<4;bi++){
     ptrdiff_t frag_offs;
-    int       dc;
+    unsigned  dc;
     frag_offs=_frag_buf_offs[_fragis[bi]];
-    if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-      err+=oc_enc_frag_satd(_enc,&dc,
-       _src+frag_offs,_ref+frag_offs+mvoffset,_ystride);
-      err+=abs(dc);
-    }
-    else{
-      err+=oc_enc_frag_sad(_enc,
-       _src+frag_offs,_ref+frag_offs+mvoffset,_ystride);
-    }
+    err+=oc_enc_frag_satd(_enc,&dc,
+     _src+frag_offs,_ref+frag_offs+mvoffset,_ystride);
+    err+=dc;
   }
   return err;
 }
@@ -248,10 +240,10 @@ static unsigned oc_mcenc_ysatd_check_bcandidate_fullpel(const oc_enc_ctx *_enc,
  ptrdiff_t _frag_offs,int _dx,int _dy,
  const unsigned char *_src,const unsigned char *_ref,int _ystride){
   unsigned err;
-  int      dc;
+  unsigned dc;
   err=oc_enc_frag_satd(_enc,&dc,
    _src+_frag_offs,_ref+_frag_offs+_dx+_dy*_ystride,_ystride);
-  return err+abs(dc);
+  return err+dc;
 }
 
 /*Perform a motion vector search for this macro block against a single
@@ -303,18 +295,18 @@ void oc_mcenc_search_frame(oc_enc_ctx *_enc,oc_mv _accum,int _mbi,int _frame,
   int                  bi;
   embs=_enc->mb_info;
   /*Find some candidate motion vectors.*/
-  oc_mcenc_find_candidates_a(_enc,&mcenc,_accum,_mbi,_frame);
+  oc_mcenc_find_candidates(_enc,&mcenc,_accum,_mbi,_frame);
   /*Clear the cache of locations we've examined.*/
   memset(hit_cache,0,sizeof(hit_cache));
   /*Start with the median predictor.*/
-  candx=OC_DIV2(mcenc.candidates[0][0]);
-  candy=OC_DIV2(mcenc.candidates[0][1]);
+  candx=mcenc.candidates[0][0];
+  candy=mcenc.candidates[0][1];
   hit_cache[candy+15]|=(ogg_int32_t)1<<candx+15;
   frag_buf_offs=_enc->state.frag_buf_offs;
   fragis=_enc->state.mb_maps[_mbi][0];
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[_frame_full];
-  satd_ref=_enc->state.ref_frame_data[_frame];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[_frame_full]];
+  satd_ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[_frame]];
   ystride=_enc->state.ref_ystride[0];
   /*TODO: customize error function for speed/(quality+size) tradeoff.*/
   best_err=oc_mcenc_ysad_check_mbcandidate_fullpel(_enc,
@@ -343,8 +335,8 @@ void oc_mcenc_search_frame(oc_enc_ctx *_enc,oc_mv _accum,int _mbi,int _frame,
     t2+=(t2>>OC_YSAD_THRESH2_SCALE_BITS)+OC_YSAD_THRESH2_OFFSET;
     /*Examine the candidates in set A.*/
     for(ci=1;ci<mcenc.setb0;ci++){
-      candx=OC_DIV2(mcenc.candidates[ci][0]);
-      candy=OC_DIV2(mcenc.candidates[ci][1]);
+      candx=mcenc.candidates[ci][0];
+      candy=mcenc.candidates[ci][1];
       /*If we've already examined this vector, then we would be using it if it
          was better than what we are using.*/
       hitbit=(ogg_int32_t)1<<candx+15;
@@ -366,11 +358,10 @@ void oc_mcenc_search_frame(oc_enc_ctx *_enc,oc_mv _accum,int _mbi,int _frame,
       }
     }
     if(best_err>t2){
-      oc_mcenc_find_candidates_b(_enc,&mcenc,_accum,_mbi,_frame);
       /*Examine the candidates in set B.*/
       for(;ci<mcenc.ncandidates;ci++){
-        candx=OC_DIV2(mcenc.candidates[ci][0]);
-        candy=OC_DIV2(mcenc.candidates[ci][1]);
+        candx=mcenc.candidates[ci][0];
+        candy=mcenc.candidates[ci][1];
         hitbit=(ogg_int32_t)1<<candx+15;
         if(hit_cache[candy+15]&hitbit)continue;
         hit_cache[candy+15]|=hitbit;
@@ -504,7 +495,7 @@ void oc_mcenc_search_frame(oc_enc_ctx *_enc,oc_mv _accum,int _mbi,int _frame,
   embs[_mbi].satd[_frame]=oc_mcenc_ysatd_check_mbcandidate_fullpel(_enc,
    frag_buf_offs,fragis,candx,candy,src,satd_ref,ystride);
   embs[_mbi].analysis_mv[0][_frame]=OC_MV(candx<<1,candy<<1);
-  if(_frame==OC_FRAME_PREV&&_enc->sp_level<OC_SP_LEVEL_FAST_ANALYSIS){
+  if(_frame==OC_FRAME_PREV){
     for(bi=0;bi<4;bi++){
       candx=best_block_vec[bi][0];
       candy=best_block_vec[bi][1];
@@ -561,8 +552,8 @@ static int oc_mcenc_ysad_halfpel_mbrefine(const oc_enc_ctx *_enc,int _mbi,
   int                  best_site;
   int                  sitei;
   int                  err;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[_framei];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[_framei]];
   frag_buf_offs=_enc->state.frag_buf_offs;
   fragis=_enc->state.mb_maps[_mbi][0];
   ystride=_enc->state.ref_ystride[0];
@@ -616,8 +607,8 @@ static unsigned oc_mcenc_ysatd_halfpel_mbrefine(const oc_enc_ctx *_enc,
   int                  best_site;
   int                  sitei;
   int                  err;
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[_frame];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[_frame]];
   frag_buf_offs=_enc->state.frag_buf_offs;
   fragis=_enc->state.mb_maps[_mbi][0];
   ystride=_enc->state.ref_ystride[0];
@@ -646,14 +637,8 @@ static unsigned oc_mcenc_ysatd_halfpel_mbrefine(const oc_enc_ctx *_enc,
     ymask=OC_SIGNMASK(((_vec[1]<<1)+dy)^dy);
     mvoffset0=mvoffset_base+(dx&xmask)+(offset_y[site]&ymask);
     mvoffset1=mvoffset_base+(dx&~xmask)+(offset_y[site]&~ymask);
-    if(_enc->sp_level<OC_SP_LEVEL_NOSATD){
-      err=oc_satd16_halfpel(_enc,frag_buf_offs,fragis,
-       mvoffset0,mvoffset1,src,ref,ystride,_best_err);
-    }
-    else{
-      err=oc_sad16_halfpel(_enc,frag_buf_offs,fragis,
-           mvoffset0,mvoffset1,src,ref,ystride,_best_err);
-    }
+    err=oc_satd16_halfpel(_enc,frag_buf_offs,fragis,
+     mvoffset0,mvoffset1,src,ref,ystride,_best_err);
     if(err<_best_err){
       _best_err=err;
       best_site=site;
@@ -728,7 +713,7 @@ static unsigned oc_mcenc_ysatd_halfpel_brefine(const oc_enc_ctx *_enc,
   best_site=4;
   for(sitei=0;sitei<8;sitei++){
     unsigned err;
-    int      dc;
+    unsigned dc;
     int      site;
     int      xmask;
     int      ymask;
@@ -750,7 +735,7 @@ static unsigned oc_mcenc_ysatd_halfpel_brefine(const oc_enc_ctx *_enc,
     mvoffset1=mvoffset_base+(dx&~xmask)+(_offset_y[site]&~ymask);
     err=oc_enc_frag_satd2(_enc,&dc,_src,
      _ref+mvoffset0,_ref+mvoffset1,_ystride);
-    err+=abs(dc);
+    err+=dc;
     if(err<_best_err){
       _best_err=err;
       best_site=site;
@@ -773,8 +758,8 @@ void oc_mcenc_refine4mv(oc_enc_ctx *_enc,int _mbi){
   ystride=_enc->state.ref_ystride[0];
   frag_buf_offs=_enc->state.frag_buf_offs;
   fragis=_enc->state.mb_maps[_mbi][0];
-  src=_enc->state.ref_frame_data[OC_FRAME_IO];
-  ref=_enc->state.ref_frame_data[OC_FRAME_PREV];
+  src=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_IO]];
+  ref=_enc->state.ref_frame_data[_enc->state.ref_frame_idx[OC_FRAME_PREV]];
   offset_y[0]=offset_y[1]=offset_y[2]=-ystride;
   offset_y[3]=offset_y[5]=0;
   offset_y[6]=offset_y[7]=offset_y[8]=ystride;

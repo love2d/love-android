@@ -942,7 +942,6 @@ void oc_enc_accel_init_c(oc_enc_ctx *_enc){
   _enc->opt_vtable.frag_sad=oc_enc_frag_sad_c;
   _enc->opt_vtable.frag_sad_thresh=oc_enc_frag_sad_thresh_c;
   _enc->opt_vtable.frag_sad2_thresh=oc_enc_frag_sad2_thresh_c;
-  _enc->opt_vtable.frag_intra_sad=oc_enc_frag_intra_sad_c;
   _enc->opt_vtable.frag_satd=oc_enc_frag_satd_c;
   _enc->opt_vtable.frag_satd2=oc_enc_frag_satd2_c;
   _enc->opt_vtable.frag_intra_satd=oc_enc_frag_intra_satd_c;
@@ -1181,7 +1180,6 @@ static int oc_enc_init(oc_enc_ctx *_enc,const th_info *_info){
      _enc->state.fplanes[pli].nfrags,sizeof(**_enc->extra_bits));
   }
 #if defined(OC_COLLECT_METRICS)
-  _enc->frag_sad=_ogg_calloc(_enc->state.nfrags,sizeof(*_enc->frag_sad));
   _enc->frag_satd=_ogg_calloc(_enc->state.nfrags,sizeof(*_enc->frag_satd));
   _enc->frag_ssd=_ogg_calloc(_enc->state.nfrags,sizeof(*_enc->frag_ssd));
 #endif
@@ -1214,7 +1212,7 @@ static int oc_enc_init(oc_enc_ctx *_enc,const th_info *_info){
    ||_enc->extra_bits[0]==NULL||_enc->extra_bits[1]==NULL
    ||_enc->extra_bits[2]==NULL
 #if defined(OC_COLLECT_METRICS)
-   ||_enc->frag_sad==NULL||_enc->frag_satd==NULL||_enc->frag_ssd==NULL
+   ||_enc->frag_satd==NULL||_enc->frag_ssd==NULL
 #endif
    ||oc_enc_set_quant_params(_enc,NULL)<0){
     oc_enc_clear(_enc);
@@ -1239,7 +1237,6 @@ static void oc_enc_clear(oc_enc_ctx *_enc){
   oc_mode_metrics_dump();
   _ogg_free(_enc->frag_ssd);
   _ogg_free(_enc->frag_satd);
-  _ogg_free(_enc->frag_sad);
 #endif
   for(pli=3;pli-->0;){
     oc_free_2d(_enc->extra_bits[pli]);
@@ -1258,8 +1255,6 @@ static void oc_enc_drop_frame(th_enc_ctx *_enc){
   /*Use the previous frame's reconstruction.*/
   _enc->state.ref_frame_idx[OC_FRAME_SELF]=
    _enc->state.ref_frame_idx[OC_FRAME_PREV];
-  _enc->state.ref_frame_data[OC_FRAME_SELF]=
-   _enc->state.ref_frame_data[OC_FRAME_PREV];
   /*Flag motion vector analysis about the frame drop.*/
   _enc->prevframe_dropped=1;
   /*Zero the packet.*/
@@ -1695,37 +1690,27 @@ int th_encode_ycbcr_in(th_enc_ctx *_enc,th_ycbcr_buffer _img){
   if(_enc->state.ref_frame_idx[OC_FRAME_SELF]>=0){
     _enc->state.ref_frame_idx[OC_FRAME_PREV]=
      _enc->state.ref_frame_idx[OC_FRAME_SELF];
-    _enc->state.ref_frame_data[OC_FRAME_PREV]=
-     _enc->state.ref_frame_data[OC_FRAME_SELF];
     if(_enc->state.frame_type==OC_INTRA_FRAME){
       /*The new frame becomes both the previous and gold reference frames.*/
       _enc->state.keyframe_num=_enc->state.curframe_num;
       _enc->state.ref_frame_idx[OC_FRAME_GOLD]=
        _enc->state.ref_frame_idx[OC_FRAME_SELF];
-      _enc->state.ref_frame_data[OC_FRAME_GOLD]=
-       _enc->state.ref_frame_data[OC_FRAME_SELF];
     }
   }
   if(_enc->state.ref_frame_idx[OC_FRAME_IO]>=0&&_enc->prevframe_dropped==0){
     _enc->state.ref_frame_idx[OC_FRAME_PREV_ORIG]=
      _enc->state.ref_frame_idx[OC_FRAME_IO];
-    _enc->state.ref_frame_data[OC_FRAME_PREV_ORIG]=
-     _enc->state.ref_frame_data[OC_FRAME_IO];
     if(_enc->state.frame_type==OC_INTRA_FRAME){
       /*The new input frame becomes both the previous and gold
          original-reference frames.*/
       _enc->state.ref_frame_idx[OC_FRAME_GOLD_ORIG]=
        _enc->state.ref_frame_idx[OC_FRAME_IO];
-      _enc->state.ref_frame_data[OC_FRAME_GOLD_ORIG]=
-       _enc->state.ref_frame_data[OC_FRAME_IO];
     }
   }
   /*Select a free buffer to use for the incoming frame*/
   for(refi=3;refi==_enc->state.ref_frame_idx[OC_FRAME_GOLD_ORIG]||
    refi==_enc->state.ref_frame_idx[OC_FRAME_PREV_ORIG];refi++);
   _enc->state.ref_frame_idx[OC_FRAME_IO]=refi;
-  _enc->state.ref_frame_data[OC_FRAME_IO]=
-   _enc->state.ref_frame_bufs[refi][0].data;
   /*Step 3: Copy the input to our internal buffer.
     This lets us add padding, so we don't have to worry about dereferencing
      possibly invalid addresses, and allows us to use the same strides and
@@ -1744,8 +1729,6 @@ int th_encode_ycbcr_in(th_enc_ctx *_enc,th_ycbcr_buffer _img){
   for(refi=0;refi==_enc->state.ref_frame_idx[OC_FRAME_GOLD]||
    refi==_enc->state.ref_frame_idx[OC_FRAME_PREV];refi++);
   _enc->state.ref_frame_idx[OC_FRAME_SELF]=refi;
-  _enc->state.ref_frame_data[OC_FRAME_SELF]=
-   _enc->state.ref_frame_bufs[refi][0].data;
   _enc->state.curframe_num+=_enc->prev_dup_count+1;
   /*Step 4: Compress the frame.*/
   /*Start with a keyframe, and don't allow the generation of invalid files that

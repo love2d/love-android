@@ -918,13 +918,16 @@ int oc_huff_codes_pack(oggpack_buffer *_opb,
    codebooks.*/
 int oc_huff_codes_unpack(oc_pack_buf *_opb,
  th_huff_code _codes[TH_NHUFFMAN_TABLES][TH_NDCT_TOKENS]){
+  int ret;
   int i;
+  ret=0;
   for(i=0;i<TH_NHUFFMAN_TABLES;i++){
     ogg_uint32_t code;
     int          len;
+    int          ntokens;
     int          nleaves;
     code=0;
-    len=nleaves=0;
+    len=ntokens=nleaves=0;
     memset(_codes[i],0,TH_NDCT_TOKENS*sizeof(*_codes[i]));
     for(;;){
       long bits;
