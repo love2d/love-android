@@ -51,4 +51,6 @@ else ifeq ($(TARGET_ARCH_ABI),x86_64)
         lib/x86/x86state.c
 endif
 
+LOCAL_STATIC_LIBRARIES := libogg
+
 include $(BUILD_STATIC_LIBRARY)

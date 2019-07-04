@@ -23,10 +23,7 @@ LOCAL_C_INCLUDES  :=  \
 	${LOCAL_PATH}/src/libraries/ \
 	${LOCAL_PATH}/src/libraries/enet/libenet/include \
 	${LOCAL_PATH}/src/libraries/physfs \
-	${LOCAL_PATH}/src/libraries/glslang/glslang/Include \
-	${LOCAL_PATH}/../libvorbis-1.3.5/include \
-	${LOCAL_PATH}/../libogg-1.3.2/include \
-	${LOCAL_PATH}/../libtheora-1.2.0alpha1/include 
+	${LOCAL_PATH}/src/libraries/glslang/glslang/Include
 
 LOCAL_SRC_FILES := \
 	$(filter-out \
