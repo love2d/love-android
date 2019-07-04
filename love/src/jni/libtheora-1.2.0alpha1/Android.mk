@@ -42,13 +42,13 @@ ifeq ($(TARGET_ARCH_ABI),x86)
 else ifeq ($(TARGET_ARCH_ABI),x86_64)
 	# Defines for x86-64. UNTESTED!
 	LOCAL_CFLAGS += -DOC_X86_ASM -DOC_X86_64_ASM
-	LOCAL_CFLAGS += \
-        lib/x86/x86cpu.c \
-        lib/x86/mmxidct.c \
-        lib/x86/mmxfrag.c \
-        lib/x86/mmxstate.c \
-        lib/x86/sse2idct.c \
-        lib/x86/x86state.c
+	LOCAL_SRC_FILES += \
+		lib/x86/x86cpu.c \
+		lib/x86/mmxidct.c \
+		lib/x86/mmxfrag.c \
+		lib/x86/mmxstate.c \
+		lib/x86/sse2idct.c \
+		lib/x86/x86state.c
 endif
 
 LOCAL_STATIC_LIBRARIES := libogg
