@@ -48,13 +48,13 @@
 #define LT_OBJDIR ".libs/"
 
 /* make use of arm asm optimization */
-#define OC_ARM_ASM /**/
+/* #undef OC_ARM_ASM */
 
 /* Define if assembler supports EDSP instructions */
-#define OC_ARM_ASM_EDSP 1
+/* #undef OC_ARM_ASM_EDSP 1 */
 
 /* Define if assembler supports ARMv6 media instructions */
-#define OC_ARM_ASM_MEDIA 1
+/* #undef OC_ARM_ASM_MEDIA 1 */
 
 /* Define if compiler supports NEON instructions */
 /* #undef OC_ARM_ASM_NEON */

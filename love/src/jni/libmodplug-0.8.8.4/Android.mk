@@ -7,10 +7,11 @@ LOCAL_MODULE    := libmodplug
 LOCAL_CFLAGS    := -fexceptions -g -Dlinux -DHAVE_GCC_DESTRUCTOR=1 -DOPT_GENERIC -DREAL_IS_FLOAT
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
-LOCAL_C_INCLUDES  :=  \
+LOCAL_C_INCLUDES := \
+	${LOCAL_PATH} \
 	${LOCAL_PATH}/src \
 	${LOCAL_PATH}/src/libmodplug
-		
+LOCAL_EXPORT_C_INCLUDES := ${LOCAL_PATH}/src
 LOCAL_SRC_FILES := \
 	$(filter-out \
   , $(subst $(LOCAL_PATH)/,,\
