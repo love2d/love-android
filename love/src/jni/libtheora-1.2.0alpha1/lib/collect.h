@@ -79,12 +79,10 @@ struct oc_mode_metrics{
    out the contributions from AC and DC into separate tables.*/
 
 extern ogg_int16_t OC_MODE_LOGQ[OC_LOGQ_BINS][3][2];
-extern oc_mode_rd  OC_MODE_RD_SATD[OC_LOGQ_BINS][3][2][OC_COMP_BINS];
-extern oc_mode_rd  OC_MODE_RD_SAD[OC_LOGQ_BINS][3][2][OC_COMP_BINS];
+extern oc_mode_rd  OC_MODE_RD[OC_LOGQ_BINS][3][2][OC_SAD_BINS];
 
 extern int              OC_HAS_MODE_METRICS;
-extern oc_mode_metrics  OC_MODE_METRICS_SATD[OC_LOGQ_BINS-1][3][2][OC_COMP_BINS];
-extern oc_mode_metrics  OC_MODE_METRICS_SAD[OC_LOGQ_BINS-1][3][2][OC_COMP_BINS];
+extern oc_mode_metrics  OC_MODE_METRICS[OC_LOGQ_BINS-1][3][2][OC_SAD_BINS];
 extern const char      *OC_MODE_METRICS_FILENAME;
 
 void oc_mode_metrics_dump();
@@ -99,9 +97,8 @@ double oc_mode_metrics_solve(double *_r,double *_d,
  const int *_q0,const int *_q1,
  const double *_ra,const double *_rb,const double *_rc,
  const double *_da,const double *_db,const double *_dc,int _n);
-void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
- int _niters_min,int _reweight,oc_mode_rd (*_table)[3][2][OC_COMP_BINS],
- int shift,double (*_weight)[3][2][OC_COMP_BINS]);
+void oc_mode_metrics_update(int _niters_min,int _reweight);
+
 void oc_enc_mode_metrics_load(oc_enc_ctx *_enc);
 void oc_enc_mode_metrics_collect(oc_enc_ctx *_enc);
 

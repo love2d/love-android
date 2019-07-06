@@ -171,7 +171,7 @@ typedef struct th_setup_info th_setup_info;
 /**\defgroup decfuncs Functions for Decoding*/
 /*@{*/
 /**\name Functions for decoding
- * You must link to <tt>libtheoradec</tt> if you use any of the
+ * You must link to <tt>libtheoradec</tt> if you use any of the 
  * functions in this section.
  *
  * The functions are listed in the order they are used in a typical decode.
@@ -267,10 +267,7 @@ extern void th_setup_free(th_setup_info *_setup);
  *                See \ref decctlcodes "the list of available control codes"
  *                 for details.
  * \param _buf    The parameters for this control code.
- * \param _buf_sz The size of the parameter buffer.
- * \return Possible return values depend on the control code used.
- *          See \ref decctlcodes "the list of control codes" for
- *          specific values. Generally 0 indicates success.*/
+ * \param _buf_sz The size of the parameter buffer.*/
 extern int th_decode_ctl(th_dec_ctx *_dec,int _req,void *_buf,
  size_t _buf_sz);
 /**Submits a packet containing encoded video data to the decoder.

@@ -21,7 +21,6 @@
 #if defined(OC_DUMP_IMAGES)
 # include <stdio.h>
 # include "png.h"
-# include "zlib.h"
 #endif
 
 /*The function used to fill in the chroma plane motion vectors for a macro
@@ -160,7 +159,7 @@ static void oc_sb_create_plane_mapping(oc_sb_map _sb_maps[],
       if(jmax>4)jmax=4;
       else if(jmax<=0)break;
       /*By default, set all fragment indices to -1.*/
-      memset(_sb_maps[sbi],0xFF,sizeof(_sb_maps[sbi]));
+      memset(_sb_maps[sbi][0],0xFF,sizeof(_sb_maps[sbi]));
       /*Fill in the fragment map for this super block.*/
       xfrag=yfrag+x;
       for(i=0;i<imax;i++){
@@ -254,14 +253,10 @@ static void oc_mb_fill_cmapping10(oc_mb_map_plane _mb_map[3],
   This version is for use with no chroma decimation (4:4:4).
   This uses the already filled-in luma plane values.
   _mb_map:  The macro block map to fill.
-  _fplanes: The descriptions of the fragment planes.
-  _xfrag0:  The X location of the upper-left hand fragment in the luma plane.
-  _yfrag0:  The Y location of the upper-left hand fragment in the luma plane.*/
+  _fplanes: The descriptions of the fragment planes.*/
 static void oc_mb_fill_cmapping11(oc_mb_map_plane _mb_map[3],
- const oc_fragment_plane _fplanes[3],int _xfrag0,int _yfrag0){
+ const oc_fragment_plane _fplanes[3]){
   int k;
-  (void)_xfrag0;
-  (void)_yfrag0;
   for(k=0;k<4;k++){
     _mb_map[1][k]=_mb_map[0][k]+_fplanes[1].froffset;
     _mb_map[2][k]=_mb_map[0][k]+_fplanes[2].froffset;
@@ -283,7 +278,7 @@ static const oc_mb_fill_cmapping_func OC_MB_FILL_CMAPPING_TABLE[4]={
   oc_mb_fill_cmapping00,
   oc_mb_fill_cmapping01,
   oc_mb_fill_cmapping10,
-  oc_mb_fill_cmapping11
+  (oc_mb_fill_cmapping_func)oc_mb_fill_cmapping11
 };
 
 /*Fills in the mapping from macro blocks to their corresponding fragment
@@ -553,7 +548,6 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   int            yheight;
   int            chstride;
   int            cheight;
-  ptrdiff_t      align;
   ptrdiff_t      yoffset;
   ptrdiff_t      coffset;
   ptrdiff_t     *frag_buf_offs;
@@ -569,31 +563,26 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   vdec=!(info->pixel_fmt&2);
   yhstride=info->frame_width+2*OC_UMV_PADDING;
   yheight=info->frame_height+2*OC_UMV_PADDING;
-  /*Require 16-byte aligned rows in the chroma planes.*/
-  chstride=(yhstride>>hdec)+15&~15;
+  chstride=yhstride>>hdec;
   cheight=yheight>>vdec;
   yplane_sz=yhstride*(size_t)yheight;
   cplane_sz=chstride*(size_t)cheight;
   yoffset=OC_UMV_PADDING+OC_UMV_PADDING*(ptrdiff_t)yhstride;
   coffset=(OC_UMV_PADDING>>hdec)+(OC_UMV_PADDING>>vdec)*(ptrdiff_t)chstride;
-  /*Although we guarantee the rows of the chroma planes are a multiple of 16
-     bytes, the initial padding on the first row may only be 8 bytes.
-    Compute the offset needed to the actual image data to a multiple of 16.*/
-  align=-coffset&15;
-  ref_frame_sz=yplane_sz+2*cplane_sz+16;
+  ref_frame_sz=yplane_sz+2*cplane_sz;
   ref_frame_data_sz=_nrefs*ref_frame_sz;
   /*Check for overflow.
     The same caveats apply as for oc_state_frarray_init().*/
-  if(yplane_sz/yhstride!=(size_t)yheight||2*cplane_sz+16<cplane_sz||
+  if(yplane_sz/yhstride!=yheight||2*cplane_sz<cplane_sz||
    ref_frame_sz<yplane_sz||ref_frame_data_sz/_nrefs!=ref_frame_sz){
     return TH_EIMPL;
   }
-  ref_frame_data=oc_aligned_malloc(ref_frame_data_sz,16);
+  ref_frame_data=_ogg_malloc(ref_frame_data_sz);
   frag_buf_offs=_state->frag_buf_offs=
    _ogg_malloc(_state->nfrags*sizeof(*frag_buf_offs));
   if(ref_frame_data==NULL||frag_buf_offs==NULL){
     _ogg_free(frag_buf_offs);
-    oc_aligned_free(ref_frame_data);
+    _ogg_free(ref_frame_data);
     return TH_EFAULT;
   }
   /*Set up the width, height and stride for the image buffers.*/
@@ -610,15 +599,15 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
     memcpy(_state->ref_frame_bufs[rfi],_state->ref_frame_bufs[0],
      sizeof(_state->ref_frame_bufs[0]));
   }
-  _state->ref_frame_handle=ref_frame_data;
   /*Set up the data pointers for the image buffers.*/
   for(rfi=0;rfi<_nrefs;rfi++){
+    _state->ref_frame_data[rfi]=ref_frame_data;
     _state->ref_frame_bufs[rfi][0].data=ref_frame_data+yoffset;
-    ref_frame_data+=yplane_sz+align;
+    ref_frame_data+=yplane_sz;
     _state->ref_frame_bufs[rfi][1].data=ref_frame_data+coffset;
     ref_frame_data+=cplane_sz;
     _state->ref_frame_bufs[rfi][2].data=ref_frame_data+coffset;
-    ref_frame_data+=cplane_sz+(16-align);
+    ref_frame_data+=cplane_sz;
     /*Flip the buffer upside down.
       This allows us to decode Theora's bottom-up frames in their natural
        order, yet return a top-down buffer with a positive stride to the user.*/
@@ -628,7 +617,7 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   _state->ref_ystride[0]=-yhstride;
   _state->ref_ystride[1]=_state->ref_ystride[2]=-chstride;
   /*Initialize the fragment buffer offsets.*/
-  ref_frame_data=_state->ref_frame_bufs[0][0].data;
+  ref_frame_data=_state->ref_frame_data[0];
   fragi=0;
   for(pli=0;pli<3;pli++){
     th_img_plane      *iplane;
@@ -654,25 +643,19 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
       vpix+=stride<<3;
     }
   }
-  /*Initialize the reference frame pointers and indices.*/
+  /*Initialize the reference frame indices.*/
   _state->ref_frame_idx[OC_FRAME_GOLD]=
    _state->ref_frame_idx[OC_FRAME_PREV]=
    _state->ref_frame_idx[OC_FRAME_GOLD_ORIG]=
    _state->ref_frame_idx[OC_FRAME_PREV_ORIG]=
    _state->ref_frame_idx[OC_FRAME_SELF]=
    _state->ref_frame_idx[OC_FRAME_IO]=-1;
-  _state->ref_frame_data[OC_FRAME_GOLD]=
-   _state->ref_frame_data[OC_FRAME_PREV]=
-   _state->ref_frame_data[OC_FRAME_GOLD_ORIG]=
-   _state->ref_frame_data[OC_FRAME_PREV_ORIG]=
-   _state->ref_frame_data[OC_FRAME_SELF]=
-   _state->ref_frame_data[OC_FRAME_IO]=NULL;
   return 0;
 }
 
 static void oc_state_ref_bufs_clear(oc_theora_state *_state){
   _ogg_free(_state->frag_buf_offs);
-  oc_aligned_free(_state->ref_frame_handle);
+  _ogg_free(_state->ref_frame_data[0]);
 }
 
 
@@ -707,8 +690,7 @@ int oc_state_init(oc_theora_state *_state,const th_info *_info,int _nrefs){
      how it is specified in the bitstream, because the Y axis is flipped in
      the bitstream.
     The displayable frame must fit inside the encoded frame.
-    The color space must be one known by the encoder.
-    The framerate ratio must not contain a zero value.*/
+    The color space must be one known by the encoder.*/
   if((_info->frame_width&0xF)||(_info->frame_height&0xF)||
    _info->frame_width<=0||_info->frame_width>=0x100000||
    _info->frame_height<=0||_info->frame_height>=0x100000||
@@ -721,8 +703,7 @@ int oc_state_init(oc_theora_state *_state,const th_info *_info,int _nrefs){
       but there are a number of compilers which will mis-optimize this.
      It's better to live with the spurious warnings.*/
    _info->colorspace<0||_info->colorspace>=TH_CS_NSPACES||
-   _info->pixel_fmt<0||_info->pixel_fmt>=TH_PF_NFORMATS||
-   _info->fps_numerator<1||_info->fps_denominator<1){
+   _info->pixel_fmt<0||_info->pixel_fmt>=TH_PF_NFORMATS){
     return TH_EINVAL;
   }
   memset(_state,0,sizeof(*_state));
@@ -961,7 +942,7 @@ void oc_state_frag_recon_c(const oc_theora_state *_state,ptrdiff_t _fragi,
   unsigned char *dst;
   ptrdiff_t      frag_buf_off;
   int            ystride;
-  int            refi;
+  int            mb_mode;
   /*Apply the inverse transform.*/
   /*Special case only having a DC component.*/
   if(_last_zzi<2){
@@ -980,14 +961,18 @@ void oc_state_frag_recon_c(const oc_theora_state *_state,ptrdiff_t _fragi,
   }
   /*Fill in the target buffer.*/
   frag_buf_off=_state->frag_buf_offs[_fragi];
-  refi=_state->frags[_fragi].refi;
+  mb_mode=_state->frags[_fragi].mb_mode;
   ystride=_state->ref_ystride[_pli];
-  dst=_state->ref_frame_data[OC_FRAME_SELF]+frag_buf_off;
-  if(refi==OC_FRAME_SELF)oc_frag_recon_intra(_state,dst,ystride,_dct_coeffs+64);
+  dst=_state->ref_frame_data[_state->ref_frame_idx[OC_FRAME_SELF]]+frag_buf_off;
+  if(mb_mode==OC_MODE_INTRA){
+    oc_frag_recon_intra(_state,dst,ystride,_dct_coeffs+64);
+  }
   else{
     const unsigned char *ref;
     int                  mvoffsets[2];
-    ref=_state->ref_frame_data[refi]+frag_buf_off;
+    ref=
+     _state->ref_frame_data[_state->ref_frame_idx[OC_FRAME_FOR_MODE(mb_mode)]]
+     +frag_buf_off;
     if(oc_state_get_mv_offsets(_state,mvoffsets,_pli,
      _state->frag_mvs[_fragi])>1){
       oc_frag_recon_inter2(_state,

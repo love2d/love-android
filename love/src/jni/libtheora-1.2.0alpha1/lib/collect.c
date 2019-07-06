@@ -5,7 +5,7 @@
  * GOVERNED BY A BSD-STYLE SOURCE LICENSE INCLUDED WITH THIS SOURCE *
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
- * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2011                *
+ * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
  * by the Xiph.Org Foundation http://www.xiph.org/                  *
  *                                                                  *
  ********************************************************************
@@ -23,10 +23,8 @@
 #if defined(OC_COLLECT_METRICS)
 
 int              OC_HAS_MODE_METRICS;
-double           OC_MODE_RD_WEIGHT_SATD[OC_LOGQ_BINS][3][2][OC_COMP_BINS];
-double           OC_MODE_RD_WEIGHT_SAD[OC_LOGQ_BINS][3][2][OC_COMP_BINS];
-oc_mode_metrics  OC_MODE_METRICS_SATD[OC_LOGQ_BINS-1][3][2][OC_COMP_BINS];
-oc_mode_metrics  OC_MODE_METRICS_SAD[OC_LOGQ_BINS-1][3][2][OC_COMP_BINS];
+double           OC_MODE_RD_WEIGHT[OC_LOGQ_BINS][3][2][OC_SAD_BINS];
+oc_mode_metrics  OC_MODE_METRICS[OC_LOGQ_BINS-1][3][2][OC_SAD_BINS];
 const char      *OC_MODE_METRICS_FILENAME="modedec.stats";
 
 void oc_mode_metrics_add(oc_mode_metrics *_metrics,
@@ -413,9 +411,7 @@ double oc_mode_metrics_solve(double *_r,double *_d,
 
 /*Compile collected SATD/logq/rate/RMSE metrics into a form that's immediately
    useful for mode decision.*/
-void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
- int _niters_min,int _reweight,oc_mode_rd (*_table)[3][2][OC_COMP_BINS],
- int _shift,double (*_weight)[3][2][OC_COMP_BINS]){
+void oc_mode_metrics_update(int _niters_min,int _reweight){
   int niters;
   int prevdr;
   int prevdd;
@@ -428,7 +424,7 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
   dd=dr=INT_MAX;
   niters=0;
   /*The encoder interpolates rate and RMSE terms bilinearly from an
-     OC_LOGQ_BINS by OC_COMP_BINS grid of sample points in _table.
+     OC_LOGQ_BINS by OC_SAD_BINS grid of sample points in OC_MODE_RD.
     To find the sample values at the grid points that minimize the total
      squared prediction error actually requires solving a relatively sparse
      linear system with a number of variables equal to the number of grid
@@ -443,7 +439,7 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
     for(pli=0;pli<3;pli++){
       for(qti=0;qti<2;qti++){
         for(qi=0;qi<OC_LOGQ_BINS;qi++){
-          for(si=0;si<OC_COMP_BINS;si++){
+          for(si=0;si<OC_SAD_BINS;si++){
             oc_mode_metrics m[4];
             int             s0[4];
             int             s1[4];
@@ -467,58 +463,58 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
             if(qi>0&&si>0){
               q0[n]=OC_MODE_LOGQ[qi-1][pli][qti];
               q1[n]=OC_MODE_LOGQ[qi][pli][qti];
-              s0[n]=si-1<<_shift;
-              s1[n]=si<<_shift;
-              ra[n]=ldexp(_table[qi-1][pli][qti][si-1].rate,-OC_BIT_SCALE);
-              da[n]=ldexp(_table[qi-1][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
-              rb[n]=ldexp(_table[qi-1][pli][qti][si].rate,-OC_BIT_SCALE);
-              db[n]=ldexp(_table[qi-1][pli][qti][si].rmse,-OC_RMSE_SCALE);
-              rc[n]=ldexp(_table[qi][pli][qti][si-1].rate,-OC_BIT_SCALE);
-              dc[n]=ldexp(_table[qi][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
-              *(m+n++)=*(_metrics[qi-1][pli][qti]+si-1);
+              s0[n]=si-1<<OC_SAD_SHIFT;
+              s1[n]=si<<OC_SAD_SHIFT;
+              ra[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si-1].rate,-OC_BIT_SCALE);
+              da[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
+              rb[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si].rate,-OC_BIT_SCALE);
+              db[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si].rmse,-OC_RMSE_SCALE);
+              rc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si-1].rate,-OC_BIT_SCALE);
+              dc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
+              *(m+n++)=*(OC_MODE_METRICS[qi-1][pli][qti]+si-1);
             }
             if(qi>0){
-              ds=si+1<OC_COMP_BINS?1:-1;
+              ds=si+1<OC_SAD_BINS?1:-1;
               q0[n]=OC_MODE_LOGQ[qi-1][pli][qti];
               q1[n]=OC_MODE_LOGQ[qi][pli][qti];
-              s0[n]=si+ds<<_shift;
-              s1[n]=si<<_shift;
-              ra[n]=ldexp(_table[qi-1][pli][qti][si+ds].rate,-OC_BIT_SCALE);
+              s0[n]=si+ds<<OC_SAD_SHIFT;
+              s1[n]=si<<OC_SAD_SHIFT;
+              ra[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si+ds].rate,-OC_BIT_SCALE);
               da[n]=
-               ldexp(_table[qi-1][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
-              rb[n]=ldexp(_table[qi-1][pli][qti][si].rate,-OC_BIT_SCALE);
-              db[n]=ldexp(_table[qi-1][pli][qti][si].rmse,-OC_RMSE_SCALE);
-              rc[n]=ldexp(_table[qi][pli][qti][si+ds].rate,-OC_BIT_SCALE);
-              dc[n]=ldexp(_table[qi][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
-              *(m+n++)=*(_metrics[qi-1][pli][qti]+si);
+               ldexp(OC_MODE_RD[qi-1][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
+              rb[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si].rate,-OC_BIT_SCALE);
+              db[n]=ldexp(OC_MODE_RD[qi-1][pli][qti][si].rmse,-OC_RMSE_SCALE);
+              rc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si+ds].rate,-OC_BIT_SCALE);
+              dc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
+              *(m+n++)=*(OC_MODE_METRICS[qi-1][pli][qti]+si);
             }
             if(qi+1<OC_LOGQ_BINS&&si>0){
               q0[n]=OC_MODE_LOGQ[qi+1][pli][qti];
               q1[n]=OC_MODE_LOGQ[qi][pli][qti];
-              s0[n]=si-1<<_shift;
-              s1[n]=si<<_shift;
-              ra[n]=ldexp(_table[qi+1][pli][qti][si-1].rate,-OC_BIT_SCALE);
-              da[n]=ldexp(_table[qi+1][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
-              rb[n]=ldexp(_table[qi+1][pli][qti][si].rate,-OC_BIT_SCALE);
-              db[n]=ldexp(_table[qi+1][pli][qti][si].rmse,-OC_RMSE_SCALE);
-              rc[n]=ldexp(_table[qi][pli][qti][si-1].rate,-OC_BIT_SCALE);
-              dc[n]=ldexp(_table[qi][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
-              *(m+n++)=*(_metrics[qi][pli][qti]+si-1);
+              s0[n]=si-1<<OC_SAD_SHIFT;
+              s1[n]=si<<OC_SAD_SHIFT;
+              ra[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si-1].rate,-OC_BIT_SCALE);
+              da[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
+              rb[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si].rate,-OC_BIT_SCALE);
+              db[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si].rmse,-OC_RMSE_SCALE);
+              rc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si-1].rate,-OC_BIT_SCALE);
+              dc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si-1].rmse,-OC_RMSE_SCALE);
+              *(m+n++)=*(OC_MODE_METRICS[qi][pli][qti]+si-1);
             }
             if(qi+1<OC_LOGQ_BINS){
-              ds=si+1<OC_COMP_BINS?1:-1;
+              ds=si+1<OC_SAD_BINS?1:-1;
               q0[n]=OC_MODE_LOGQ[qi+1][pli][qti];
               q1[n]=OC_MODE_LOGQ[qi][pli][qti];
-              s0[n]=si+ds<<_shift;
-              s1[n]=si<<_shift;
-              ra[n]=ldexp(_table[qi+1][pli][qti][si+ds].rate,-OC_BIT_SCALE);
+              s0[n]=si+ds<<OC_SAD_SHIFT;
+              s1[n]=si<<OC_SAD_SHIFT;
+              ra[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si+ds].rate,-OC_BIT_SCALE);
               da[n]=
-               ldexp(_table[qi+1][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
-              rb[n]=ldexp(_table[qi+1][pli][qti][si].rate,-OC_BIT_SCALE);
-              db[n]=ldexp(_table[qi+1][pli][qti][si].rmse,-OC_RMSE_SCALE);
-              rc[n]=ldexp(_table[qi][pli][qti][si+ds].rate,-OC_BIT_SCALE);
-              dc[n]=ldexp(_table[qi][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
-              *(m+n++)=*(_metrics[qi][pli][qti]+si);
+               ldexp(OC_MODE_RD[qi+1][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
+              rb[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si].rate,-OC_BIT_SCALE);
+              db[n]=ldexp(OC_MODE_RD[qi+1][pli][qti][si].rmse,-OC_RMSE_SCALE);
+              rc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si+ds].rate,-OC_BIT_SCALE);
+              dc[n]=ldexp(OC_MODE_RD[qi][pli][qti][si+ds].rmse,-OC_RMSE_SCALE);
+              *(m+n++)=*(OC_MODE_METRICS[qi][pli][qti]+si);
             }
             /*On the first pass, initialize with a simple weighted average of
                the neighboring bins.*/
@@ -532,19 +528,19 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
               }
               r=w>1E-3?r/w:0;
               d=w>1E-3?d/w:0;
-              _weight[qi][pli][qti][si]=w;
+              OC_MODE_RD_WEIGHT[qi][pli][qti][si]=w;
             }
             else{
               /*Update the grid point and save the weight for later.*/
-              _weight[qi][pli][qti][si]=
+              OC_MODE_RD_WEIGHT[qi][pli][qti][si]=
                oc_mode_metrics_solve(&r,&d,m,s0,s1,q0,q1,ra,rb,rc,da,db,dc,n);
             }
             rate=OC_CLAMPI(-32768,(int)(ldexp(r,OC_BIT_SCALE)+0.5),32767);
             rmse=OC_CLAMPI(-32768,(int)(ldexp(d,OC_RMSE_SCALE)+0.5),32767);
-            dr+=abs(rate-_table[qi][pli][qti][si].rate);
-            dd+=abs(rmse-_table[qi][pli][qti][si].rmse);
-            _table[qi][pli][qti][si].rate=(ogg_int16_t)rate;
-            _table[qi][pli][qti][si].rmse=(ogg_int16_t)rmse;
+            dr+=abs(rate-OC_MODE_RD[qi][pli][qti][si].rate);
+            dd+=abs(rmse-OC_MODE_RD[qi][pli][qti][si].rmse);
+            OC_MODE_RD[qi][pli][qti][si].rate=(ogg_int16_t)rate;
+            OC_MODE_RD[qi][pli][qti][si].rmse=(ogg_int16_t)rmse;
           }
         }
       }
@@ -560,17 +556,17 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
        samples in each bin to overcome the constant OC_ZWEIGHT factor.
       This encourages sampling under-populated bins and prevents a single large
        sample early on from discouraging coding in that bin ever again.*/
-    for(pli=0;pli<3;pli++){
+    for(pli=0;pli<3;pli++){ 
       for(qti=0;qti<2;qti++){
         for(qi=0;qi<OC_LOGQ_BINS;qi++){
-          for(si=0;si<OC_COMP_BINS;si++){
+          for(si=0;si<OC_SAD_BINS;si++){
             double wt;
-            wt=_weight[qi][pli][qti][si];
+            wt=OC_MODE_RD_WEIGHT[qi][pli][qti][si];
             wt/=OC_ZWEIGHT+wt;
-            _table[qi][pli][qti][si].rate=(ogg_int16_t)
-             (_table[qi][pli][qti][si].rate*wt+0.5);
-            _table[qi][pli][qti][si].rmse=(ogg_int16_t)
-             (_table[qi][pli][qti][si].rmse*wt+0.5);
+            OC_MODE_RD[qi][pli][qti][si].rate=(ogg_int16_t)
+             (OC_MODE_RD[qi][pli][qti][si].rate*wt+0.5);
+            OC_MODE_RD[qi][pli][qti][si].rmse=(ogg_int16_t)
+             (OC_MODE_RD[qi][pli][qti][si].rmse*wt+0.5);
           }
         }
       }
@@ -578,69 +574,14 @@ void oc_mode_metrics_update(oc_mode_metrics (*_metrics)[3][2][OC_COMP_BINS],
   }
 }
 
-/*Dump the in memory mode metrics to a file.
-  Note this data format isn't portable between different platforms.*/
 void oc_mode_metrics_dump(void){
   FILE *fmetrics;
   fmetrics=fopen(OC_MODE_METRICS_FILENAME,"wb");
   if(fmetrics!=NULL){
+    (void)fwrite(OC_MODE_METRICS,sizeof(OC_MODE_METRICS),1,fmetrics);
     (void)fwrite(OC_MODE_LOGQ,sizeof(OC_MODE_LOGQ),1,fmetrics);
-    (void)fwrite(OC_MODE_METRICS_SATD,sizeof(OC_MODE_METRICS_SATD),1,fmetrics);
-    (void)fwrite(OC_MODE_METRICS_SAD,sizeof(OC_MODE_METRICS_SAD),1,fmetrics);
     fclose(fmetrics);
   }
-}
-
-void oc_mode_metrics_print_rd(FILE *_fout,const char *_table_name,
-#if !defined(OC_COLLECT_METRICS)
- const oc_mode_rd (*_mode_rd_table)[3][2][OC_COMP_BINS]){
-#else
- oc_mode_rd (*_mode_rd_table)[3][2][OC_COMP_BINS]){
-#endif
-  int qii;
-  fprintf(_fout,
-   "# if !defined(OC_COLLECT_METRICS)\n"
-   "static const\n"
-   "# endif\n"
-   "oc_mode_rd %s[OC_LOGQ_BINS][3][2][OC_COMP_BINS]={\n",_table_name);
-  for(qii=0;qii<OC_LOGQ_BINS;qii++){
-    int pli;
-    fprintf(_fout,"  {\n");
-    for(pli=0;pli<3;pli++){
-      int qti;
-      fprintf(_fout,"    {\n");
-      for(qti=0;qti<2;qti++){
-        int bin;
-        int qi;
-        static const char *pl_names[3]={"Y'","Cb","Cr"};
-        static const char *qti_names[2]={"INTRA","INTER"};
-        qi=(63*qii+(OC_LOGQ_BINS-1>>1))/(OC_LOGQ_BINS-1);
-        fprintf(_fout,"      /*%s  qi=%i  %s*/\n",
-         pl_names[pli],qi,qti_names[qti]);
-        fprintf(_fout,"      {\n");
-        fprintf(_fout,"        ");
-        for(bin=0;bin<OC_COMP_BINS;bin++){
-          if(bin&&!(bin&0x3))fprintf(_fout,"\n        ");
-          fprintf(_fout,"{%5i,%5i}",
-           _mode_rd_table[qii][pli][qti][bin].rate,
-           _mode_rd_table[qii][pli][qti][bin].rmse);
-          if(bin+1<OC_COMP_BINS)fprintf(_fout,",");
-        }
-        fprintf(_fout,"\n      }");
-        if(qti<1)fprintf(_fout,",");
-        fprintf(_fout,"\n");
-      }
-      fprintf(_fout,"    }");
-      if(pli<2)fprintf(_fout,",");
-      fprintf(_fout,"\n");
-    }
-    fprintf(_fout,"  }");
-    if(qii+1<OC_LOGQ_BINS)fprintf(_fout,",");
-    fprintf(_fout,"\n");
-  }
-  fprintf(_fout,
-   "};\n"
-   "\n");
 }
 
 void oc_mode_metrics_print(FILE *_fout){
@@ -670,10 +611,49 @@ void oc_mode_metrics_print(FILE *_fout){
   }
   fprintf(_fout,
    "};\n"
-   "\n");
-  oc_mode_metrics_print_rd(_fout,"OC_MODE_RD_SATD",OC_MODE_RD_SATD);
-  oc_mode_metrics_print_rd(_fout,"OC_MODE_RD_SAD",OC_MODE_RD_SAD);
+   "\n"
+   "# if !defined(OC_COLLECT_METRICS)\n"
+   "static const\n"
+   "# endif\n"
+   "oc_mode_rd OC_MODE_RD[OC_LOGQ_BINS][3][2][OC_SAD_BINS]={\n");
+  for(qii=0;qii<OC_LOGQ_BINS;qii++){
+    int pli;
+    fprintf(_fout,"  {\n");
+    for(pli=0;pli<3;pli++){
+      int qti;
+      fprintf(_fout,"    {\n");
+      for(qti=0;qti<2;qti++){
+        int bin;
+        int qi;
+        static const char *pl_names[3]={"Y'","Cb","Cr"};
+        static const char *qti_names[2]={"INTRA","INTER"};
+        qi=(63*qii+(OC_LOGQ_BINS-1>>1))/(OC_LOGQ_BINS-1);
+        fprintf(_fout,"      /*%s  qi=%i  %s*/\n",
+         pl_names[pli],qi,qti_names[qti]);
+        fprintf(_fout,"      {\n");
+        fprintf(_fout,"        ");
+        for(bin=0;bin<OC_SAD_BINS;bin++){
+          if(bin&&!(bin&0x3))fprintf(_fout,"\n        ");
+          fprintf(_fout,"{%5i,%5i}",
+           OC_MODE_RD[qii][pli][qti][bin].rate,
+           OC_MODE_RD[qii][pli][qti][bin].rmse);
+          if(bin+1<OC_SAD_BINS)fprintf(_fout,",");
+        }
+        fprintf(_fout,"\n      }");
+        if(qti<1)fprintf(_fout,",");
+        fprintf(_fout,"\n");
+      }
+      fprintf(_fout,"    }");
+      if(pli<2)fprintf(_fout,",");
+      fprintf(_fout,"\n");
+    }
+    fprintf(_fout,"  }");
+    if(qii+1<OC_LOGQ_BINS)fprintf(_fout,",");
+    fprintf(_fout,"\n");
+  }
   fprintf(_fout,
+   "};\n"
+   "\n"
    "#endif\n");
 }
 
@@ -684,15 +664,11 @@ void oc_enc_mode_metrics_load(oc_enc_ctx *_enc){
   /*Load any existing mode metrics if we haven't already.*/
   if(!OC_HAS_MODE_METRICS){
     FILE *fmetrics;
-    memset(OC_MODE_METRICS_SATD,0,sizeof(OC_MODE_METRICS_SATD));
-    memset(OC_MODE_METRICS_SAD,0,sizeof(OC_MODE_METRICS_SAD));
+    memset(OC_MODE_METRICS,0,sizeof(OC_MODE_METRICS));
     fmetrics=fopen(OC_MODE_METRICS_FILENAME,"rb");
     if(fmetrics!=NULL){
-      /*Read in the binary structures as written my oc_mode_metrics_dump().
-        Note this format isn't portable between different platforms.*/
+      (void)fread(OC_MODE_METRICS,sizeof(OC_MODE_METRICS),1,fmetrics);
       (void)fread(OC_MODE_LOGQ,sizeof(OC_MODE_LOGQ),1,fmetrics);
-      (void)fread(OC_MODE_METRICS_SATD,sizeof(OC_MODE_METRICS_SATD),1,fmetrics);
-      (void)fread(OC_MODE_METRICS_SAD,sizeof(OC_MODE_METRICS_SAD),1,fmetrics);
       fclose(fmetrics);
     }
     else{
@@ -707,10 +683,7 @@ void oc_enc_mode_metrics_load(oc_enc_ctx *_enc){
         }
       }
     }
-    oc_mode_metrics_update(OC_MODE_METRICS_SATD,100,1,
-     OC_MODE_RD_SATD,OC_SATD_SHIFT,OC_MODE_RD_WEIGHT_SATD);
-    oc_mode_metrics_update(OC_MODE_METRICS_SAD,100,1,
-     OC_MODE_RD_SAD,OC_SAD_SHIFT,OC_MODE_RD_WEIGHT_SAD);
+    oc_mode_metrics_update(100,1);
     OC_HAS_MODE_METRICS=1;
   }
 }
@@ -837,7 +810,6 @@ void oc_enc_mode_metrics_collect(oc_enc_ctx *_enc){
     64,64,64,64,64,64,64,64
   };
   const oc_fragment *frags;
-  const unsigned    *frag_sad;
   const unsigned    *frag_satd;
   const unsigned    *frag_ssd;
   const ptrdiff_t   *coded_fragis;
@@ -868,7 +840,6 @@ void oc_enc_mode_metrics_collect(oc_enc_ctx *_enc){
   }
   qti=_enc->state.frame_type;
   frags=_enc->state.frags;
-  frag_sad=_enc->frag_sad;
   frag_satd=_enc->frag_satd;
   frag_ssd=_enc->frag_ssd;
   coded_fragis=_enc->state.coded_fragis;
@@ -905,9 +876,7 @@ void oc_enc_mode_metrics_collect(oc_enc_ctx *_enc){
       int       huffi;
       int       skip;
       int       mb_mode;
-      unsigned  sad;
       unsigned  satd;
-      double    sqrt_ssd;
       int       bin;
       int       qtj;
       fragi=coded_fragis[fragii];
@@ -945,29 +914,20 @@ void oc_enc_mode_metrics_collect(oc_enc_ctx *_enc){
       mb_mode=frags[fragi].mb_mode;
       qii=frags[fragi].qii;
       qi=_enc->state.qis[qii];
-      sad=frag_sad[fragi]<<(pli+1&2);
       satd=frag_satd[fragi]<<(pli+1&2);
-      sqrt_ssd=sqrt(frag_ssd[fragi]);
+      bin=OC_MINI(satd>>OC_SAD_SHIFT,OC_SAD_BINS-1);
       qtj=mb_mode!=OC_MODE_INTRA;
       /*Accumulate statistics.
         The rate (frag_bits) and RMSE (sqrt(frag_ssd)) are not scaled by
          OC_BIT_SCALE and OC_RMSE_SCALE; this lets us change the scale factor
          yet still use old data.*/
-      bin=OC_MINI(satd>>OC_SATD_SHIFT,OC_COMP_BINS-1);
       oc_mode_metrics_add(
-       OC_MODE_METRICS_SATD[modelines[qii][pli][qtj]][pli][qtj]+bin,
-       fragw,satd,_enc->log_plq[qi][pli][qtj],frag_bits,sqrt_ssd);
-      bin=OC_MINI(sad>>OC_SAD_SHIFT,OC_COMP_BINS-1);
-      oc_mode_metrics_add(
-       OC_MODE_METRICS_SAD[modelines[qii][pli][qtj]][pli][qtj]+bin,
-       fragw,sad,_enc->log_plq[qi][pli][qtj],frag_bits,sqrt_ssd);
+       OC_MODE_METRICS[modelines[qii][pli][qtj]][pli][qtj]+bin,
+       fragw,satd,_enc->log_plq[qi][pli][qtj],frag_bits,sqrt(frag_ssd[fragi]));
     }
   }
-  /*Update global SA(T)D/logq/rate/RMSE estimation matrix.*/
-  oc_mode_metrics_update(OC_MODE_METRICS_SATD,4,1,
-   OC_MODE_RD_SATD,OC_SATD_SHIFT,OC_MODE_RD_WEIGHT_SATD);
-  oc_mode_metrics_update(OC_MODE_METRICS_SAD,4,1,
-   OC_MODE_RD_SAD,OC_SAD_SHIFT,OC_MODE_RD_WEIGHT_SAD);
+  /*Update global SATD/logq/rate/RMSE estimation matrix.*/
+  oc_mode_metrics_update(4,1);
 }
 # endif
 

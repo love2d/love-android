@@ -173,8 +173,6 @@ typedef struct oc_theora_state          oc_theora_state;
 # define OC_FRAME_PREV      (1)
 /*The current frame.*/
 # define OC_FRAME_SELF      (2)
-/*Used to mark uncoded fragments (for DC prediction).*/
-# define OC_FRAME_NONE      (3)
 
 /*The input or output buffer.*/
 # define OC_FRAME_IO        (3)
@@ -304,9 +302,7 @@ struct oc_fragment{
     There are no fragments outside the coded frame by construction.*/
   unsigned   invalid:1;
   /*The index of the quality index used for this fragment's AC coefficients.*/
-  unsigned   qii:4;
-  /*The index of the reference frame this fragment is predicted from.*/
-  unsigned   refi:2;
+  unsigned   qii:6;
   /*The mode of the macroblock this fragment belongs to.*/
   unsigned   mb_mode:3;
   /*The index of the associated border information for fragments which lie
@@ -427,16 +423,12 @@ struct oc_theora_state{
   ptrdiff_t           ncoded_fragis[3];
   /*The total number of coded fragments.*/
   ptrdiff_t           ntotal_coded_fragis;
-  /*The actual buffers used for the reference frames.*/
-  th_ycbcr_buffer     ref_frame_bufs[6];
   /*The index of the buffers being used for each OC_FRAME_* reference frame.*/
   int                 ref_frame_idx[6];
-  /*The storage for the reference frame buffers.
-    This is just ref_frame_bufs[ref_frame_idx[i]][0].data, but is cached here
-     for faster look-up.*/
+  /*The actual buffers used for the reference frames.*/
+  th_ycbcr_buffer     ref_frame_bufs[6];
+  /*The storage for the reference frame buffers.*/
   unsigned char      *ref_frame_data[6];
-  /*The handle used to allocate the reference frame buffers.*/
-  unsigned char      *ref_frame_handle;
   /*The strides for each plane in the reference frames.*/
   int                 ref_ystride[3];
   /*The number of unique border patterns.*/

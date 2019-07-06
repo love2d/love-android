@@ -16,7 +16,7 @@
  ********************************************************************/
 
 #if !defined(_huffman_H)
-# define _huffman_H (1)
+# define _hufffman_H (1)
 # include "theora/codec.h"
 # include "ocintrin.h"
 

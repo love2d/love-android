@@ -108,7 +108,7 @@ LOCAL_SRC_FILES := \
 	Alc/backends/opensl.c \
 	Alc/backends/wave.c
 
-LOCAL_LDLIBS := -lOpenSLES
+LOCAL_LDLIBS := -lOpenSLES -llog
 LOCAL_STATIC_LIBRARIES :=
 
 # CPU-specific instructions
