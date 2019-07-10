@@ -67,6 +67,10 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Vibration disabled: could not get vibration permission.");
         }
 
+        // These 2 variables must be reset or it will use the existing value.
+        gamePath = "";
+        storagePermissionUnnecessary = false;
+
         handleIntent(this.getIntent());
 
         super.onCreate(savedInstanceState);
