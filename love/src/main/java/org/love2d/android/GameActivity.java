@@ -89,11 +89,12 @@ public class GameActivity extends SDLActivity {
         Uri game = intent.getData();
 
         if (game != null) {
+            String scheme = game.getScheme();
             // If we have a game via the intent data we we try to figure out how we have to load it. We
             // support the following variations:
             // * a main.lua file: set gamePath to the directory containing main.lua
             // * otherwise: set gamePath to the file
-            if (game.getScheme().equals("file")) {
+            if (scheme.equals("file")) {
                 Log.d("GameActivity", "Received intent with path: " + game.getPath());
                 // If we were given the path of a main.lua then use its
                 // directory. Otherwise use full path.
@@ -103,8 +104,19 @@ public class GameActivity extends SDLActivity {
                 } else {
                     gamePath = game.getPath();
                 }
-            // FIXME: Add support for "content://" URI, which is mandatory in Android Nougat
-            // as using "file://" protocol in that (and later) version is forbidden!
+            } else if (scheme.equals("content")) {
+                try {
+                    String destination_file = this.getCacheDir().getPath() + "/game.love";
+                    InputStream data = getContentResolver().openInputStream(game);
+                    // copyAssetFile automatically closes the InputStream
+                    if (copyAssetFile(data, destination_file))
+                    {
+                        gamePath = destination_file;
+                        storagePermissionUnnecessary = true;
+                    }
+                } catch (Exception e) {
+                    Log.d("GameActivity", "could not read content uri " + game.toString() + ": " + e.getMessage());
+                }
             } else {
                 Log.e("GameActivity", "Unsupported scheme: '" + game.getScheme() + "'.");
 
@@ -137,11 +149,17 @@ public class GameActivity extends SDLActivity {
                 // If we have a game.love in our assets folder copy it to the cache folder
                 // so that we can load it from native LÖVE code
                 String destination_file = this.getCacheDir().getPath() + "/game.love";
-                if (mustCacheArchive && copyAssetFile("game.love", destination_file))
-                    gamePath = destination_file;
-                else
-                    gamePath = "game.love";
-                storagePermissionUnnecessary = true;
+                
+                try {
+                    InputStream gameStream = getAssets().open("game.love");
+                    if (mustCacheArchive && copyAssetFile(gameStream, destination_file))
+                        gamePath = destination_file;
+                    else
+                        gamePath = "game.love";
+                    storagePermissionUnnecessary = true;
+                } catch (IOException e) {
+                    Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
+                }
             }
         }
 
@@ -297,16 +315,8 @@ public class GameActivity extends SDLActivity {
      *
      * @return true if successful
      */
-    boolean copyAssetFile(String fileName, String destinationFileName) {
+    boolean copyAssetFile(InputStream source_stream, String destinationFileName) {
         boolean success = false;
-
-        // open source and destination streams
-        InputStream source_stream = null;
-        try {
-            source_stream = getAssets().open(fileName);
-        } catch (IOException e) {
-            Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
-        }
 
         BufferedOutputStream destination_stream = null;
         try {
@@ -342,9 +352,7 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Copying failed: " + e.getMessage());
         }
 
-        Log.d("GameActivity", "Successfully copied " + fileName
-                + " to " + destinationFileName
-                + " (" + bytes_written + " bytes written).");
+        Log.d("GameActivity", "Successfully copied stream to " + destinationFileName + " (" + bytes_written + " bytes written).");
         return success;
     }
 
