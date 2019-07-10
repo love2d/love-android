@@ -36,6 +36,7 @@ public class GameActivity extends SDLActivity {
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 1;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
+    private boolean storagePermissionUnnecessary = false;
     public int safeAreaTop = 0;
     public int safeAreaLeft = 0;
     public int safeAreaBottom = 0;
@@ -140,6 +141,7 @@ public class GameActivity extends SDLActivity {
                     gamePath = destination_file;
                 else
                     gamePath = "game.love";
+                storagePermissionUnnecessary = true;
             }
         }
 
@@ -251,7 +253,7 @@ public class GameActivity extends SDLActivity {
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
 
         if (gamePath.length() > 0) {
-            if(self.hasExternalStoragePermission()) {
+            if(self.hasExternalStoragePermission() || self.storagePermissionUnnecessary) {
                 return gamePath;
             } else {
                 Log.d("GameActivity", "cannot open game " + gamePath + ": no external storage permission given!");
