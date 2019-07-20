@@ -75,8 +75,7 @@ public class GameActivity extends SDLActivity {
 
         context = this.getApplicationContext();
 
-        String permission = "android.permission.VIBRATE";
-        int res = context.checkCallingOrSelfPermission(permission);
+        int res = context.checkCallingOrSelfPermission(Manifest.permission.VIBRATE);
         if (res == PackageManager.PERMISSION_GRANTED) {
             vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         } else {
@@ -129,8 +128,7 @@ public class GameActivity extends SDLActivity {
                     String destination_file = this.getCacheDir().getPath() + "/game.love";
                     InputStream data = getContentResolver().openInputStream(game);
                     // copyAssetFile automatically closes the InputStream
-                    if (copyAssetFile(data, destination_file))
-                    {
+                    if (copyAssetFile(data, destination_file)) {
                         gamePath = destination_file;
                         storagePermissionUnnecessary = true;
                     }
@@ -179,7 +177,12 @@ public class GameActivity extends SDLActivity {
                     storagePermissionUnnecessary = true;
                 } catch (IOException e) {
                     Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
+                    gamePath = "";
+                    storagePermissionUnnecessary = false;
                 }
+            } else {
+                gamePath = "";
+                storagePermissionUnnecessary = false;
             }
         }
 
