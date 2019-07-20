@@ -275,7 +275,7 @@ public class GameActivity extends SDLActivity {
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
 
         if (gamePath.length() > 0) {
-            if(self.hasExternalStoragePermission() || self.storagePermissionUnnecessary) {
+            if(self.storagePermissionUnnecessary || self.hasExternalStoragePermission()) {
                 return gamePath;
             } else {
                 Log.d("GameActivity", "cannot open game " + gamePath + ": no external storage permission given!");
