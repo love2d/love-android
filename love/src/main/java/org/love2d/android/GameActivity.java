@@ -45,12 +45,28 @@ public class GameActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
         return new String[]{
-                "c++_shared",
-                "mpg123",
-                "openal",
-                "hidapi",
-                "love",
+            "c++_shared",
+            "mpg123",
+            "openal",
+            "hidapi",
+            "love",
         };
+    }
+
+    @Override
+    protected String getMainSharedObject() {
+        String[] libs = getLibraries();
+        String libname = "lib" + libs[libs.length - 1] + ".so";
+
+        // Since Lollipop, you can simply pass "libname.so" to dlopen
+        // and it will resolve correct paths and load correct library.
+        // This is mandatory for extractNativeLibs=false support in
+        // Marshmallow.
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            return libname;
+        } else {
+            return getContext().getApplicationInfo().nativeLibraryDir + "/" + libname;
+        }
     }
 
     @Override
