@@ -19,8 +19,9 @@
         android:name="org.love2d.android.GameActivity"
         android:configChanges="orientation|screenSize|keyboard|keyboardHidden|navigation"
         android:label="LÖVE for Android"
-        android:launchMode="singleTop"
-        android:screenOrientation="landscape" >
+        android:launchMode="singleTask"
+        android:screenOrientation="landscape"
+        android:resizeableActivity="false" >
         <intent-filter>
           <action android:name="android.intent.action.MAIN" />
           <category android:name="android.intent.category.LAUNCHER" />
@@ -49,7 +50,7 @@
           <category android:name="android.intent.category.BROWSABLE" />
           <data android:scheme="content" />
           <data android:host="*" />
-          <data android:mimeType="*/*" />
+          <data android:mimeType="application/octet-stream" />
         </intent-filter>
       </activity>
       <activity
