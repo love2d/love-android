@@ -109,24 +109,33 @@ public class GameActivity extends SDLActivity {
 
         if (game != null) {
             String scheme = game.getScheme();
+            String path = game.getPath();
             // If we have a game via the intent data we we try to figure out how we have to load it. We
             // support the following variations:
             // * a main.lua file: set gamePath to the directory containing main.lua
             // * otherwise: set gamePath to the file
             if (scheme.equals("file")) {
-                Log.d("GameActivity", "Received intent with path: " + game.getPath());
+                Log.d("GameActivity", "Received file:// intent with path: " + path);
                 // If we were given the path of a main.lua then use its
                 // directory. Otherwise use full path.
                 List<String> path_segments = game.getPathSegments();
                 if (path_segments.get(path_segments.size() - 1).equals("main.lua")) {
-                    gamePath = game.getPath().substring(0, game.getPath().length() - "main.lua".length());
+                    gamePath = path.substring(0, path.length() - "main.lua".length());
                 } else {
-                    gamePath = game.getPath();
+                    gamePath = path;
                 }
             } else if (scheme.equals("content")) {
+                Log.d("GameActivity", "Received content:// intent with path: " + path);
                 try {
-                    String destination_file = this.getCacheDir().getPath() + "/game.love";
+                    String filename = "game.love";
+                    String[] pathSegments = path.split("/");
+                    if (pathSegments != null && pathSegments.length > 0) {
+                        filename = pathSegments[pathSegments.length - 1];
+                    }
+
+                    String destination_file = this.getCacheDir().getPath() + "/" + filename;
                     InputStream data = getContentResolver().openInputStream(game);
+
                     // copyAssetFile automatically closes the InputStream
                     if (copyAssetFile(data, destination_file)) {
                         gamePath = destination_file;
@@ -139,7 +148,7 @@ public class GameActivity extends SDLActivity {
                 Log.e("GameActivity", "Unsupported scheme: '" + game.getScheme() + "'.");
 
                 AlertDialog.Builder alert_dialog = new AlertDialog.Builder(this);
-                alert_dialog.setMessage("Could not load LÖVE game '" + game.getPath()
+                alert_dialog.setMessage("Could not load LÖVE game '" + path
                         + "' as it uses unsupported scheme '" + game.getScheme()
                         + "'. Please contact the developer.");
                 alert_dialog.setTitle("LÖVE for Android Error");
@@ -191,13 +200,14 @@ public class GameActivity extends SDLActivity {
 
     protected void checkLovegameFolder() {
         // If no game.love was found fall back to the game in <external storage>/lovegame
+        Log.d("GameActivity", "fallback to lovegame folder");
         if (hasExternalStoragePermission()) {
             File ext = Environment.getExternalStorageDirectory();
             if ((new File(ext, "/lovegame/main.lua")).exists()) {
                 gamePath = ext.getPath() + "/lovegame/";
             }
         } else {
-            Log.d("GameActivity", "Cannot load game from external storage: permission not granted");
+            Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
         }
     }
 
@@ -409,7 +419,7 @@ public class GameActivity extends SDLActivity {
                     Log.d("GameActivity", "Permission granted");
                 } else {
                     Log.d("GameActivity", "Did not get permission.");
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
                         showExternalStoragePermissionMissingDialog();
                     }
                 }
@@ -426,13 +436,13 @@ public class GameActivity extends SDLActivity {
     @Keep
     public boolean hasExternalStoragePermission() {
         if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                Manifest.permission.READ_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED) {
             return true;
         }
 
         Log.d("GameActivity", "Requesting permission and locking LÖVE thread until we have an answer.");
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, EXTERNAL_STORAGE_REQUEST_CODE);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXTERNAL_STORAGE_REQUEST_CODE);
 
         synchronized (externalStorageRequestDummy) {
             try {
@@ -443,7 +453,7 @@ public class GameActivity extends SDLActivity {
             }
         }
 
-        return ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
     @Keep
