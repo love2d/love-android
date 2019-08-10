@@ -20,12 +20,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Vibrator;
-import androidx.annotation.Keep;
-import androidx.core.app.ActivityCompat;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.view.*;
 import android.content.pm.PackageManager;
+
+import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
 
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
@@ -36,6 +37,7 @@ public class GameActivity extends SDLActivity {
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 1;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
+    private boolean storagePermissionUnnecessary = false;
     public int safeAreaTop = 0;
     public int safeAreaLeft = 0;
     public int safeAreaBottom = 0;
@@ -44,12 +46,28 @@ public class GameActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
         return new String[]{
-                "c++_shared",
-                "mpg123",
-                "openal",
-                "hidapi",
-                "love",
+            "c++_shared",
+            "mpg123",
+            "openal",
+            "hidapi",
+            "love",
         };
+    }
+
+    @Override
+    protected String getMainSharedObject() {
+        String[] libs = getLibraries();
+        String libname = "lib" + libs[libs.length - 1] + ".so";
+
+        // Since Lollipop, you can simply pass "libname.so" to dlopen
+        // and it will resolve correct paths and load correct library.
+        // This is mandatory for extractNativeLibs=false support in
+        // Marshmallow.
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            return libname;
+        } else {
+            return getContext().getApplicationInfo().nativeLibraryDir + "/" + libname;
+        }
     }
 
     @Override
@@ -58,13 +76,16 @@ public class GameActivity extends SDLActivity {
 
         context = this.getApplicationContext();
 
-        String permission = "android.permission.VIBRATE";
-        int res = context.checkCallingOrSelfPermission(permission);
+        int res = context.checkCallingOrSelfPermission(Manifest.permission.VIBRATE);
         if (res == PackageManager.PERMISSION_GRANTED) {
             vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         } else {
             Log.d("GameActivity", "Vibration disabled: could not get vibration permission.");
         }
+
+        // These 2 variables must be reset or it will use the existing value.
+        gamePath = "";
+        storagePermissionUnnecessary = false;
 
         handleIntent(this.getIntent());
 
@@ -88,27 +109,47 @@ public class GameActivity extends SDLActivity {
         Uri game = intent.getData();
 
         if (game != null) {
+            String scheme = game.getScheme();
+            String path = game.getPath();
             // If we have a game via the intent data we we try to figure out how we have to load it. We
             // support the following variations:
             // * a main.lua file: set gamePath to the directory containing main.lua
             // * otherwise: set gamePath to the file
-            if (game.getScheme().equals("file")) {
-                Log.d("GameActivity", "Received intent with path: " + game.getPath());
+            if (scheme.equals("file")) {
+                Log.d("GameActivity", "Received file:// intent with path: " + path);
                 // If we were given the path of a main.lua then use its
                 // directory. Otherwise use full path.
                 List<String> path_segments = game.getPathSegments();
                 if (path_segments.get(path_segments.size() - 1).equals("main.lua")) {
-                    gamePath = game.getPath().substring(0, game.getPath().length() - "main.lua".length());
+                    gamePath = path.substring(0, path.length() - "main.lua".length());
                 } else {
-                    gamePath = game.getPath();
+                    gamePath = path;
                 }
-            // FIXME: Add support for "content://" URI, which is mandatory in Android Nougat
-            // as using "file://" protocol in that (and later) version is forbidden!
+            } else if (scheme.equals("content")) {
+                Log.d("GameActivity", "Received content:// intent with path: " + path);
+                try {
+                    String filename = "game.love";
+                    String[] pathSegments = path.split("/");
+                    if (pathSegments != null && pathSegments.length > 0) {
+                        filename = pathSegments[pathSegments.length - 1];
+                    }
+
+                    String destination_file = this.getCacheDir().getPath() + "/" + filename;
+                    InputStream data = getContentResolver().openInputStream(game);
+
+                    // copyAssetFile automatically closes the InputStream
+                    if (copyAssetFile(data, destination_file)) {
+                        gamePath = destination_file;
+                        storagePermissionUnnecessary = true;
+                    }
+                } catch (Exception e) {
+                    Log.d("GameActivity", "could not read content uri " + game.toString() + ": " + e.getMessage());
+                }
             } else {
                 Log.e("GameActivity", "Unsupported scheme: '" + game.getScheme() + "'.");
 
                 AlertDialog.Builder alert_dialog = new AlertDialog.Builder(this);
-                alert_dialog.setMessage("Could not load LÖVE game '" + game.getPath()
+                alert_dialog.setMessage("Could not load LÖVE game '" + path
                         + "' as it uses unsupported scheme '" + game.getScheme()
                         + "'. Please contact the developer.");
                 alert_dialog.setTitle("LÖVE for Android Error");
@@ -136,10 +177,22 @@ public class GameActivity extends SDLActivity {
                 // If we have a game.love in our assets folder copy it to the cache folder
                 // so that we can load it from native LÖVE code
                 String destination_file = this.getCacheDir().getPath() + "/game.love";
-                if (mustCacheArchive && copyAssetFile("game.love", destination_file))
-                    gamePath = destination_file;
-                else
-                    gamePath = "game.love";
+                
+                try {
+                    InputStream gameStream = getAssets().open("game.love");
+                    if (mustCacheArchive && copyAssetFile(gameStream, destination_file))
+                        gamePath = destination_file;
+                    else
+                        gamePath = "game.love";
+                    storagePermissionUnnecessary = true;
+                } catch (IOException e) {
+                    Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
+                    gamePath = "";
+                    storagePermissionUnnecessary = false;
+                }
+            } else {
+                gamePath = "";
+                storagePermissionUnnecessary = false;
             }
         }
 
@@ -148,13 +201,14 @@ public class GameActivity extends SDLActivity {
 
     protected void checkLovegameFolder() {
         // If no game.love was found fall back to the game in <external storage>/lovegame
+        Log.d("GameActivity", "fallback to lovegame folder");
         if (hasExternalStoragePermission()) {
             File ext = Environment.getExternalStorageDirectory();
             if ((new File(ext, "/lovegame/main.lua")).exists()) {
                 gamePath = ext.getPath() + "/lovegame/";
             }
         } else {
-            Log.d("GameActivity", "Cannot load game from external storage: permission not granted");
+            Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
         }
     }
 
@@ -251,7 +305,7 @@ public class GameActivity extends SDLActivity {
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
 
         if (gamePath.length() > 0) {
-            if(self.hasExternalStoragePermission()) {
+            if(self.storagePermissionUnnecessary || self.hasExternalStoragePermission()) {
                 return gamePath;
             } else {
                 Log.d("GameActivity", "cannot open game " + gamePath + ": no external storage permission given!");
@@ -295,16 +349,8 @@ public class GameActivity extends SDLActivity {
      *
      * @return true if successful
      */
-    boolean copyAssetFile(String fileName, String destinationFileName) {
+    boolean copyAssetFile(InputStream source_stream, String destinationFileName) {
         boolean success = false;
-
-        // open source and destination streams
-        InputStream source_stream = null;
-        try {
-            source_stream = getAssets().open(fileName);
-        } catch (IOException e) {
-            Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
-        }
 
         BufferedOutputStream destination_stream = null;
         try {
@@ -340,9 +386,7 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Copying failed: " + e.getMessage());
         }
 
-        Log.d("GameActivity", "Successfully copied " + fileName
-                + " to " + destinationFileName
-                + " (" + bytes_written + " bytes written).");
+        Log.d("GameActivity", "Successfully copied stream to " + destinationFileName + " (" + bytes_written + " bytes written).");
         return success;
     }
 
@@ -353,14 +397,11 @@ public class GameActivity extends SDLActivity {
     }
 
     public void showExternalStoragePermissionMissingDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(mSingleton);
-
-        builder.setTitle ("Storage Permission Missing")
-                .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.");
-
-        builder.setNeutralButton("Continue", null);
-
-        AlertDialog dialog = builder.create();
+        AlertDialog dialog = new AlertDialog.Builder(mSingleton)
+            .setTitle("Storage Permission Missing")
+            .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.")
+            .setNeutralButton("Continue", null)
+            .create();
         dialog.show();
     }
 
@@ -376,7 +417,7 @@ public class GameActivity extends SDLActivity {
                     Log.d("GameActivity", "Permission granted");
                 } else {
                     Log.d("GameActivity", "Did not get permission.");
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
                         showExternalStoragePermissionMissingDialog();
                     }
                 }
@@ -393,13 +434,13 @@ public class GameActivity extends SDLActivity {
     @Keep
     public boolean hasExternalStoragePermission() {
         if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                Manifest.permission.READ_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED) {
             return true;
         }
 
         Log.d("GameActivity", "Requesting permission and locking LÖVE thread until we have an answer.");
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, EXTERNAL_STORAGE_REQUEST_CODE);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXTERNAL_STORAGE_REQUEST_CODE);
 
         synchronized (externalStorageRequestDummy) {
             try {
@@ -410,7 +451,7 @@ public class GameActivity extends SDLActivity {
             }
         }
 
-        return ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
     @Keep

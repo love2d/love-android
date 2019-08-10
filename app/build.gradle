@@ -5,8 +5,8 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "org.love2d.android"
-        versionCode 26
-        versionName "11.1"
+        versionCode 27
+        versionName "11.2"
         minSdkVersion 14
         targetSdkVersion 28
     }

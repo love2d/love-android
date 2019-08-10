@@ -33,9 +33,9 @@ public class DownloadService extends IntentService {
         String url = intent.getStringExtra("url");
         Uri uri = Uri.parse(url);
 
-        Log.d("DownloadService", "Downloading from url: " + url + "file = " + uri.getLastPathSegment());
+        Log.d("DownloadService", "Downloading from url: " + url + " file = " + uri.getLastPathSegment());
 
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        DownloadManager.Request request = new DownloadManager.Request(uri);
         request.setDescription("LÖVE Game Download");
         request.setTitle(uri.getLastPathSegment());
         request.setMimeType("application/x-love-game");
