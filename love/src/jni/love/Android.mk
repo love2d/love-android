@@ -107,8 +107,6 @@ LOCAL_STATIC_LIBRARIES := libvorbis libogg libtheora libmodplug libfreetype libl
 # $(info liblove: include dirs $(LOCAL_C_INCLUDES))
 # $(info liblove: src files $(LOCAL_SRC_FILES))
 
-SDL_PATH := ../SDL2-2.0.9
-LOCAL_SRC_FILES += $(SDL_PATH)/src/main/android/SDL_android_main.c 
 LOCAL_LDLIBS := -lz -lGLESv1_CM -lGLESv2 -ldl -landroid
 LOCAL_LDFLAGS := -Wl,--allow-multiple-definition
 
