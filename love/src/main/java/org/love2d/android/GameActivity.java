@@ -20,12 +20,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Vibrator;
-import androidx.annotation.Keep;
-import androidx.core.app.ActivityCompat;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.view.*;
 import android.content.pm.PackageManager;
+
+import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
 
 public class GameActivity extends SDLActivity {
     private static DisplayMetrics metrics = new DisplayMetrics();
@@ -396,14 +397,11 @@ public class GameActivity extends SDLActivity {
     }
 
     public void showExternalStoragePermissionMissingDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(mSingleton);
-
-        builder.setTitle ("Storage Permission Missing")
-                .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.");
-
-        builder.setNeutralButton("Continue", null);
-
-        AlertDialog dialog = builder.create();
+        AlertDialog dialog = new AlertDialog.Builder(mSingleton)
+            .setTitle("Storage Permission Missing")
+            .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.")
+            .setNeutralButton("Continue", null)
+            .create();
         dialog.show();
     }
 
