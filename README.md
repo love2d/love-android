@@ -17,9 +17,12 @@ your choice.
 Quick Start:
 ------------
 
-Install the Android NDK and the Android SDK with SDK API 23, set the
-environment variables ```ANDROID_NDK```, ```ANDROID_SDK```and
-```ANDROID_HOME```, create a file ```local.properties``` with contents:
+Install the Android NDK and the Android SDK with SDK API 28, set the
+environment variables:
+
+* `ANDROID_HOME` to your Android SDK location.
+
+* `ANDROID_NDK_HOME` to your Android NDK location. NDK r16 or later; r19 also work.
 
     ndk.dir=/opt/android-ndk
     sdk.dir=/opt/android-sdk
@@ -27,7 +30,7 @@ environment variables ```ANDROID_NDK```, ```ANDROID_SDK```and
 (you may have to adjust the paths to the install directories of the Android
 SDK and Android NDK on your system) and run
 
-    ./gradlew build
+    ./gradlew assemble
 
 in the root folder of this project. This should give you a .apk file in the
 app/build/outputs/apk/ subdirectory that you can then install on your phone.
@@ -40,10 +43,16 @@ repository root.
 Bugs:
 -----
 
-Bugs and feature requests should be reported to the issue tracker at [https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open](https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open).
+Bugs and feature requests should be reported to the issue tracker at https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open
 
 Changelog:
 ----------
+
+11.2:
+* Contains all relevant changes for desktop LÖVE 11.2.
+* Added support for ARM64 devices to comply with Play Store requirements.
+* Fixed `love.system.openURL` crashing in some cases.
+* Changed target SDK to 28 so it comply with Play Store requirements.
 
 0.10.2:
 * Contains all relevant changes for desktop LÖVE 0.10.2.
