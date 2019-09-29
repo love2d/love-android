@@ -400,12 +400,32 @@ public class GameActivity extends SDLActivity {
 
     @Keep
     public void showRecordingAudioPermissionMissingDialog() {
-        AlertDialog dialog = new AlertDialog.Builder(mSingleton)
-            .setTitle("Audio Recording Permission Missing")
-            .setMessage("It appears that this game request for mic permission. The game may not work correctly without mic permission!")
-            .setNeutralButton("Continue", null)
-            .create();
-        dialog.show();
+        Log.d("GameActivity", "showRecordingAudioPermissionMissingDialog()");
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog dialog = new AlertDialog.Builder(mSingleton)
+                    .setTitle("Audio Recording Permission Missing")
+                    .setMessage("It appears that this game uses mic capabilities. The game may not work correctly without mic permission!")
+                    .setNeutralButton("Continue", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface di, int id) {
+                            synchronized (recordAudioRequestDummy) {
+                                recordAudioRequestDummy.notify();
+                            }
+                        }
+                    })
+                    .create();
+                dialog.show();
+            }
+        });
+
+        synchronized (recordAudioRequestDummy) {
+            try {
+                recordAudioRequestDummy.wait();
+            } catch (InterruptedException e) {
+                Log.d("GameActivity", "mic permission dialog", e);
+            }
+        }
     }
 
     public void showExternalStoragePermissionMissingDialog() {
@@ -485,24 +505,6 @@ public class GameActivity extends SDLActivity {
 
     @Keep
     public boolean hasRecordAudioPermission() {
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-
-        Log.d("GameActivity", "Requesting mic permission and locking LÖVE thread until we have an answer.");
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_REQUEST_CODE);
-
-        synchronized (recordAudioRequestDummy) {
-            try {
-                recordAudioRequestDummy.wait();
-            } catch (InterruptedException e) {
-                Log.d("GameActivity", "requesting mic permission", e);
-                return false;
-            }
-        }
-
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 

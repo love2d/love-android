@@ -13,7 +13,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 
 public class DownloadActivity extends Activity {
-    public static final int EXTERNAL_STORAGE_REQUEST_CODE = 2;
+    public static final int EXTERNAL_STORAGE_REQUEST_CODE = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
