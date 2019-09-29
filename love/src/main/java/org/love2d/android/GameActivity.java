@@ -34,7 +34,9 @@ public class GameActivity extends SDLActivity {
     private static Context context;
     private static Vibrator vibrator = null;
     protected final int[] externalStorageRequestDummy = new int[1];
+    protected final int[] recordAudioRequestDummy = new int[1];
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 1;
+    public static final int RECORD_AUDIO_REQUEST_CODE = 2;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
     private boolean storagePermissionUnnecessary = false;
@@ -396,6 +398,36 @@ public class GameActivity extends SDLActivity {
         return audioManager.isMusicActive();
     }
 
+    @Keep
+    public void showRecordingAudioPermissionMissingDialog() {
+        Log.d("GameActivity", "showRecordingAudioPermissionMissingDialog()");
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog dialog = new AlertDialog.Builder(mSingleton)
+                    .setTitle("Audio Recording Permission Missing")
+                    .setMessage("It appears that this game uses mic capabilities. The game may not work correctly without mic permission!")
+                    .setNeutralButton("Continue", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface di, int id) {
+                            synchronized (recordAudioRequestDummy) {
+                                recordAudioRequestDummy.notify();
+                            }
+                        }
+                    })
+                    .create();
+                dialog.show();
+            }
+        });
+
+        synchronized (recordAudioRequestDummy) {
+            try {
+                recordAudioRequestDummy.wait();
+            } catch (InterruptedException e) {
+                Log.d("GameActivity", "mic permission dialog", e);
+            }
+        }
+    }
+
     public void showExternalStoragePermissionMissingDialog() {
         AlertDialog dialog = new AlertDialog.Builder(mSingleton)
             .setTitle("Storage Permission Missing")
@@ -412,22 +444,39 @@ public class GameActivity extends SDLActivity {
         if (grantResults.length > 0) {
             Log.d("GameActivity", "Received a request permission result");
 
-            if (requestCode == EXTERNAL_STORAGE_REQUEST_CODE) {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d("GameActivity", "Permission granted");
-                } else {
-                    Log.d("GameActivity", "Did not get permission.");
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                        showExternalStoragePermissionMissingDialog();
+            switch (requestCode) {
+                case EXTERNAL_STORAGE_REQUEST_CODE: {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Log.d("GameActivity", "Permission granted");
+                    } else {
+                        Log.d("GameActivity", "Did not get permission.");
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                            showExternalStoragePermissionMissingDialog();
+                        }
                     }
-                }
 
-                Log.d("GameActivity", "Unlocking LÖVE thread");
-                synchronized (externalStorageRequestDummy) {
-                    externalStorageRequestDummy[0] = grantResults[0];
-                    externalStorageRequestDummy.notify();
+                    Log.d("GameActivity", "Unlocking LÖVE thread");
+                    synchronized (externalStorageRequestDummy) {
+                        externalStorageRequestDummy[0] = grantResults[0];
+                        externalStorageRequestDummy.notify();
+                    }
+                    break;
                 }
-           }
+                case RECORD_AUDIO_REQUEST_CODE: {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Log.d("GameActivity", "Mic ermission granted");
+                    } else {
+                        Log.d("GameActivity", "Did not get mic permission.");
+                    }
+
+                    Log.d("GameActivity", "Unlocking LÖVE thread");
+                    synchronized (recordAudioRequestDummy) {
+                        recordAudioRequestDummy[0] = grantResults[0];
+                        recordAudioRequestDummy.notify();
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -452,6 +501,31 @@ public class GameActivity extends SDLActivity {
         }
 
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Keep
+    public boolean hasRecordAudioPermission() {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Keep
+    public void requestRecordAudioPermission() {
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        Log.d("GameActivity", "Requesting mic permission and locking LÖVE thread until we have an answer.");
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_REQUEST_CODE);
+
+        synchronized (recordAudioRequestDummy) {
+            try {
+                recordAudioRequestDummy.wait();
+            } catch (InterruptedException e) {
+                Log.d("GameActivity", "requesting mic permission", e);
+            }
+        }
     }
 
     @Keep
