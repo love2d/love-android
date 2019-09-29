@@ -49,16 +49,19 @@ Changelog:
 ----------
 
 11.2:
+
 * Contains all relevant changes for desktop LÖVE 11.2.
 * Added support for ARM64 devices to comply with Play Store requirements.
 * Fixed `love.system.openURL` crashing in some cases.
 * Changed target SDK to 28 so it comply with Play Store requirements.
 
 0.10.2:
+
 * Contains all relevant changes for desktop LÖVE 0.10.2.
 * Upgrade of SDL2 to 2.0.5 (fixes an issue with the accelerometer)
 
 0.10.1:
+
 This release contains all bugfixes of the desktop 0.10.1 release. Android
 specific fixes are:
 * Added a new love.conf flag t.externalstorage, which determines whether files are saved in internal or external storage on Android devices.
@@ -68,10 +71,12 @@ specific fixes are:
 * New icons
 
 0.10.0:
+
 * first official release!
 * Disabled JIT by default as it can cause performance problems. To enable JIT call jit.on()
 
 0.10.0-alpha2:
+
 * Update to the next love API 0.10.0 (not yet officially released)
 * Added building of libtheora
 * Updated LuaJIT from 2.0.1 to 2.1
@@ -81,6 +86,7 @@ specific fixes are:
 * Updated SDL2 to a dev version of 2.0.4
 
 0.9.2a:
+
 * Added bugfix for ParticleSystem:clone
 
 0.9.2:
