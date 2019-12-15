@@ -1,6 +1,6 @@
 /*
 ** LuaJIT VM tags, values and objects.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -638,7 +638,8 @@ typedef struct global_State {
 #define HOOK_PROFILE		0x80
 #define hook_active(g)		((g)->hookmask & HOOK_ACTIVE)
 #define hook_enter(g)		((g)->hookmask |= HOOK_ACTIVE)
-#define hook_entergc(g)		((g)->hookmask |= (HOOK_ACTIVE|HOOK_GC))
+#define hook_entergc(g) \
+  ((g)->hookmask = ((g)->hookmask | (HOOK_ACTIVE|HOOK_GC)) & ~HOOK_PROFILE)
 #define hook_vmevent(g)		((g)->hookmask |= (HOOK_ACTIVE|HOOK_VMEVENT))
 #define hook_leave(g)		((g)->hookmask &= ~HOOK_ACTIVE)
 #define hook_save(g)		((g)->hookmask & ~HOOK_EVENTMASK)
@@ -843,12 +844,16 @@ static LJ_AINLINE void setlightudV(TValue *o, void *p)
 #endif
 
 #if LJ_FR2
-#define setcont(o, f)		((o)->u64 = (uint64_t)(uintptr_t)(void *)(f))
+#define contptr(f)		((void *)(f))
+#define setcont(o, f)		((o)->u64 = (uint64_t)(uintptr_t)contptr(f))
 #elif LJ_64
+#define contptr(f) \
+  ((void *)(uintptr_t)(uint32_t)((intptr_t)(f) - (intptr_t)lj_vm_asm_begin))
 #define setcont(o, f) \
   ((o)->u64 = (uint64_t)(void *)(f) - (uint64_t)lj_vm_asm_begin)
 #else
-#define setcont(o, f)		setlightudV((o), (void *)(f))
+#define contptr(f)		((void *)(f))
+#define setcont(o, f)		setlightudV((o), contptr(f))
 #endif
 
 #define tvchecklive(L, o) \
@@ -920,6 +925,9 @@ static LJ_AINLINE void copyTV(lua_State *L, TValue *o1, const TValue *o2)
 
 #if LJ_SOFTFP
 LJ_ASMF int32_t lj_vm_tobit(double x);
+#if LJ_TARGET_MIPS64
+LJ_ASMF int32_t lj_vm_tointg(double x);
+#endif
 #endif
 
 static LJ_AINLINE int32_t lj_num2bit(lua_Number n)
@@ -935,14 +943,22 @@ static LJ_AINLINE int32_t lj_num2bit(lua_Number n)
 
 #define lj_num2int(n)   ((int32_t)(n))
 
+/*
+** This must match the JIT backend behavior. In particular for archs
+** that don't have a common hardware instruction for this conversion.
+** Note that signed FP to unsigned int conversions have an undefined
+** result and should never be relied upon in portable FFI code.
+** See also: C99 or C11 standard, 6.3.1.4, footnote of (1).
+*/
 static LJ_AINLINE uint64_t lj_num2u64(lua_Number n)
 {
-#ifdef _MSC_VER
-  if (n >= 9223372036854775808.0)  /* They think it's a feature. */
-    return (uint64_t)(int64_t)(n - 18446744073709551616.0);
-  else
+#if LJ_TARGET_X86ORX64 || LJ_TARGET_MIPS
+  int64_t i = (int64_t)n;
+  if (i < 0) i = (int64_t)(n - 18446744073709551616.0);
+  return (uint64_t)i;
+#else
+  return (uint64_t)n;
 #endif
-    return (uint64_t)n;
 }
 
 static LJ_AINLINE int32_t numberVint(cTValue *o)

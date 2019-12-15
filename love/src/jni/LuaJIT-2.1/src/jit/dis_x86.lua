@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT x86/x64 disassembler module.
 --
--- Copyright (C) 2005-2015 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 ----------------------------------------------------------------------------
 -- This is a helper module used by the LuaJIT machine code dumper module.
@@ -158,8 +158,8 @@ local map_opc2 = {
 "||punpcklqdqXrvm","||punpckhqdqXrvm",
 "movPrVSm","movqMrm|movdquXrm|movdqaXrm",
 --7x
-"pshufwMrmu|pshufhwXrmu|pshufdXrmu|pshuflwXrmu","pshiftw!Pmu",
-"pshiftd!Pmu","pshiftq!Mmu||pshiftdq!Xmu",
+"pshufwMrmu|pshufhwXrmu|pshufdXrmu|pshuflwXrmu","pshiftw!Pvmu",
+"pshiftd!Pvmu","pshiftq!Mvmu||pshiftdq!Xvmu",
 "pcmpeqbPrvm","pcmpeqwPrvm","pcmpeqdPrvm","emms*|",
 "vmreadUmr||extrqXmuu$|insertqXrmuu$","vmwriteUrm||extrqXrm$|insertqXrm$",
 nil,nil,
@@ -239,8 +239,30 @@ nil,"||psrlvVSXrvm","||psravdXrvm","||psllvVSXrvm",
 --8x
 [0x8c] = "||pmaskmovXrvVSm",
 [0x8e] = "||pmaskmovVSmXvr",
+--9x
+[0x96] = "||fmaddsub132pHXrvm",[0x97] = "||fmsubadd132pHXrvm",
+[0x98] = "||fmadd132pHXrvm",[0x99] = "||fmadd132sHXrvm",
+[0x9a] = "||fmsub132pHXrvm",[0x9b] = "||fmsub132sHXrvm",
+[0x9c] = "||fnmadd132pHXrvm",[0x9d] = "||fnmadd132sHXrvm",
+[0x9e] = "||fnmsub132pHXrvm",[0x9f] = "||fnmsub132sHXrvm",
+--Ax
+[0xa6] = "||fmaddsub213pHXrvm",[0xa7] = "||fmsubadd213pHXrvm",
+[0xa8] = "||fmadd213pHXrvm",[0xa9] = "||fmadd213sHXrvm",
+[0xaa] = "||fmsub213pHXrvm",[0xab] = "||fmsub213sHXrvm",
+[0xac] = "||fnmadd213pHXrvm",[0xad] = "||fnmadd213sHXrvm",
+[0xae] = "||fnmsub213pHXrvm",[0xaf] = "||fnmsub213sHXrvm",
+--Bx
+[0xb6] = "||fmaddsub231pHXrvm",[0xb7] = "||fmsubadd231pHXrvm",
+[0xb8] = "||fmadd231pHXrvm",[0xb9] = "||fmadd231sHXrvm",
+[0xba] = "||fmsub231pHXrvm",[0xbb] = "||fmsub231sHXrvm",
+[0xbc] = "||fnmadd231pHXrvm",[0xbd] = "||fnmadd231sHXrvm",
+[0xbe] = "||fnmsub231pHXrvm",[0xbf] = "||fnmsub231sHXrvm",
+--Dx
+[0xdc] = "||aesencXrvm", [0xdd] = "||aesenclastXrvm",
+[0xde] = "||aesdecXrvm", [0xdf] = "||aesdeclastXrvm",
 --Fx
 [0xf0] = "|||crc32TrBmt",[0xf1] = "|||crc32TrVmt",
+[0xf7] = "| sarxVrmv| shlxVrmv| shrxVrmv",
 },
 
 ["3a"] = { -- [66] 0f 3a xx
@@ -262,12 +284,16 @@ nil,nil,nil,nil,
 [0x40] = "||dppsXrvmu",
 [0x41] = "||dppdXrvmu",
 [0x42] = "||mpsadbwXrvmu",
+[0x44] = "||pclmulqdqXrvmu",
 [0x46] = "||perm2i128Xrvmu",
 [0x4a] = "||blendvpsXrvmb",[0x4b] = "||blendvpdXrvmb",
 [0x4c] = "||pblendvbXrvmb",
 --6x
 [0x60] = "||pcmpestrmXrmu",[0x61] = "||pcmpestriXrmu",
 [0x62] = "||pcmpistrmXrmu",[0x63] = "||pcmpistriXrmu",
+[0xdf] = "||aeskeygenassistXrmu",
+--Fx
+[0xf0] = "||| rorxVrmu",
 },
 }
 
@@ -409,8 +435,8 @@ local function putop(ctx, text, operands)
 	      (ctx.rexx and "x" or "")..(ctx.rexb and "b" or "")..
 	      (ctx.vexl and "l" or "")
     if ctx.vexv and ctx.vexv ~= 0 then t = t.."v"..ctx.vexv end
-    if t ~= "" then text = ctx.rex.."."..t.." "..text
-    elseif ctx.rex == "vex" then text = "v"..text end
+    if t ~= "" then text = ctx.rex.."."..t.." "..gsub(text, "^ ", "")
+    elseif ctx.rex == "vex" then text = gsub("v"..text, "^v ", "") end
     ctx.rexw = false; ctx.rexr = false; ctx.rexx = false; ctx.rexb = false
     ctx.rex = false; ctx.vexl = false; ctx.vexv = false
   end
@@ -475,7 +501,7 @@ local function putpat(ctx, name, pat)
   local operands, regs, sz, mode, sp, rm, sc, rx, sdisp
   local code, pos, stop, vexl = ctx.code, ctx.pos, ctx.stop, ctx.vexl
 
-  -- Chars used: 1DFGIMPQRSTUVWXYabcdfgijlmoprstuvwxyz
+  -- Chars used: 1DFGHIMPQRSTUVWXYabcdfgijlmoprstuvwxyz
   for p in gmatch(pat, ".") do
     local x = nil
     if p == "V" or p == "U" then
@@ -498,6 +524,9 @@ local function putpat(ctx, name, pat)
       sz = ctx.o16 and "X" or "M"; ctx.o16 = false
       if sz == "X" and vexl then sz = "Y"; ctx.vexl = false end
       regs = map_regs[sz]
+    elseif p == "H" then
+      name = name..(ctx.rexw and "d" or "s")
+      ctx.rexw = false
     elseif p == "S" then
       name = name..lower(sz)
     elseif p == "s" then
@@ -727,6 +756,7 @@ map_act = {
   V = putpat, U = putpat, T = putpat,
   M = putpat, X = putpat, P = putpat,
   F = putpat, G = putpat, Y = putpat,
+  H = putpat,
 
   -- Collect prefixes.
   [":"] = function(ctx, name, pat)
@@ -810,7 +840,7 @@ map_act = {
       m = b%32; b = (b-m)/32
       local nb = b%2; b = (b-nb)/2
       if nb == 0 then ctx.rexb = true end
-      local nx = b%2; b = (b-nx)/2
+      local nx = b%2
       if nx == 0 then ctx.rexx = true end
       b = byte(ctx.code, pos, pos)
       if not b then return incomplete(ctx) end

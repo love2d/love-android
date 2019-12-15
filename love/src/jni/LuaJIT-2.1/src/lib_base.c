@@ -1,6 +1,6 @@
 /*
 ** Base and coroutine library.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Major portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2011 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -23,6 +23,7 @@
 #include "lj_tab.h"
 #include "lj_meta.h"
 #include "lj_state.h"
+#include "lj_frame.h"
 #if LJ_HASFFI
 #include "lj_ctype.h"
 #include "lj_cconv.h"
@@ -41,13 +42,13 @@
 
 LJLIB_ASM(assert)		LJLIB_REC(.)
 {
-  GCstr *s;
   lj_lib_checkany(L, 1);
-  s = lj_lib_optstr(L, 2);
-  if (s)
-    lj_err_callermsg(L, strdata(s));
-  else
+  if (L->top == L->base+1)
     lj_err_caller(L, LJ_ERR_ASSERT);
+  else if (tvisstr(L->base+1) || tvisnumber(L->base+1))
+    lj_err_callermsg(L, strdata(lj_lib_checkstr(L, 2)));
+  else
+    lj_err_run(L);
   return FFH_UNREACHABLE;
 }
 
@@ -286,18 +287,27 @@ LJLIB_ASM(tonumber)		LJLIB_REC(.)
   } else {
     const char *p = strdata(lj_lib_checkstr(L, 1));
     char *ep;
+    unsigned int neg = 0;
     unsigned long ul;
     if (base < 2 || base > 36)
       lj_err_arg(L, 2, LJ_ERR_BASERNG);
-    ul = strtoul(p, &ep, base);
-    if (p != ep) {
-      while (lj_char_isspace((unsigned char)(*ep))) ep++;
-      if (*ep == '\0') {
-	if (LJ_DUALNUM && LJ_LIKELY(ul < 0x80000000u))
-	  setintV(L->base-1-LJ_FR2, (int32_t)ul);
-	else
-	  setnumV(L->base-1-LJ_FR2, (lua_Number)ul);
-	return FFH_RES(1);
+    while (lj_char_isspace((unsigned char)(*p))) p++;
+    if (*p == '-') { p++; neg = 1; } else if (*p == '+') { p++; }
+    if (lj_char_isalnum((unsigned char)(*p))) {
+      ul = strtoul(p, &ep, base);
+      if (p != ep) {
+	while (lj_char_isspace((unsigned char)(*ep))) ep++;
+	if (*ep == '\0') {
+	  if (LJ_DUALNUM && LJ_LIKELY(ul < 0x80000000u+neg)) {
+	    if (neg) ul = -ul;
+	    setintV(L->base-1-LJ_FR2, (int32_t)ul);
+	  } else {
+	    lua_Number n = (lua_Number)ul;
+	    if (neg) n = -n;
+	    setnumV(L->base-1-LJ_FR2, n);
+	  }
+	  return FFH_RES(1);
+	}
       }
     }
   }
@@ -345,7 +355,7 @@ LJLIB_ASM_(xpcall)		LJLIB_REC(.)
 
 static int load_aux(lua_State *L, int status, int envarg)
 {
-  if (status == 0) {
+  if (status == LUA_OK) {
     if (tvistab(L->base+envarg-1)) {
       GCfunc *fn = funcV(L->top-1);
       GCtab *t = tabV(L->base+envarg-1);
@@ -418,7 +428,7 @@ LJLIB_CF(dofile)
   GCstr *fname = lj_lib_optstr(L, 1);
   setnilV(L->top);
   L->top = L->base+1;
-  if (luaL_loadfile(L, fname ? strdata(fname) : NULL) != 0)
+  if (luaL_loadfile(L, fname ? strdata(fname) : NULL) != LUA_OK)
     lua_error(L);
   lua_call(L, 0, LUA_MULTRET);
   return (int)(L->top - L->base) - 1;
@@ -492,14 +502,14 @@ LJLIB_CF(print)
     lua_gettable(L, LUA_GLOBALSINDEX);
     tv = L->top-1;
   }
-  shortcut = (tvisfunc(tv) && funcV(tv)->c.ffid == FF_tostring);
+  shortcut = (tvisfunc(tv) && funcV(tv)->c.ffid == FF_tostring)
+              && !gcrefu(basemt_it(G(L), LJ_TNUMX));
   for (i = 0; i < nargs; i++) {
     cTValue *o = &L->base[i];
-    char buf[STRFMT_MAXBUF_NUM];
     const char *str;
     size_t size;
     MSize len;
-    if (shortcut && (str = lj_strfmt_wstrnum(buf, o, &len)) != NULL) {
+    if (shortcut && (str = lj_strfmt_wstrnum(L, o, &len)) != NULL) {
       size = len;
     } else {
       copyTV(L, L->top+1, o);
@@ -537,7 +547,7 @@ LJLIB_CF(coroutine_status)
   co = threadV(L->base);
   if (co == L) s = "running";
   else if (co->status == LUA_YIELD) s = "suspended";
-  else if (co->status != 0) s = "dead";
+  else if (co->status != LUA_OK) s = "dead";
   else if (co->base > tvref(co->stack)+1+LJ_FR2) s = "normal";
   else if (co->top == co->base) s = "dead";
   else s = "suspended";
@@ -556,6 +566,12 @@ LJLIB_CF(coroutine_running)
     setnilV(L->top++);
   return 1;
 #endif
+}
+
+LJLIB_CF(coroutine_isyieldable)
+{
+  setboolV(L->top++, cframe_canyield(L->cframe));
+  return 1;
 }
 
 LJLIB_CF(coroutine_create)
@@ -577,7 +593,7 @@ LJLIB_ASM(coroutine_yield)
 static int ffh_resume(lua_State *L, lua_State *co, int wrap)
 {
   if (co->cframe != NULL || co->status > LUA_YIELD ||
-      (co->status == 0 && co->top == co->base)) {
+      (co->status == LUA_OK && co->top == co->base)) {
     ErrMsg em = co->cframe ? LJ_ERR_CORUN : LJ_ERR_CODEAD;
     if (wrap) lj_err_caller(L, em);
     setboolV(L->base-1-LJ_FR2, 0);

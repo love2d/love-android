@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 -- DynASM x86/x64 module.
 --
--- Copyright (C) 2005-2015 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
 -- See dynasm.lua for full copyright notice.
 ------------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ local action_names = {
   -- int arg, 1 buffer pos:
   "DISP",  "IMM_S", "IMM_B", "IMM_W", "IMM_D",  "IMM_WB", "IMM_DB",
   -- action arg (1 byte), int arg, 1 buffer pos (reg/num):
-  "VREG", "SPACE", -- !x64: VREG support NYI.
+  "VREG", "SPACE",
   -- ptrdiff_t arg, 1 buffer pos (address): !x64
   "SETLABEL", "REL_A",
   -- action arg (1 byte) or int arg, 2 buffer pos (link, offset):
@@ -82,6 +82,21 @@ local actargs = { 0 }
 
 -- Current number of section buffer positions for dasm_put().
 local secpos = 1
+
+-- VREG kind encodings, pre-shifted by 5 bits.
+local map_vreg = {
+  ["modrm.rm.m"] = 0x00,
+  ["modrm.rm.r"] = 0x20,
+  ["opcode"] =     0x20,
+  ["sib.base"] =   0x20,
+  ["sib.index"] =  0x40,
+  ["modrm.reg"] =  0x80,
+  ["vex.v"] =      0xa0,
+  ["imm.hi"] =     0xc0,
+}
+
+-- Current number of VREG actions contributing to REX/VEX shrinkage.
+local vreg_shrink_count = 0
 
 ------------------------------------------------------------------------------
 
@@ -132,6 +147,21 @@ local function waction(action, a, num)
   wputxb(assert(map_action[action], "bad action name `"..action.."'"))
   if a then actargs[#actargs+1] = a end
   if a or num then secpos = secpos + (num or 1) end
+end
+
+-- Optionally add a VREG action.
+local function wvreg(kind, vreg, psz, sk, defer)
+  if not vreg then return end
+  waction("VREG", vreg)
+  local b = assert(map_vreg[kind], "bad vreg kind `"..vreg.."'")
+  if b < (sk or 0) then
+    vreg_shrink_count = vreg_shrink_count + 1
+  end
+  if not defer then
+    b = b + vreg_shrink_count * 8
+    vreg_shrink_count = 0
+  end
+  wputxb(b + (psz or 0))
 end
 
 -- Add call to embedded DynASM C code.
@@ -326,6 +356,7 @@ mkrmap("w", "Rw", {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"})
 mkrmap("b", "Rb", {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"})
 map_reg_valid_index[map_archdef.esp] = false
 if x64 then map_reg_valid_index[map_archdef.rsp] = false end
+if x64 then map_reg_needrex[map_archdef.Rb] = true end
 map_archdef["Ra"] = "@"..addrsize
 
 -- FP registers (internally tword sized, but use "f" as operand size).
@@ -463,16 +494,24 @@ local function wputszarg(sz, n)
 end
 
 -- Put multi-byte opcode with operand-size dependent modifications.
-local function wputop(sz, op, rex, vex)
+local function wputop(sz, op, rex, vex, vregr, vregxb)
+  local psz, sk = 0, nil
   if vex then
     local tail
     if vex.m == 1 and band(rex, 11) == 0 then
-      wputb(0xc5)
+      if x64 and vregxb then
+	sk = map_vreg["modrm.reg"]
+      else
+	wputb(0xc5)
       tail = shl(bxor(band(rex, 4), 4), 5)
-    else
+      psz = 3
+      end
+    end
+    if not tail then
       wputb(0xc4)
       wputb(shl(bxor(band(rex, 7), 7), 5) + vex.m)
       tail = shl(band(rex, 8), 4)
+      psz = 4
     end
     local reg, vreg = 0, nil
     if vex.v then
@@ -482,12 +521,18 @@ local function wputop(sz, op, rex, vex)
     end
     if sz == "y" or vex.l then tail = tail + 4 end
     wputb(tail + shl(bxor(reg, 15), 3) + vex.p)
-    if vreg then waction("VREG", vreg); wputxb(4) end
+    wvreg("vex.v", vreg)
     rex = 0
     if op >= 256 then werror("bad vex opcode") end
+  else
+    if rex ~= 0 then
+      if not x64 then werror("bad operand size") end
+    elseif (vregr or vregxb) and x64 then
+      rex = 0x10
+      sk = map_vreg["vex.v"]
+    end
   end
   local r
-  if rex ~= 0 and not x64 then werror("bad operand size") end
   if sz == "w" then wputb(102) end
   -- Needs >32 bit numbers, but only for crc32 eax, word [ebx]
   if op >= 4294967296 then r = op%4294967296 wputb((op-r)/4294967296) op = r end
@@ -496,20 +541,20 @@ local function wputop(sz, op, rex, vex)
     if rex ~= 0 then
       local opc3 = band(op, 0xffff00)
       if opc3 == 0x0f3a00 or opc3 == 0x0f3800 then
-	wputb(64 + band(rex, 15)); rex = 0
+	wputb(64 + band(rex, 15)); rex = 0; psz = 2
       end
     end
-    wputb(shr(op, 16)); op = band(op, 0xffff)
+    wputb(shr(op, 16)); op = band(op, 0xffff); psz = psz + 1
   end
   if op >= 256 then
     local b = shr(op, 8)
-    if b == 15 and rex ~= 0 then wputb(64 + band(rex, 15)); rex = 0 end
-    wputb(b)
-    op = band(op, 255)
+    if b == 15 and rex ~= 0 then wputb(64 + band(rex, 15)); rex = 0; psz = 2 end
+    wputb(b); op = band(op, 255); psz = psz + 1
   end
-  if rex ~= 0 then wputb(64 + band(rex, 15)) end
+  if rex ~= 0 then wputb(64 + band(rex, 15)); psz = 2 end
   if sz == "b" then op = op - 1 end
   wputb(op)
+  return psz, sk
 end
 
 -- Put ModRM or SIB formatted byte.
@@ -519,7 +564,7 @@ local function wputmodrm(m, s, rm, vs, vrm)
 end
 
 -- Put ModRM/SIB plus optional displacement.
-local function wputmrmsib(t, imark, s, vsreg)
+local function wputmrmsib(t, imark, s, vsreg, psz, sk)
   local vreg, vxreg
   local reg, xreg = t.reg, t.xreg
   if reg and reg < 0 then reg = 0; vreg = t.vreg end
@@ -529,8 +574,8 @@ local function wputmrmsib(t, imark, s, vsreg)
   -- Register mode.
   if sub(t.mode, 1, 1) == "r" then
     wputmodrm(3, s, reg)
-    if vsreg then waction("VREG", vsreg); wputxb(2) end
-    if vreg then waction("VREG", vreg); wputxb(0) end
+    wvreg("modrm.reg", vsreg, psz+1, sk, vreg)
+    wvreg("modrm.rm.r", vreg, psz+1, sk)
     return
   end
 
@@ -544,21 +589,22 @@ local function wputmrmsib(t, imark, s, vsreg)
       -- [xreg*xsc+disp] -> (0, s, esp) (xsc, xreg, ebp)
       wputmodrm(0, s, 4)
       if imark == "I" then waction("MARK") end
-      if vsreg then waction("VREG", vsreg); wputxb(2) end
+      wvreg("modrm.reg", vsreg, psz+1, sk, vxreg)
       wputmodrm(t.xsc, xreg, 5)
-      if vxreg then waction("VREG", vxreg); wputxb(3) end
+      wvreg("sib.index", vxreg, psz+2, sk)
     else
       -- Pure 32 bit displacement.
       if x64 and tdisp ~= "table" then
 	wputmodrm(0, s, 4) -- [disp] -> (0, s, esp) (0, esp, ebp)
+	wvreg("modrm.reg", vsreg, psz+1, sk)
 	if imark == "I" then waction("MARK") end
 	wputmodrm(0, 4, 5)
       else
 	riprel = x64
 	wputmodrm(0, s, 5) -- [disp|rip-label] -> (0, s, ebp)
+	wvreg("modrm.reg", vsreg, psz+1, sk)
 	if imark == "I" then waction("MARK") end
       end
-      if vsreg then waction("VREG", vsreg); wputxb(2) end
     end
     if riprel then -- Emit rip-relative displacement.
       if match("UWSiI", imark) then
@@ -586,16 +632,16 @@ local function wputmrmsib(t, imark, s, vsreg)
   if xreg or band(reg, 7) == 4 then
     wputmodrm(m or 2, s, 4) -- ModRM.
     if m == nil or imark == "I" then waction("MARK") end
-    if vsreg then waction("VREG", vsreg); wputxb(2) end
+    wvreg("modrm.reg", vsreg, psz+1, sk, vxreg or vreg)
     wputmodrm(t.xsc or 0, xreg or 4, reg) -- SIB.
-    if vxreg then waction("VREG", vxreg); wputxb(3) end
-    if vreg then waction("VREG", vreg); wputxb(1) end
+    wvreg("sib.index", vxreg, psz+2, sk, vreg)
+    wvreg("sib.base", vreg, psz+2, sk)
   else
     wputmodrm(m or 2, s, reg) -- ModRM.
     if (imark == "I" and (m == 1 or m == 2)) or
        (m == nil and (vsreg or vreg)) then waction("MARK") end
-    if vsreg then waction("VREG", vsreg); wputxb(2) end
-    if vreg then waction("VREG", vreg); wputxb(1) end
+    wvreg("modrm.reg", vsreg, psz+1, sk, vreg)
+    wvreg("modrm.rm.m", vreg, psz+1, sk)
   end
 
   -- Put displacement.
@@ -909,6 +955,7 @@ end
 --   "u"       Use VEX encoding, vvvv unused.
 --   "v"/"V"   Use VEX encoding, vvvv from 1st/2nd operand (the operand is
 --             removed from the list used by future characters).
+--   "w"       Use VEX encoding, vvvv from 3rd operand.
 --   "L"       Force VEX.L
 --
 -- All of the following characters force a flush of the opcode:
@@ -1490,8 +1537,8 @@ local map_op = {
   vrcpss_3 =	"rrro:F30FV53rM|rrx/ood:",
   vrsqrtps_2 =	"rmoy:0Fu52rM",
   vrsqrtss_3 =	"rrro:F30FV52rM|rrx/ood:",
-  vroundpd_3 =	"rmioy:660F3AV09rMU",
-  vroundps_3 =	"rmioy:660F3AV08rMU",
+  vroundpd_3 =	"rmioy:660F3Au09rMU",
+  vroundps_3 =	"rmioy:660F3Au08rMU",
   vroundsd_4 =	"rrrio:660F3AV0BrMU|rrxi/ooq:",
   vroundss_4 =	"rrrio:660F3AV0ArMU|rrxi/ood:",
   vshufpd_4 =	"rrmioy:660FVC6rMU",
@@ -1521,6 +1568,12 @@ local map_op = {
 
   -- AVX, AVX2 integer ops
   -- In general, xmm requires AVX, ymm requires AVX2.
+  vaesdec_3 =  "rrmo:660F38VDErM",
+  vaesdeclast_3 = "rrmo:660F38VDFrM",
+  vaesenc_3 =  "rrmo:660F38VDCrM",
+  vaesenclast_3 = "rrmo:660F38VDDrM",
+  vaesimc_2 =  "rmo:660F38uDBrM",
+  vaeskeygenassist_3 = "rmio:660F3AuDFrMU",
   vlddqu_2 =	"rxoy:F20FuF0rM",
   vmaskmovdqu_2 = "rro:660FuF7rM",
   vmovdqa_2 =	"rmoy:660Fu6FrM|mroy:660Fu7FRm",
@@ -1621,6 +1674,95 @@ local map_op = {
   vpsravd_3 =	"rrmoy:660F38V46rM",
   vpsrlvd_3 =	"rrmoy:660F38V45rM",
   vpsrlvq_3 =	"rrmoy:660F38VX45rM",
+
+  -- Intel ADX
+  adcx_2 =	"rmqd:660F38F6rM",
+  adox_2 =	"rmqd:F30F38F6rM",
+
+  -- BMI1
+  andn_3 =	"rrmqd:0F38VF2rM",
+  bextr_3 =	"rmrqd:0F38wF7rM",
+  blsi_2 =	"rmqd:0F38vF33m",
+  blsmsk_2 =	"rmqd:0F38vF32m",
+  blsr_2 =	"rmqd:0F38vF31m",
+  tzcnt_2 =	"rmqdw:F30FBCrM",
+
+  -- BMI2
+  bzhi_3 =	"rmrqd:0F38wF5rM",
+  mulx_3 =	"rrmqd:F20F38VF6rM",
+  pdep_3 =	"rrmqd:F20F38VF5rM",
+  pext_3 =	"rrmqd:F30F38VF5rM",
+  rorx_3 =	"rmSqd:F20F3AuF0rMS",
+  sarx_3 =	"rmrqd:F30F38wF7rM",
+  shrx_3 =	"rmrqd:F20F38wF7rM",
+  shlx_3 =	"rmrqd:660F38wF7rM",
+
+  -- FMA3
+  vfmaddsub132pd_3 = "rrmoy:660F38VX96rM",
+  vfmaddsub132ps_3 = "rrmoy:660F38V96rM",
+  vfmaddsub213pd_3 = "rrmoy:660F38VXA6rM",
+  vfmaddsub213ps_3 = "rrmoy:660F38VA6rM",
+  vfmaddsub231pd_3 = "rrmoy:660F38VXB6rM",
+  vfmaddsub231ps_3 = "rrmoy:660F38VB6rM",
+
+  vfmsubadd132pd_3 = "rrmoy:660F38VX97rM",
+  vfmsubadd132ps_3 = "rrmoy:660F38V97rM",
+  vfmsubadd213pd_3 = "rrmoy:660F38VXA7rM",
+  vfmsubadd213ps_3 = "rrmoy:660F38VA7rM",
+  vfmsubadd231pd_3 = "rrmoy:660F38VXB7rM",
+  vfmsubadd231ps_3 = "rrmoy:660F38VB7rM",
+
+  vfmadd132pd_3 = "rrmoy:660F38VX98rM",
+  vfmadd132ps_3 = "rrmoy:660F38V98rM",
+  vfmadd132sd_3 = "rrro:660F38VX99rM|rrx/ooq:",
+  vfmadd132ss_3 = "rrro:660F38V99rM|rrx/ood:",
+  vfmadd213pd_3 = "rrmoy:660F38VXA8rM",
+  vfmadd213ps_3 = "rrmoy:660F38VA8rM",
+  vfmadd213sd_3 = "rrro:660F38VXA9rM|rrx/ooq:",
+  vfmadd213ss_3 = "rrro:660F38VA9rM|rrx/ood:",
+  vfmadd231pd_3 = "rrmoy:660F38VXB8rM",
+  vfmadd231ps_3 = "rrmoy:660F38VB8rM",
+  vfmadd231sd_3 = "rrro:660F38VXB9rM|rrx/ooq:",
+  vfmadd231ss_3 = "rrro:660F38VB9rM|rrx/ood:",
+
+  vfmsub132pd_3 = "rrmoy:660F38VX9ArM",
+  vfmsub132ps_3 = "rrmoy:660F38V9ArM",
+  vfmsub132sd_3 = "rrro:660F38VX9BrM|rrx/ooq:",
+  vfmsub132ss_3 = "rrro:660F38V9BrM|rrx/ood:",
+  vfmsub213pd_3 = "rrmoy:660F38VXAArM",
+  vfmsub213ps_3 = "rrmoy:660F38VAArM",
+  vfmsub213sd_3 = "rrro:660F38VXABrM|rrx/ooq:",
+  vfmsub213ss_3 = "rrro:660F38VABrM|rrx/ood:",
+  vfmsub231pd_3 = "rrmoy:660F38VXBArM",
+  vfmsub231ps_3 = "rrmoy:660F38VBArM",
+  vfmsub231sd_3 = "rrro:660F38VXBBrM|rrx/ooq:",
+  vfmsub231ss_3 = "rrro:660F38VBBrM|rrx/ood:",
+
+  vfnmadd132pd_3 = "rrmoy:660F38VX9CrM",
+  vfnmadd132ps_3 = "rrmoy:660F38V9CrM",
+  vfnmadd132sd_3 = "rrro:660F38VX9DrM|rrx/ooq:",
+  vfnmadd132ss_3 = "rrro:660F38V9DrM|rrx/ood:",
+  vfnmadd213pd_3 = "rrmoy:660F38VXACrM",
+  vfnmadd213ps_3 = "rrmoy:660F38VACrM",
+  vfnmadd213sd_3 = "rrro:660F38VXADrM|rrx/ooq:",
+  vfnmadd213ss_3 = "rrro:660F38VADrM|rrx/ood:",
+  vfnmadd231pd_3 = "rrmoy:660F38VXBCrM",
+  vfnmadd231ps_3 = "rrmoy:660F38VBCrM",
+  vfnmadd231sd_3 = "rrro:660F38VXBDrM|rrx/ooq:",
+  vfnmadd231ss_3 = "rrro:660F38VBDrM|rrx/ood:",
+
+  vfnmsub132pd_3 = "rrmoy:660F38VX9ErM",
+  vfnmsub132ps_3 = "rrmoy:660F38V9ErM",
+  vfnmsub132sd_3 = "rrro:660F38VX9FrM|rrx/ooq:",
+  vfnmsub132ss_3 = "rrro:660F38V9FrM|rrx/ood:",
+  vfnmsub213pd_3 = "rrmoy:660F38VXAErM",
+  vfnmsub213ps_3 = "rrmoy:660F38VAErM",
+  vfnmsub213sd_3 = "rrro:660F38VXAFrM|rrx/ooq:",
+  vfnmsub213ss_3 = "rrro:660F38VAFrM|rrx/ood:",
+  vfnmsub231pd_3 = "rrmoy:660F38VXBErM",
+  vfnmsub231ps_3 = "rrmoy:660F38VBErM",
+  vfnmsub231sd_3 = "rrro:660F38VXBFrM|rrx/ooq:",
+  vfnmsub231ss_3 = "rrro:660F38VBFrM|rrx/ood:",
 }
 
 ------------------------------------------------------------------------------
@@ -1761,10 +1903,11 @@ local function dopattern(pat, args, sz, op, needrex)
       if t.xreg and t.xreg > 7 then rex = rex + 2 end
       if s > 7 then rex = rex + 4 end
       if needrex then rex = rex + 16 end
-      wputop(szov, opcode, rex, vex); opcode = nil
+      local psz, sk = wputop(szov, opcode, rex, vex, s < 0, t.vreg or t.vxreg)
+      opcode = nil
       local imark = sub(pat, -1) -- Force a mark (ugly).
       -- Put ModRM/SIB with regno/last digit as spare.
-      wputmrmsib(t, imark, s, addin and addin.vreg)
+      wputmrmsib(t, imark, s, addin and addin.vreg, psz, sk)
       addin = nil
     elseif map_vexarg[c] ~= nil then -- Encode using VEX prefix
       local b = band(opcode, 255); opcode = shr(opcode, 8)
@@ -1791,8 +1934,8 @@ local function dopattern(pat, args, sz, op, needrex)
 	if szov == "q" and rex == 0 then rex = rex + 8 end
 	if needrex then rex = rex + 16 end
 	if addin and addin.reg == -1 then
-	  wputop(szov, opcode - 7, rex, vex)
-	  waction("VREG", addin.vreg); wputxb(0)
+	  local psz, sk = wputop(szov, opcode - 7, rex, vex, true)
+	  wvreg("opcode", addin.vreg, psz, sk)
 	else
 	  if addin and addin.reg > 7 then rex = rex + 1 end
 	  wputop(szov, opcode, rex, vex)
@@ -1836,7 +1979,7 @@ local function dopattern(pat, args, sz, op, needrex)
 	  local reg = a.reg
 	  if reg < 0 then
 	    wputb(0)
-	    waction("VREG", a.vreg); wputxb(5)
+	    wvreg("imm.hi", a.vreg)
 	  else
 	    wputb(shl(reg, 4))
 	  end
@@ -1988,8 +2131,8 @@ if x64 then
 	rex = a.reg > 7 and 9 or 8
       end
     end
-    wputop(sz, opcode, rex)
-    if vreg then waction("VREG", vreg); wputxb(0) end
+    local psz, sk = wputop(sz, opcode, rex, nil, vreg)
+    wvreg("opcode", vreg, psz, sk)
     waction("IMM_D", format("(unsigned int)(%s)", op64))
     waction("IMM_D", format("(unsigned int)((%s)>>32)", op64))
   end

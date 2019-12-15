@@ -1,6 +1,6 @@
 /*
 ** Table handling.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Major portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -28,7 +28,6 @@ static LJ_AINLINE Node *hashmask(const GCtab *t, uint32_t hash)
 
 #define hashlohi(t, lo, hi)	hashmask((t), hashrot((lo), (hi)))
 #define hashnum(t, o)		hashlohi((t), (o)->u32.lo, ((o)->u32.hi << 1))
-#define hashptr(t, p)		hashlohi((t), u32ptr(p), u32ptr(p) + HASH_BIAS)
 #if LJ_GC64
 #define hashgcref(t, r) \
   hashlohi((t), (uint32_t)gcrefu(r), (uint32_t)(gcrefu(r) >> 32))
@@ -487,11 +486,33 @@ TValue *lj_tab_newkey(lua_State *L, GCtab *t, cTValue *key)
       /* Rechain pseudo-resurrected string keys with colliding hashes. */
       while (nextnode(freenode)) {
 	Node *nn = nextnode(freenode);
-	if (tvisstr(&nn->key) && !tvisnil(&nn->val) &&
-	    hashstr(t, strV(&nn->key)) == n) {
+	if (!tvisnil(&nn->val) && hashkey(t, &nn->key) == n) {
 	  freenode->next = nn->next;
 	  nn->next = n->next;
 	  setmref(n->next, nn);
+	  /*
+	  ** Rechaining a resurrected string key creates a new dilemma:
+	  ** Another string key may have originally been resurrected via
+	  ** _any_ of the previous nodes as a chain anchor. Including
+	  ** a node that had to be moved, which makes them unreachable.
+	  ** It's not feasible to check for all previous nodes, so rechain
+	  ** any string key that's currently in a non-main positions.
+	  */
+	  while ((nn = nextnode(freenode))) {
+	    if (!tvisnil(&nn->val)) {
+	      Node *mn = hashkey(t, &nn->key);
+	      if (mn != freenode && mn != nn) {
+		freenode->next = nn->next;
+		nn->next = mn->next;
+		setmref(mn->next, nn);
+	      } else {
+		freenode = nn;
+	      }
+	    } else {
+	      freenode = nn;
+	    }
+	  }
+	  break;
 	} else {
 	  freenode = nn;
 	}

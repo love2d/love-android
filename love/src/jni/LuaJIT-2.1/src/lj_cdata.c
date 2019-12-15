@@ -1,6 +1,6 @@
 /*
 ** C data management.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #include "lj_obj.h"
@@ -49,6 +49,15 @@ GCcdata *lj_cdata_newv(lua_State *L, CTypeID id, CTSize sz, CTSize align)
   return cd;
 }
 
+/* Allocate arbitrary C data object. */
+GCcdata *lj_cdata_newx(CTState *cts, CTypeID id, CTSize sz, CTInfo info)
+{
+  if (!(info & CTF_VLA) && ctype_align(info) <= CT_MEMALIGN)
+    return lj_cdata_new(cts, id, sz);
+  else
+    return lj_cdata_newv(cts->L, id, sz, ctype_align(info));
+}
+
 /* Free a C data object. */
 void LJ_FASTCALL lj_cdata_free(global_State *g, GCcdata *cd)
 {
@@ -84,11 +93,13 @@ void lj_cdata_setfin(lua_State *L, GCcdata *cd, GCobj *obj, uint32_t it)
     setcdataV(L, &tmp, cd);
     lj_gc_anybarriert(L, t);
     tv = lj_tab_set(L, t, &tmp);
-    setgcV(L, tv, obj, it);
-    if (!tvisnil(tv))
-      cd->marked |= LJ_GC_CDATA_FIN;
-    else
+    if (it == LJ_TNIL) {
+      setnilV(tv);
       cd->marked &= ~LJ_GC_CDATA_FIN;
+    } else {
+      setgcV(L, tv, obj, it);
+      cd->marked |= LJ_GC_CDATA_FIN;
+    }
   }
 }
 

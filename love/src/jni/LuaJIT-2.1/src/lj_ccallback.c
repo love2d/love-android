@@ -1,6 +1,6 @@
 /*
 ** FFI C callback handling.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #include "lj_obj.h"
@@ -63,9 +63,13 @@ static MSize CALLBACK_OFS2SLOT(MSize ofs)
 
 #define CALLBACK_MCODE_HEAD		24
 
-#elif LJ_TARGET_MIPS
+#elif LJ_TARGET_MIPS32
 
-#define CALLBACK_MCODE_HEAD		24
+#define CALLBACK_MCODE_HEAD		20
+
+#elif LJ_TARGET_MIPS64
+
+#define CALLBACK_MCODE_HEAD		52
 
 #else
 
@@ -169,16 +173,16 @@ static void callback_mcode_init(global_State *g, uint32_t *page)
   uint32_t *p = page;
   void *target = (void *)lj_vm_ffi_callback;
   MSize slot;
-  *p++ = A64I_LDRLx | A64F_D(RID_X11) | A64F_S19(4);
-  *p++ = A64I_LDRLx | A64F_D(RID_X10) | A64F_S19(5);
-  *p++ = A64I_BR | A64F_N(RID_X11);
-  *p++ = A64I_NOP;
+  *p++ = A64I_LE(A64I_LDRLx | A64F_D(RID_X11) | A64F_S19(4));
+  *p++ = A64I_LE(A64I_LDRLx | A64F_D(RID_X10) | A64F_S19(5));
+  *p++ = A64I_LE(A64I_BR | A64F_N(RID_X11));
+  *p++ = A64I_LE(A64I_NOP);
   ((void **)p)[0] = target;
   ((void **)p)[1] = g;
   p += 4;
   for (slot = 0; slot < CALLBACK_MAX_SLOT; slot++) {
-    *p++ = A64I_MOVZw | A64F_D(RID_X9) | A64F_U16(slot);
-    *p = A64I_B | A64F_S26((page-p) & 0x03ffffffu);
+    *p++ = A64I_LE(A64I_MOVZw | A64F_D(RID_X9) | A64F_U16(slot));
+    *p = A64I_LE(A64I_B | A64F_S26((page-p) & 0x03ffffffu));
     p++;
   }
   lua_assert(p - page <= CALLBACK_MCODE_SIZE);
@@ -206,14 +210,27 @@ static void callback_mcode_init(global_State *g, uint32_t *page)
 static void callback_mcode_init(global_State *g, uint32_t *page)
 {
   uint32_t *p = page;
-  void *target = (void *)lj_vm_ffi_callback;
+  uintptr_t target = (uintptr_t)(void *)lj_vm_ffi_callback;
+  uintptr_t ug = (uintptr_t)(void *)g;
   MSize slot;
-  *p++ = MIPSI_SW | MIPSF_T(RID_R1)|MIPSF_S(RID_SP) | 0;
-  *p++ = MIPSI_LUI | MIPSF_T(RID_R3) | (u32ptr(target) >> 16);
-  *p++ = MIPSI_LUI | MIPSF_T(RID_R2) | (u32ptr(g) >> 16);
-  *p++ = MIPSI_ORI | MIPSF_T(RID_R3)|MIPSF_S(RID_R3) |(u32ptr(target)&0xffff);
+#if LJ_TARGET_MIPS32
+  *p++ = MIPSI_LUI | MIPSF_T(RID_R3) | (target >> 16);
+  *p++ = MIPSI_LUI | MIPSF_T(RID_R2) | (ug >> 16);
+#else
+  *p++ = MIPSI_LUI  | MIPSF_T(RID_R3) | (target >> 48);
+  *p++ = MIPSI_LUI  | MIPSF_T(RID_R2) | (ug >> 48);
+  *p++ = MIPSI_ORI  | MIPSF_T(RID_R3)|MIPSF_S(RID_R3) | ((target >> 32) & 0xffff);
+  *p++ = MIPSI_ORI  | MIPSF_T(RID_R2)|MIPSF_S(RID_R2) | ((ug >> 32) & 0xffff);
+  *p++ = MIPSI_DSLL | MIPSF_D(RID_R3)|MIPSF_T(RID_R3) | MIPSF_A(16);
+  *p++ = MIPSI_DSLL | MIPSF_D(RID_R2)|MIPSF_T(RID_R2) | MIPSF_A(16);
+  *p++ = MIPSI_ORI  | MIPSF_T(RID_R3)|MIPSF_S(RID_R3) | ((target >> 16) & 0xffff);
+  *p++ = MIPSI_ORI  | MIPSF_T(RID_R2)|MIPSF_S(RID_R2) | ((ug >> 16) & 0xffff);
+  *p++ = MIPSI_DSLL | MIPSF_D(RID_R3)|MIPSF_T(RID_R3) | MIPSF_A(16);
+  *p++ = MIPSI_DSLL | MIPSF_D(RID_R2)|MIPSF_T(RID_R2) | MIPSF_A(16);
+#endif
+  *p++ = MIPSI_ORI  | MIPSF_T(RID_R3)|MIPSF_S(RID_R3) | (target & 0xffff);
   *p++ = MIPSI_JR | MIPSF_S(RID_R3);
-  *p++ = MIPSI_ORI | MIPSF_T(RID_R2)|MIPSF_S(RID_R2) | (u32ptr(g)&0xffff);
+  *p++ = MIPSI_ORI | MIPSF_T(RID_R2)|MIPSF_S(RID_R2) | (ug & 0xffff);
   for (slot = 0; slot < CALLBACK_MAX_SLOT; slot++) {
     *p = MIPSI_B | ((page-p-1) & 0x0000ffffu);
     p++;
@@ -250,7 +267,7 @@ static void callback_mcode_new(CTState *cts)
   if (CALLBACK_MAX_SLOT == 0)
     lj_err_caller(cts->L, LJ_ERR_FFI_CBACKOV);
 #if LJ_TARGET_WINDOWS
-  p = VirtualAlloc(NULL, sz, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+  p = LJ_WIN_VALLOC(NULL, sz, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
   if (!p)
     lj_err_caller(cts->L, LJ_ERR_FFI_CBACKOV);
 #elif LJ_TARGET_POSIX
@@ -268,7 +285,7 @@ static void callback_mcode_new(CTState *cts)
 #if LJ_TARGET_WINDOWS
   {
     DWORD oprot;
-    VirtualProtect(p, sz, PAGE_EXECUTE_READ, &oprot);
+    LJ_WIN_VPROTECT(p, sz, PAGE_EXECUTE_READ, &oprot);
   }
 #elif LJ_TARGET_POSIX
   mprotect(p, sz, (PROT_READ|PROT_EXEC));
@@ -402,6 +419,23 @@ void lj_ccallback_mcode_free(CTState *cts)
 
 #elif LJ_TARGET_PPC
 
+#define CALLBACK_HANDLE_GPR \
+  if (n > 1) { \
+    lua_assert(((LJ_ABI_SOFTFP && ctype_isnum(cta->info)) ||  /* double. */ \
+		ctype_isinteger(cta->info)) && n == 2);  /* int64_t. */ \
+    ngpr = (ngpr + 1u) & ~1u;  /* Align int64_t to regpair. */ \
+  } \
+  if (ngpr + n <= maxgpr) { \
+    sp = &cts->cb.gpr[ngpr]; \
+    ngpr += n; \
+    goto done; \
+  }
+
+#if LJ_ABI_SOFTFP
+#define CALLBACK_HANDLE_REGARG \
+  CALLBACK_HANDLE_GPR \
+  UNUSED(isfp);
+#else
 #define CALLBACK_HANDLE_REGARG \
   if (isfp) { \
     if (nfpr + 1 <= CCALL_NARG_FPR) { \
@@ -410,23 +444,27 @@ void lj_ccallback_mcode_free(CTState *cts)
       goto done; \
     } \
   } else {  /* Try to pass argument in GPRs. */ \
-    if (n > 1) { \
-      lua_assert(ctype_isinteger(cta->info) && n == 2);  /* int64_t. */ \
-      ngpr = (ngpr + 1u) & ~1u;  /* Align int64_t to regpair. */ \
-    } \
-    if (ngpr + n <= maxgpr) { \
-      sp = &cts->cb.gpr[ngpr]; \
-      ngpr += n; \
-      goto done; \
-    } \
+    CALLBACK_HANDLE_GPR \
   }
+#endif
 
+#if !LJ_ABI_SOFTFP
 #define CALLBACK_HANDLE_RET \
   if (ctype_isfp(ctr->info) && ctr->size == sizeof(float)) \
     *(double *)dp = *(float *)dp;  /* FPRs always hold doubles. */
+#endif
 
-#elif LJ_TARGET_MIPS
+#elif LJ_TARGET_MIPS32
 
+#define CALLBACK_HANDLE_GPR \
+  if (n > 1) ngpr = (ngpr + 1u) & ~1u;  /* Align to regpair. */ \
+  if (ngpr + n <= maxgpr) { \
+    sp = &cts->cb.gpr[ngpr]; \
+    ngpr += n; \
+    goto done; \
+  }
+
+#if !LJ_ABI_SOFTFP	/* MIPS32 hard-float */
 #define CALLBACK_HANDLE_REGARG \
   if (isfp && nfpr < CCALL_NARG_FPR) {  /* Try to pass argument in FPRs. */ \
     sp = (void *)((uint8_t *)&cts->cb.fpr[nfpr] + ((LJ_BE && n==1) ? 4 : 0)); \
@@ -434,13 +472,36 @@ void lj_ccallback_mcode_free(CTState *cts)
     goto done; \
   } else {  /* Try to pass argument in GPRs. */ \
     nfpr = CCALL_NARG_FPR; \
-    if (n > 1) ngpr = (ngpr + 1u) & ~1u;  /* Align to regpair. */ \
-    if (ngpr + n <= maxgpr) { \
-      sp = &cts->cb.gpr[ngpr]; \
-      ngpr += n; \
-      goto done; \
-    } \
+    CALLBACK_HANDLE_GPR \
   }
+#else			/* MIPS32 soft-float */
+#define CALLBACK_HANDLE_REGARG \
+  CALLBACK_HANDLE_GPR \
+  UNUSED(isfp);
+#endif
+
+#define CALLBACK_HANDLE_RET \
+  if (ctype_isfp(ctr->info) && ctr->size == sizeof(float)) \
+    ((float *)dp)[1] = *(float *)dp;
+
+#elif LJ_TARGET_MIPS64
+
+#if !LJ_ABI_SOFTFP	/* MIPS64 hard-float */
+#define CALLBACK_HANDLE_REGARG \
+  if (ngpr + n <= maxgpr) { \
+    sp = isfp ? (void*) &cts->cb.fpr[ngpr] : (void*) &cts->cb.gpr[ngpr]; \
+    ngpr += n; \
+    goto done; \
+  }
+#else			/* MIPS64 soft-float */
+#define CALLBACK_HANDLE_REGARG \
+  if (ngpr + n <= maxgpr) { \
+    UNUSED(isfp); \
+    sp = (void*) &cts->cb.gpr[ngpr]; \
+    ngpr += n; \
+    goto done; \
+  }
+#endif
 
 #define CALLBACK_HANDLE_RET \
   if (ctype_isfp(ctr->info) && ctr->size == sizeof(float)) \
@@ -533,7 +594,11 @@ static void callback_conv_args(CTState *cts, lua_State *L)
       nsp += n;
 
     done:
-      if (LJ_BE && cta->size < CTSIZE_PTR)
+      if (LJ_BE && cta->size < CTSIZE_PTR
+#if LJ_TARGET_MIPS64
+	  && !(isfp && nsp)
+#endif
+	 )
 	sp = (void *)((uint8_t *)sp + CTSIZE_PTR-cta->size);
       gcsteps += lj_cconv_tv_ct(cts, cta, 0, o++, sp);
     }
@@ -571,6 +636,10 @@ static void callback_conv_result(CTState *cts, lua_State *L, TValue *o)
     if (ctype_isfp(ctr->info))
       dp = (uint8_t *)&cts->cb.fpr[0];
 #endif
+#if LJ_TARGET_ARM64 && LJ_BE
+    if (ctype_isfp(ctr->info) && ctr->size == sizeof(float))
+      dp = (uint8_t *)&cts->cb.fpr[0].f[1];
+#endif
     lj_cconv_ct_tv(cts, ctr, dp, o, 0);
 #ifdef CALLBACK_HANDLE_RET
     CALLBACK_HANDLE_RET
@@ -584,6 +653,12 @@ static void callback_conv_result(CTState *cts, lua_State *L, TValue *o)
 	*(int32_t *)dp = ctr->size == 1 ? (int32_t)*(int8_t *)dp :
 					  (int32_t)*(int16_t *)dp;
     }
+#if LJ_TARGET_MIPS64 || (LJ_TARGET_ARM64 && LJ_BE)
+    /* Always sign-extend results to 64 bits. Even a soft-fp 'float'. */
+    if (ctr->size <= 4 &&
+	(LJ_ABI_SOFTFP || ctype_isinteger_or_bool(ctr->info)))
+      *(int64_t *)dp = (int64_t)*(int32_t *)dp;
+#endif
 #if LJ_TARGET_X86
     if (ctype_isfp(ctr->info))
       cts->cb.gpr[2] = ctr->size == sizeof(float) ? 1 : 2;

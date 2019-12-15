@@ -1,6 +1,6 @@
 /*
 ** LuaJIT VM builder: Assembler source code emitter.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #include "buildvm.h"
@@ -93,10 +93,14 @@ static void emit_asm_words(BuildCtx *ctx, uint8_t *p, int n)
 {
   int i;
   for (i = 0; i < n; i += 4) {
+    uint32_t ins = *(uint32_t *)(p+i);
+#if LJ_TARGET_ARM64 && LJ_BE
+    ins = lj_bswap(ins);  /* ARM64 instructions are always little-endian. */
+#endif
     if ((i & 15) == 0)
-      fprintf(ctx->fp, "\t.long 0x%08x", *(uint32_t *)(p+i));
+      fprintf(ctx->fp, "\t.long 0x%08x", ins);
     else
-      fprintf(ctx->fp, ",0x%08x", *(uint32_t *)(p+i));
+      fprintf(ctx->fp, ",0x%08x", ins);
     if ((i & 15) == 12) putc('\n', ctx->fp);
   }
   if ((n & 15) != 0) putc('\n', ctx->fp);
@@ -214,7 +218,8 @@ static void emit_asm_label(BuildCtx *ctx, const char *name, int size, int isfunc
   case BUILD_machasm:
     fprintf(ctx->fp,
       "\n\t.private_extern %s\n"
-      "%s:\n", name, name);
+      "\t.no_dead_strip %s\n"
+      "%s:\n", name, name, name);
     break;
   default:
     break;
@@ -261,10 +266,19 @@ void emit_asm(BuildCtx *ctx)
 
 #if LJ_TARGET_ARM && defined(__GNUC__) && !LJ_NO_UNWIND
   /* This should really be moved into buildvm_arm.dasc. */
+#if LJ_ARCH_HASFPU
+  fprintf(ctx->fp,
+	  ".fnstart\n"
+	  ".save {r5, r6, r7, r8, r9, r10, r11, lr}\n"
+	  ".vsave {d8-d15}\n"
+	  ".save {r4}\n"
+	  ".pad #28\n");
+#else
   fprintf(ctx->fp,
 	  ".fnstart\n"
 	  ".save {r4, r5, r6, r7, r8, r9, r10, r11, lr}\n"
 	  ".pad #28\n");
+#endif
 #endif
 #if LJ_TARGET_MIPS
   fprintf(ctx->fp, ".set nomips16\n.abicalls\n.set noreorder\n.set nomacro\n");
@@ -324,7 +338,7 @@ void emit_asm(BuildCtx *ctx)
 #if !(LJ_TARGET_PS3 || LJ_TARGET_PSVITA)
     fprintf(ctx->fp, "\t.section .note.GNU-stack,\"\"," ELFASM_PX "progbits\n");
 #endif
-#if LJ_TARGET_PPC && !LJ_TARGET_PS3
+#if LJ_TARGET_PPC && !LJ_TARGET_PS3 && !LJ_ABI_SOFTFP
     /* Hard-float ABI. */
     fprintf(ctx->fp, "\t.gnu_attribute 4, 1\n");
 #endif

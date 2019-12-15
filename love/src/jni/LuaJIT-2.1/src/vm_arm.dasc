@@ -1,6 +1,6 @@
 |// Low-level VM code for ARM CPUs.
 |// Bytecode interpreter, fast functions and helper functions.
-|// Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+|// Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 |
 |.arch arm
 |.section code_op, code_sub
@@ -372,6 +372,17 @@ static void build_subroutines(BuildCtx *ctx)
   |    str CARG1, [BASE, #-4]		// Prepend false to error message.
   |   st_vmstate CARG2
   |  b ->vm_returnc
+  |
+  |->vm_unwind_ext:			// Complete external unwind.
+#if !LJ_NO_UNWIND
+  |  push {r0, r1, r2, lr}
+  |  bl extern _Unwind_Complete
+  |  ldr r0, [sp]
+  |  bl extern _Unwind_DeleteException
+  |  pop {r0, r1, r2, lr}
+  |  mov r0, r1
+  |  bx r2
+#endif
   |
   |//-----------------------------------------------------------------------
   |//-- Grow stack for calls -----------------------------------------------

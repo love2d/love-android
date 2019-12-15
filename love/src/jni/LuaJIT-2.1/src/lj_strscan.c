@@ -1,6 +1,6 @@
 /*
 ** String scanning.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #include <math.h>
@@ -492,12 +492,11 @@ StrScanFmt lj_strscan_scan(const uint8_t *p, TValue *o, uint32_t opt)
     /* Fast path for decimal 32 bit integers. */
     if (fmt == STRSCAN_INT && base == 10 &&
 	(dig < 10 || (dig == 10 && *sp <= '2' && x < 0x80000000u+neg))) {
-      int32_t y = neg ? -(int32_t)x : (int32_t)x;
       if ((opt & STRSCAN_OPT_TONUM)) {
-	o->n = (double)y;
+	o->n = neg ? -(double)x : (double)x;
 	return STRSCAN_NUM;
       } else {
-	o->i = y;
+	o->i = neg ? -(int32_t)x : (int32_t)x;
 	return STRSCAN_INT;
       }
     }
