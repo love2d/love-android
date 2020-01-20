@@ -17,7 +17,7 @@
  files located at the root of the source distribution.
  These files may also be found in the public source
  code repository located at:
-        http://github.com/signal11/hidapi .
+        https://github.com/libusb/hidapi .
 ********************************************************/
 #include "../../SDL_internal.h"
 
@@ -298,8 +298,19 @@ int HID_API_EXPORT hid_exit(void)
 
 int hid_blacklist(unsigned short vendor_id, unsigned short product_id)
 {
-	return vendor_id == 0x1B1C && // (Corsair)
-		product_id == 0x1B3D; // Gaming keyboard?  Causes deadlock when asking for device details
+	// Corsair Gaming keyboard - Causes deadlock when asking for device details
+	if ( vendor_id == 0x1B1C && product_id == 0x1B3D )
+	{
+		return 1;
+	}
+
+	// SPEEDLINK COMPETITION PRO - turns into an Android controller when enumerated
+	if ( vendor_id == 0x0738 && product_id == 0x2217 )
+	{
+		return 1;
+	}
+
+	return 0;
 }
 
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)

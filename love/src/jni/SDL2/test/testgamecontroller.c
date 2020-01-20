@@ -292,7 +292,26 @@ main(int argc, char *argv[])
         {
             nController++;
             name = SDL_GameControllerNameForIndex(i);
-            description = "Controller";
+            switch (SDL_GameControllerTypeForIndex(i)) {
+            case SDL_CONTROLLER_TYPE_XBOX360:
+                description = "XBox 360 Controller";
+                break;
+            case SDL_CONTROLLER_TYPE_XBOXONE:
+                description = "XBox One Controller";
+                break;
+            case SDL_CONTROLLER_TYPE_PS3:
+                description = "PS3 Controller";
+                break;
+            case SDL_CONTROLLER_TYPE_PS4:
+                description = "PS4 Controller";
+                break;
+            case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
+                description = "Nintendo Switch Pro Controller";
+                break;
+            default:
+                description = "Game Controller";
+                break;
+            }
         } else {
             name = SDL_JoystickNameForIndex(i);
             description = "Joystick";
@@ -367,7 +386,7 @@ int
 main(int argc, char *argv[])
 {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL compiled without Joystick support.\n");
-    exit(1);
+    return 1;
 }
 
 #endif

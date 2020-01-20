@@ -259,7 +259,7 @@
     <ClInclude Include="..\..\src\haptic\windows\SDL_dinputhaptic_c.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_windowshaptic_c.h" />
     <ClInclude Include="..\..\src\haptic\windows\SDL_xinputhaptic_c.h" />
-    <ClInclude Include="..\..\src\joystick\hidapi\controller_type.h" />
+    <ClInclude Include="..\..\src\joystick\controller_type.h" />
     <ClInclude Include="..\..\src\joystick\hidapi\SDL_hidapijoystick_c.h" />
     <ClInclude Include="..\..\src\joystick\SDL_joystick_c.h" />
     <ClInclude Include="..\..\src\joystick\SDL_sysjoystick.h" />
@@ -426,6 +426,7 @@
     <ClCompile Include="..\..\src\stdlib\SDL_qsort.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_stdlib.c" />
     <ClCompile Include="..\..\src\stdlib\SDL_string.c" />
+    <ClCompile Include="..\..\src\stdlib\SDL_strtokr.c" />
     <ClCompile Include="..\..\src\thread\generic\SDL_syscond.c" />
     <ClCompile Include="..\..\src\thread\SDL_thread.c" />
     <ClCompile Include="..\..\src\thread\windows\SDL_sysmutex.c" />

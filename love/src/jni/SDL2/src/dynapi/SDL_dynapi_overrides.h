@@ -724,3 +724,12 @@
 #define SDL_RWwrite SDL_RWwrite_REAL
 #define SDL_RWclose SDL_RWclose_REAL
 #define SDL_LoadFile SDL_LoadFile_REAL
+#define SDL_Metal_CreateView SDL_Metal_CreateView_REAL
+#define SDL_Metal_DestroyView SDL_Metal_DestroyView_REAL
+#define SDL_LockTextureToSurface SDL_LockTextureToSurface_REAL
+#define SDL_HasARMSIMD SDL_HasARMSIMD_REAL
+#define SDL_strtokr SDL_strtokr_REAL
+#define SDL_wcsstr SDL_wcsstr_REAL
+#define SDL_wcsncmp SDL_wcsncmp_REAL
+#define SDL_GameControllerTypeForIndex SDL_GameControllerTypeForIndex_REAL
+#define SDL_GameControllerGetType SDL_GameControllerGetType_REAL

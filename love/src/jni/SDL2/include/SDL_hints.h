@@ -165,6 +165,21 @@ extern "C" {
 #define SDL_HINT_VIDEO_ALLOW_SCREENSAVER    "SDL_VIDEO_ALLOW_SCREENSAVER"
 
 /**
+ * \brief A variable controlling whether the graphics context is externally managed.
+ *
+ * This variable can be set to the following values:
+ *  "0"         - SDL will manage graphics contexts that are attached to windows.
+ *  "1"         - Disable graphics context management on windows.
+ *
+ * By default SDL will manage OpenGL contexts in certain situations. For example, on Android the
+ * context will be automatically saved and restored when pausing the application. Additionally, some
+ * platforms will assume usage of OpenGL if Vulkan isn't used. Setting this to "1" will prevent this
+ * behavior, which is desireable when the application manages the graphics context, such as
+ * an externally managed OpenGL context or attaching a Vulkan surface to the window.
+ */
+#define SDL_HINT_VIDEO_EXTERNAL_CONTEXT    "SDL_VIDEO_EXTERNAL_CONTEXT"
+
+/**
  *  \brief  A variable controlling whether the X11 VidMode extension should be used.
  *
  *  This variable can be set to the following values:
@@ -196,6 +211,12 @@ extern "C" {
  *  By default SDL will not use XRandR because of window manager issues.
  */
 #define SDL_HINT_VIDEO_X11_XRANDR           "SDL_VIDEO_X11_XRANDR"
+
+/**
+ *  \brief  A variable forcing the visual ID chosen for new X11 windows
+ *
+ */
+#define SDL_HINT_VIDEO_X11_WINDOW_VISUALID      "SDL_VIDEO_X11_WINDOW_VISUALID"
 
 /**
  *  \brief  A variable controlling whether the X11 _NET_WM_PING protocol should be supported.
@@ -481,6 +502,29 @@ extern "C" {
  *  file will be loaded and interpreted as the value of the variable.
  */
 #define SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT "SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT"
+
+/**
+ *  \brief  If set, game controller face buttons report their values according to their labels instead of their positional layout.
+ * 
+ *  For example, on Nintendo Switch controllers, normally you'd get:
+ *
+ *      (Y)
+ *  (X)     (B)
+ *      (A)
+ *
+ *  but if this hint is set, you'll get:
+ *
+ *      (X)
+ *  (Y)     (A)
+ *      (B)
+ *
+ *  The variable can be set to the following values:
+ *    "0"       - Report the face buttons by position, as though they were on an Xbox controller.
+ *    "1"       - Report the face buttons by label instead of position
+ *
+ *  The default value is "1".  This hint may be set at any time.
+ */
+#define SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS "SDL_GAMECONTROLLER_USE_BUTTON_LABELS"
 
 /**
  *  \brief  A variable that lets you enable joystick (and gamecontroller) events even when your app is in the background.

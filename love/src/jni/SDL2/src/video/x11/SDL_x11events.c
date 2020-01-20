@@ -433,8 +433,8 @@ X11_DispatchFocusOut(_THIS, SDL_WindowData *data)
 static void
 X11_DispatchMapNotify(SDL_WindowData *data)
 {
-    SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_SHOWN, 0, 0);
     SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_RESTORED, 0, 0);
+    SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_SHOWN, 0, 0);
 }
 
 static void
@@ -898,7 +898,7 @@ X11_DispatchEvent(_THIS)
             }
 #endif
             /* */
-            SDL_zero(text);
+            SDL_zeroa(text);
 #ifdef X_HAVE_UTF8_STRING
             if (data->ic) {
                 X11_Xutf8LookupString(data->ic, &xevent.xkey, text, sizeof(text),

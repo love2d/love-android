@@ -456,6 +456,9 @@
 		5C2EF6FE1FC9EE65003F5197 /* SDL_egl.c in Sources */ = {isa = PBXBuildFile; fileRef = 5C2EF6F51FC9EE35003F5197 /* SDL_egl.c */; };
 		5C2EF6FF1FC9EE65003F5197 /* SDL_rect_c.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C2EF6F41FC9EE34003F5197 /* SDL_rect_c.h */; };
 		5C2EF7011FC9EF10003F5197 /* SDL_egl.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C2EF7001FC9EF0F003F5197 /* SDL_egl.h */; };
+		63994BE7238492D000F9C268 /* SDL_strtokr.c in Sources */ = {isa = PBXBuildFile; fileRef = 63994BE6238492D000F9C268 /* SDL_strtokr.c */; };
+		63994BE8238492D000F9C268 /* SDL_strtokr.c in Sources */ = {isa = PBXBuildFile; fileRef = 63994BE6238492D000F9C268 /* SDL_strtokr.c */; };
+		63994BE9238492D000F9C268 /* SDL_strtokr.c in Sources */ = {isa = PBXBuildFile; fileRef = 63994BE6238492D000F9C268 /* SDL_strtokr.c */; };
 		A704170920F09A9800A82227 /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = A704170820F09A9800A82227 /* hid.c */; };
 		A704170A20F09A9800A82227 /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = A704170820F09A9800A82227 /* hid.c */; };
 		A704170B20F09A9800A82227 /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = A704170820F09A9800A82227 /* hid.c */; };
@@ -919,6 +922,7 @@
 		F3950CD8212BC88D00F51292 /* SDL_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = F3950CD7212BC88D00F51292 /* SDL_sensor.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F3950CD9212BC88D00F51292 /* SDL_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = F3950CD7212BC88D00F51292 /* SDL_sensor.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F3950CDA212BC88D00F51292 /* SDL_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = F3950CD7212BC88D00F51292 /* SDL_sensor.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FA24348B21D41FFB00B8918A /* SDL_metal.h in Headers */ = {isa = PBXBuildFile; fileRef = FA24348A21D41FFB00B8918A /* SDL_metal.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FA73671D19A540EF004122E4 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA73671C19A540EF004122E4 /* CoreVideo.framework */; };
 		FA73671E19A54140004122E4 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA73671C19A540EF004122E4 /* CoreVideo.framework */; };
 		FA73671F19A54144004122E4 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA73671C19A540EF004122E4 /* CoreVideo.framework */; };
@@ -1151,6 +1155,7 @@
 		5C2EF6F51FC9EE35003F5197 /* SDL_egl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_egl.c; sourceTree = "<group>"; };
 		5C2EF6F61FC9EE35003F5197 /* SDL_egl_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_egl_c.h; sourceTree = "<group>"; };
 		5C2EF7001FC9EF0F003F5197 /* SDL_egl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_egl.h; sourceTree = "<group>"; };
+		63994BE6238492D000F9C268 /* SDL_strtokr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_strtokr.c; sourceTree = "<group>"; };
 		A704170820F09A9800A82227 /* hid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hid.c; sourceTree = "<group>"; };
 		A704170D20F09AC800A82227 /* SDL_hidapijoystick.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_hidapijoystick.c; sourceTree = "<group>"; };
 		A704170E20F09AC800A82227 /* SDL_hidapijoystick_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_hidapijoystick_c.h; sourceTree = "<group>"; };
@@ -1252,8 +1257,10 @@
 		F59C710300D5CB5801000001 /* ReadMe.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; path = ReadMe.txt; sourceTree = "<group>"; };
 		F59C710600D5CB5801000001 /* SDL.info */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; path = SDL.info; sourceTree = "<group>"; };
 		F5A2EF3900C6A39A01000001 /* BUGS.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = BUGS.txt; path = ../../BUGS.txt; sourceTree = SOURCE_ROOT; };
+		FA24348A21D41FFB00B8918A /* SDL_metal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_metal.h; sourceTree = "<group>"; };
 		FA73671C19A540EF004122E4 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		FABA34C61D8B5DB100915323 /* SDL_coreaudio.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_coreaudio.m; sourceTree = "<group>"; };
+		FAF136422308312A00F414DE /* SDL_shaders_metal.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = SDL_shaders_metal.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1342,6 +1349,7 @@
 				AA7557DD1595D4D800BBD41B /* SDL_log.h */,
 				AA7557DE1595D4D800BBD41B /* SDL_main.h */,
 				AA9FF9591637CBF9000DF050 /* SDL_messagebox.h */,
+				FA24348A21D41FFB00B8918A /* SDL_metal.h */,
 				AA7557DF1595D4D800BBD41B /* SDL_mouse.h */,
 				AA7557E01595D4D800BBD41B /* SDL_mutex.h */,
 				AA7557E11595D4D800BBD41B /* SDL_name.h */,
@@ -1632,6 +1640,7 @@
 		04BDFE5D12E6671700899322 /* stdlib */ = {
 			isa = PBXGroup;
 			children = (
+				63994BE6238492D000F9C268 /* SDL_strtokr.c */,
 				04BDFE5E12E6671700899322 /* SDL_getenv.c */,
 				04BDFE5F12E6671700899322 /* SDL_iconv.c */,
 				04BDFE6012E6671700899322 /* SDL_malloc.c */,
@@ -1960,6 +1969,7 @@
 			children = (
 				AADC5A421FDA035D00960936 /* SDL_render_metal.m */,
 				AADC5A411FDA035D00960936 /* SDL_shaders_metal_osx.h */,
+				FAF136422308312A00F414DE /* SDL_shaders_metal.metal */,
 			);
 			path = metal;
 			sourceTree = "<group>";
@@ -2038,6 +2048,7 @@
 				AA75581E1595D4D800BBD41B /* SDL_joystick.h in Headers */,
 				AA7558201595D4D800BBD41B /* SDL_keyboard.h in Headers */,
 				F3950CD8212BC88D00F51292 /* SDL_sensor.h in Headers */,
+				FA24348B21D41FFB00B8918A /* SDL_metal.h in Headers */,
 				AA7558221595D4D800BBD41B /* SDL_keycode.h in Headers */,
 				F30D9C84212BC94F0047DF2E /* SDL_sensor_c.h in Headers */,
 				AA7558241595D4D800BBD41B /* SDL_loadso.h in Headers */,
@@ -2666,7 +2677,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Sign framework\nif [ \"$SDL_CODESIGN_IDENTITY\" != \"\" ]; then\n    codesign --force --deep --sign \"$SDL_CODESIGN_IDENTITY\" $TARGET_BUILD_DIR/SDL2.framework/Versions/A || exit $?\nfi\n\n# clean up the framework, remove headers, extra files\nmkdir -p build/dmg-tmp\ncp -r $TARGET_BUILD_DIR/SDL2.framework build/dmg-tmp/\n\ncp pkg-support/resources/License.txt build/dmg-tmp\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind build/dmg-tmp -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p build/dmg-tmp/.logo\ncp pkg-support/resources/SDL_DS_Store build/dmg-tmp/.DS_Store\ncp pkg-support/sdl_logo.pdf build/dmg-tmp/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL2 -srcfolder build/dmg-tmp build/SDL2.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
+			shellScript = "# Sign framework\nif [ \"$SDL_CODESIGN_IDENTITY\" != \"\" ]; then\n    codesign --force --deep --sign \"$SDL_CODESIGN_IDENTITY\" $TARGET_BUILD_DIR/SDL2.framework/Versions/A || exit $?\nfi\n\n# clean up the framework, remove headers, extra files\nmkdir -p build/dmg-tmp\ncp -a $TARGET_BUILD_DIR/SDL2.framework build/dmg-tmp/\n\ncp pkg-support/resources/License.txt build/dmg-tmp\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind build/dmg-tmp -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p build/dmg-tmp/.logo\ncp pkg-support/resources/SDL_DS_Store build/dmg-tmp/.DS_Store\ncp pkg-support/sdl_logo.pdf build/dmg-tmp/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL2 -srcfolder build/dmg-tmp build/SDL2.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2806,6 +2817,7 @@
 				AA0F8491178D5ECC00823F9D /* SDL_systls.c in Sources */,
 				D55A1B82179F262300625D7C /* SDL_cocoamousetap.m in Sources */,
 				567E2F1C17C44BB2005F1892 /* SDL_sysfilesystem.m in Sources */,
+				63994BE7238492D000F9C268 /* SDL_strtokr.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2944,6 +2956,7 @@
 				AA0F8492178D5ECC00823F9D /* SDL_systls.c in Sources */,
 				D55A1B84179F263600625D7C /* SDL_cocoamousetap.m in Sources */,
 				DB0F490817CA5292008798C5 /* SDL_sysfilesystem.m in Sources */,
+				63994BE8238492D000F9C268 /* SDL_strtokr.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3082,6 +3095,7 @@
 				AA0F8493178D5ECC00823F9D /* SDL_systls.c in Sources */,
 				D55A1B83179F263500625D7C /* SDL_cocoamousetap.m in Sources */,
 				DB0F490A17CA5293008798C5 /* SDL_sysfilesystem.m in Sources */,
+				63994BE9238492D000F9C268 /* SDL_strtokr.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3152,7 +3166,7 @@
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1.0.0;
-				DYLIB_CURRENT_VERSION = 11.0.0;
+				DYLIB_CURRENT_VERSION = 12.0.0;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -3251,7 +3265,7 @@
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1.0.0;
-				DYLIB_CURRENT_VERSION = 11.0.0;
+				DYLIB_CURRENT_VERSION = 12.0.0;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",

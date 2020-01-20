@@ -948,7 +948,7 @@ SDL_AudioInit(const char *driver_name)
     }
 
     SDL_zero(current_audio);
-    SDL_zero(open_devices);
+    SDL_zeroa(open_devices);
 
     /* Select the proper audio driver */
     if (driver_name == NULL) {
@@ -1608,7 +1608,7 @@ SDL_AudioQuit(void)
     SDL_DestroyMutex(current_audio.detectionLock);
 
     SDL_zero(current_audio);
-    SDL_zero(open_devices);
+    SDL_zeroa(open_devices);
 
 #ifdef HAVE_LIBSAMPLERATE_H
     UnloadLibSampleRate();
@@ -1669,8 +1669,15 @@ SDL_CalculateAudioSpec(SDL_AudioSpec * spec)
 {
     switch (spec->format) {
     case AUDIO_U8:
+
+    // !!! FIXME: 0x80 isn't perfect for U16, but we can't fit 0x8000 in a
+    // !!! FIXME:  byte for memset() use. This is actually 0.1953 percent off
+    //  from silence. Maybe just don't use U16.
+    case AUDIO_U16LSB:
+    case AUDIO_U16MSB:
         spec->silence = 0x80;
         break;
+
     default:
         spec->silence = 0x00;
         break;

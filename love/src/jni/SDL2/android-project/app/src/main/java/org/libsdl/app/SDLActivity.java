@@ -655,6 +655,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                     imm.hideSoftInputFromWindow(mTextEdit.getWindowToken(), 0);
 
                     mScreenKeyboardShown = false;
+
+                    mSurface.requestFocus();
                 }
                 break;
             case COMMAND_SET_KEEP_SCREEN_ON:
@@ -1849,7 +1851,9 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         if (source == InputDevice.SOURCE_UNKNOWN) {
             InputDevice device = InputDevice.getDevice(deviceId);
-            source = device.getSources();
+            if (device != null) {
+                source = device.getSources();
+            }
         }
 
         if ((source & InputDevice.SOURCE_KEYBOARD) != 0) {

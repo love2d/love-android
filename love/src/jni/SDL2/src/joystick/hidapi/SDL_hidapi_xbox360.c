@@ -247,8 +247,18 @@ HIDAPI_DriverXbox360_QuitWindowsGamingInput(SDL_DriverXbox360_Context *ctx)
 #endif /* SDL_JOYSTICK_HIDAPI_WINDOWS_GAMING_INPUT */
 
 static SDL_bool
-HIDAPI_DriverXbox360_IsSupportedDevice(Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number)
+HIDAPI_DriverXbox360_IsSupportedDevice(Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, const char *name)
 {
+    SDL_GameControllerType type = SDL_GetJoystickGameControllerType(vendor_id, product_id, name);
+
+    if (vendor_id == 0x0955) {
+        /* This is the NVIDIA Shield controller which doesn't talk Xbox controller protocol */
+        return SDL_FALSE;
+    }
+    if (interface_number > 0) {
+        /* This is the chatpad or other input interface, not the Xbox 360 interface */
+        return SDL_FALSE;
+    }
 #if defined(__MACOSX__) || defined(__WIN32__)
     if (vendor_id == 0x045e && product_id == 0x028e && version == 1) {
         /* This is the Steam Virtual Gamepad, which isn't supported by this driver */
@@ -258,16 +268,16 @@ HIDAPI_DriverXbox360_IsSupportedDevice(Uint16 vendor_id, Uint16 product_id, Uint
         /* This is the old Bluetooth Xbox One S firmware, which isn't supported by this driver */
         return SDL_FALSE;
     }
-    return SDL_IsJoystickXbox360(vendor_id, product_id) || SDL_IsJoystickXboxOne(vendor_id, product_id);
+    return (type == SDL_CONTROLLER_TYPE_XBOX360 || type == SDL_CONTROLLER_TYPE_XBOXONE);
 #else
-    return SDL_IsJoystickXbox360(vendor_id, product_id);
+    return (type == SDL_CONTROLLER_TYPE_XBOX360);
 #endif
 }
 
 static const char *
 HIDAPI_DriverXbox360_GetDeviceName(Uint16 vendor_id, Uint16 product_id)
 {
-    return HIDAPI_XboxControllerName(vendor_id, product_id);
+    return NULL;
 }
 
 static SDL_bool SetSlotLED(hid_device *dev, Uint8 slot)
@@ -375,7 +385,7 @@ HIDAPI_DriverXbox360_Rumble(SDL_Joystick *joystick, hid_device *dev, void *conte
 #endif /* __WIN32__ */
 
     if ((low_frequency_rumble || high_frequency_rumble) && duration_ms) {
-        ctx->rumble_expiration = SDL_GetTicks() + duration_ms;
+        ctx->rumble_expiration = SDL_GetTicks() + SDL_min(duration_ms, SDL_MAX_RUMBLE_DURATION_MS);
     } else {
         ctx->rumble_expiration = 0;
     }
