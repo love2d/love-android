@@ -52,7 +52,7 @@ SDK and Android NDK on your system) and run
     ./gradlew assemble
 
 in the root folder of this project. This should give you a .apk file in the
-app/build/outputs/apk/ subdirectory that you can then install on your phone.
+app/build/outputs/apk/ subdirectory that you can then sign and install on your phone.
 
 Alternatively, you can install Android Studio. After opening it for the first time,
 open it's SDK Manager and on the tab "SDK Tools", select NDK. After that, open the
@@ -67,9 +67,17 @@ Bugs and feature requests should be reported to the issue tracker at https://bit
 Changelog:
 ----------
 
+11.3:
+
+* Contains all relevant changes for desktop LÖVE [11.3](https://love2d.org/wiki/11.3).
+* Added support for microphone recording on Android. **This is disabled in Play Store builds**.
+* Added t.audio.mic (false by default). On Android, setting it to true requests microphone recording permission from the user.
+* Fixed performance regression on Android devices with Adreno GPU.
+* Fixed video playback support on Android devices with Adreno GPU.
+
 11.2:
 
-* Contains all relevant changes for desktop LÖVE 11.2.
+* Contains all relevant changes for desktop LÖVE [11.2](https://love2d.org/wiki/11.2).
 * Added support for ARM64 devices to comply with Play Store requirements.
 * Fixed `love.system.openURL` crashing in some cases.
 * Changed target SDK to 28 so it comply with Play Store requirements.
