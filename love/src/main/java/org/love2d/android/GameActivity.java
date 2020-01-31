@@ -259,6 +259,7 @@ public class GameActivity extends SDLActivity {
         }
     }
 
+    @Keep
     public void setImmersiveMode(boolean immersive_mode) {
         if (android.os.Build.VERSION.SDK_INT < 11) {
             // The API getWindow().getDecorView().setSystemUiVisibility() was
@@ -304,10 +305,12 @@ public class GameActivity extends SDLActivity {
         ;
     }
 
+    @Keep
     public boolean getImmersiveMode() {
         return immersiveActive;
     }
 
+    @Keep
     public static String getGamePath() {
         GameActivity self = (GameActivity) mSingleton; // use SDL provided one
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
@@ -332,12 +335,14 @@ public class GameActivity extends SDLActivity {
         return metrics;
     }
 
+    @Keep
     public static void vibrate(double seconds) {
         if (vibrator != null) {
             vibrator.vibrate((long) (seconds * 1000.));
         }
     }
 
+    @Keep
     public static boolean openURL(String url) {
         Log.d("GameActivity", "opening url = " + url);
         try {

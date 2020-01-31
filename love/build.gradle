@@ -27,7 +27,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -47,13 +47,13 @@ android {
     sourceSets {
         main {
             java {
-                srcDirs('src/main/java', 'src/jni/SDL2/android-project/app/src/main/java')
+                srcDir 'src/jni/SDL2/android-project/app/src/main/java'
+                srcDir 'src/main/java'
             }
         }
-        embed {
+        playstore {
             java {
-                exclude '**/DownloadActivity.java'
-                exclude '**/DownloadService.java'
+                srcDir 'src/normal/java'
             }
         }
     }
