@@ -40,6 +40,7 @@ public class GameActivity extends SDLActivity {
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
     private boolean storagePermissionUnnecessary = false;
+    public boolean embed = false;
     public int safeAreaTop = 0;
     public int safeAreaLeft = 0;
     public int safeAreaBottom = 0;
@@ -88,8 +89,11 @@ public class GameActivity extends SDLActivity {
         // These 2 variables must be reset or it will use the existing value.
         gamePath = "";
         storagePermissionUnnecessary = false;
+        embed = context.getResources().getBoolean(R.bool.embed);
 
-        handleIntent(this.getIntent());
+        if (!embed) {
+            handleIntent(this.getIntent());
+        }
 
         super.onCreate(savedInstanceState);
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -102,9 +106,11 @@ public class GameActivity extends SDLActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         Log.d("GameActivity", "onNewIntent() with " + intent);
-        handleIntent(intent);
-        resetNative();
-        startNative();
+        if (!embed) {
+            handleIntent(intent);
+            resetNative();
+            startNative();
+        }
     }
 
     protected void handleIntent(Intent intent) {
