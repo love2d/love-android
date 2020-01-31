@@ -3,7 +3,7 @@ name: build
 on: [push, pull_request]
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     steps:
     - name: Setup Java 8

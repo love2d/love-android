@@ -91,9 +91,7 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = context.getResources().getBoolean(R.bool.embed);
 
-        if (!embed) {
-            handleIntent(this.getIntent());
-        }
+        handleIntent(this.getIntent());
 
         super.onCreate(savedInstanceState);
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -116,7 +114,7 @@ public class GameActivity extends SDLActivity {
     protected void handleIntent(Intent intent) {
         Uri game = intent.getData();
 
-        if (game != null) {
+        if (!embed && game != null) {
             String scheme = game.getScheme();
             String path = game.getPath();
             // If we have a game via the intent data we we try to figure out how we have to load it. We
@@ -172,7 +170,8 @@ public class GameActivity extends SDLActivity {
                 alert_dialog.create().show();
             }
         } else {
-            // No game specified via the intent data -> check whether we have a game.love in our assets.
+            // No game specified via the intent data or embed build is used.
+            // Check whether we have a game.love in our assets.
             boolean game_love_in_assets = false;
             try {
                 List<String> assets = Arrays.asList(getAssets().list(""));
@@ -209,14 +208,17 @@ public class GameActivity extends SDLActivity {
 
     protected void checkLovegameFolder() {
         // If no game.love was found fall back to the game in <external storage>/lovegame
-        Log.d("GameActivity", "fallback to lovegame folder");
-        if (hasExternalStoragePermission()) {
-            File ext = Environment.getExternalStorageDirectory();
-            if ((new File(ext, "/lovegame/main.lua")).exists()) {
-                gamePath = ext.getPath() + "/lovegame/";
+        // if using normal or playstore build
+        if (!embed) {
+            Log.d("GameActivity", "fallback to lovegame folder");
+            if (hasExternalStoragePermission()) {
+                File ext = Environment.getExternalStorageDirectory();
+                if ((new File(ext, "/lovegame/main.lua")).exists()) {
+                    gamePath = ext.getPath() + "/lovegame/";
+                }
+            } else {
+                Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
             }
-        } else {
-            Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
         }
     }
 
