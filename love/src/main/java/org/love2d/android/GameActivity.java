@@ -1,3 +1,23 @@
+/**
+ * Copyright (c) 2006-2020 LOVE Development Team
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty.  In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
+ **/
+
 package org.love2d.android;
 
 import org.libsdl.app.SDLActivity;
@@ -41,6 +61,7 @@ public class GameActivity extends SDLActivity {
     private static boolean mustCacheArchive = false;
     private boolean storagePermissionUnnecessary = false;
     private boolean shortEdgesMode = false;
+    public boolean embed = false;
     public int safeAreaTop = 0;
     public int safeAreaLeft = 0;
     public int safeAreaBottom = 0;
@@ -89,6 +110,7 @@ public class GameActivity extends SDLActivity {
         // These 2 variables must be reset or it will use the existing value.
         gamePath = "";
         storagePermissionUnnecessary = false;
+        embed = context.getResources().getBoolean(R.bool.embed);
 
         handleIntent(this.getIntent());
 
@@ -104,15 +126,17 @@ public class GameActivity extends SDLActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         Log.d("GameActivity", "onNewIntent() with " + intent);
-        handleIntent(intent);
-        resetNative();
-        startNative();
+        if (!embed) {
+            handleIntent(intent);
+            resetNative();
+            startNative();
+        }
     }
 
     protected void handleIntent(Intent intent) {
         Uri game = intent.getData();
 
-        if (game != null) {
+        if (!embed && game != null) {
             String scheme = game.getScheme();
             String path = game.getPath();
             // If we have a game via the intent data we we try to figure out how we have to load it. We
@@ -168,7 +192,8 @@ public class GameActivity extends SDLActivity {
                 alert_dialog.create().show();
             }
         } else {
-            // No game specified via the intent data -> check whether we have a game.love in our assets.
+            // No game specified via the intent data or embed build is used.
+            // Check whether we have a game.love in our assets.
             boolean game_love_in_assets = false;
             try {
                 List<String> assets = Arrays.asList(getAssets().list(""));
@@ -205,14 +230,17 @@ public class GameActivity extends SDLActivity {
 
     protected void checkLovegameFolder() {
         // If no game.love was found fall back to the game in <external storage>/lovegame
-        Log.d("GameActivity", "fallback to lovegame folder");
-        if (hasExternalStoragePermission()) {
-            File ext = Environment.getExternalStorageDirectory();
-            if ((new File(ext, "/lovegame/main.lua")).exists()) {
-                gamePath = ext.getPath() + "/lovegame/";
+        // if using normal or playstore build
+        if (!embed) {
+            Log.d("GameActivity", "fallback to lovegame folder");
+            if (hasExternalStoragePermission()) {
+                File ext = Environment.getExternalStorageDirectory();
+                if ((new File(ext, "/lovegame/main.lua")).exists()) {
+                    gamePath = ext.getPath() + "/lovegame/";
+                }
+            } else {
+                Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
             }
-        } else {
-            Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
         }
     }
 
@@ -239,6 +267,7 @@ public class GameActivity extends SDLActivity {
         super.onResume();
     }
 
+    @Keep
     public void setImmersiveMode(boolean immersive_mode) {
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             getWindow().getAttributes().layoutInDisplayCutoutMode = immersive_mode ?
@@ -250,10 +279,12 @@ public class GameActivity extends SDLActivity {
         immersiveActive = immersive_mode;
     }
 
+    @Keep
     public boolean getImmersiveMode() {
         return immersiveActive;
     }
 
+    @Keep
     public static String getGamePath() {
         GameActivity self = (GameActivity) mSingleton; // use SDL provided one
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
@@ -278,12 +309,14 @@ public class GameActivity extends SDLActivity {
         return metrics;
     }
 
+    @Keep
     public static void vibrate(double seconds) {
         if (vibrator != null) {
             vibrator.vibrate((long) (seconds * 1000.));
         }
     }
 
+    @Keep
     public static boolean openURL(String url) {
         Log.d("GameActivity", "opening url = " + url);
         try {
