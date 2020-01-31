@@ -1,12 +1,19 @@
-Android Port of LÖVE, the awesome 2D game engine LÖVE (http://love2d.org)
-Copyright (c) 2013-2017 Martin Felis <martin@fysx.org>
+Android Port of LÖVE, an awesome 2D game engine for Lua (http://love2d.org)  
+Copyright (c) 2006-2020 LOVE Development Team
+
+![](https://github.com/love2d/love-android/workflows/build/badge.svg)
+
+Download:
+---------
+
+You can download pre-built Android packages from https://github.com/love2d/love/releases/latest that allow
+you to run .love files by opening them using a file manager of your choice.
 
 Important:
 ----------
 
-First, make sure to clone the submodules too. This is important. Often errors include missing liblove.so and
-"Missing LOVE. Make sure to initialize the submodule correctly!" error when building. A proper way to clone this
-repository is:
+If you want to build from source, make sure to clone the submodules too. Often errors include missing
+liblove.so and "Missing LÖVE" error when building. A proper way to clone this repository is:
 
 ```
 git clone --recurse-submodules https://github.com/love2d/love-android
@@ -26,15 +33,7 @@ In the repository directory. For the last command, add `--depth 1` if needed.
 Instructions:
 -------------
 
-Detailed instructions can be viewed at [https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home](https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home). (at the moment)
-
-Download:
----------
-
-You can download pre-built Android packages from
-[https://bitbucket.org/rude/love/downloads](https://bitbucket.org/rude/love/downloads)
-that allow you to run .love files by opening them using a file manager of
-your choice.
+Detailed instructions can be viewed at https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home (at the moment)
 
 Quick Start:
 ------------
@@ -44,20 +43,22 @@ environment variables:
 
 * `ANDROID_HOME` to your Android SDK location.
 
-* `ANDROID_NDK_HOME` to your Android NDK location. NDK r16 or later; r19 also work.
+* `ANDROID_NDK_HOME` to your Android NDK location. NDK r16 or later!
 
 (you may have to adjust the paths to the install directories of the Android
 SDK and Android NDK on your system) and run
 
-    ./gradlew assemble
+```
+./gradlew assembleNormal
+```
 
-in the root folder of this project. This should give you a .apk file in the
-app/build/outputs/apk/ subdirectory that you can then sign and install on your phone.
+in the root folder of this project. This should give you a .apk file in the app/build/outputs/apk/normal
+subdirectory that you can then sign and install on your phone. The .apk flavor is what you normally have
+when downloading one from love2d.org. If you want to build the ["embed"](https://love2d.org/wiki/Game_Distribution/APKTool
+APK, change `assembleNormal` to `assembleEmbedRelease` instead at command above.
 
-Alternatively, you can install Android Studio. After opening it for the first time,
-open it's SDK Manager and on the tab "SDK Tools", select NDK. After that, open the
-repository root.
-
+Alternatively, you can install Android Studio. After opening it for the first time, open it's SDK Manager
+and on the tab "SDK Tools", select NDK. After that, open the repository root.
 
 Bugs:
 -----
@@ -84,13 +85,12 @@ Changelog:
 
 0.10.2:
 
-* Contains all relevant changes for desktop LÖVE 0.10.2.
+* Contains all relevant changes for desktop LÖVE [0.10.2](https://love2d.org/wiki/0.10.2).
 * Upgrade of SDL2 to 2.0.5 (fixes an issue with the accelerometer)
 
 0.10.1:
 
-This release contains all bugfixes of the desktop 0.10.1 release. Android
-specific fixes are:
+* Contains all relevant changes for desktop LÖVE [0.10.1](https://love2d.org/wiki/0.10.1).
 * Added a new love.conf flag t.externalstorage, which determines whether files are saved in internal or external storage on Android devices.
 * Fixed audio on Android to pause when the app is inactive, and resume when the app becomes active again.
 * Fixed a driver bug on some Android devices which caused all objects to show up as black.
@@ -197,36 +197,5 @@ alpha7:
 License:
 --------
 
-This project contains code from multiple projects using various licenses.
-Please look into the folders of love/src/jni/<projectname>/ for the respective
-licenses. A possibly incomplete overview of dependent and included
-libraries and licenses is the following:
-
-* FreeType2 (FreeType Project License)
-* libjpeg-turbo (custom license)
-* libmodplug (public domain)
-* libogg (BSD License)
-* libvorbis (BSD License)
-* LuaJIT (MIT License)
-* mpg123 (LGPL 2.1 License)
-* openal-soft (LGPL 2 License)
-* physfs (zlib License)
-* SDL2 (zlib License)
-
-This project also includes LÖVE, which itself is licensed under the zlib
-license but includes the following libraries that are subject to other
-licenses:
-
-* modified Box2D (original Box2D license is zlib)
-* ddsparse (MIT License)
-* enet (MIT License)
-* glad (MIT License)
-* lodepng (zlib License)
-* luasocket (MIT License)
-* SimplexNoise1234 (public domain)
-* stb_image (public domain)
-* utf8 (Boost License)
-* wuff (public domain)
-
-As for the other code, modifications to LÖVE, and build system files are
-are published under the zlib license (same as LÖVE).
+This project contains code from multiple projects using various licenses. Please look at LOVE
+[license.txt](https://github.com/love2d/love/blob/master/license.txt) for the respective licenses.
