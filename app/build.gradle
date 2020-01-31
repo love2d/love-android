@@ -16,6 +16,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    flavorDimensions 'mode'
+    productFlavors {
+        normal {
+            dimension 'mode'
+        }
+        playstore {
+            dimension 'mode'
+        }
+        embed {
+            dimension 'mode'
+            applicationIdSuffix "embed"
+        }
+    }
     lintOptions {
         abortOnError false
     }

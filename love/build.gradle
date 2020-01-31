@@ -13,6 +13,7 @@ android {
         compileSdkVersion 28
         buildToolsVersion "28.0.3"
         minSdkVersion 14
+        resValue "bool", "embed", "false"
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4"
@@ -30,10 +31,29 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    flavorDimensions 'mode'
+    productFlavors {
+        normal {
+            dimension 'mode'
+        }
+        playstore {
+            dimension 'mode'
+        }
+        embed {
+            dimension 'mode'
+            resValue "bool", "embed", "true"
+        }
+    }
     sourceSets {
         main {
             java {
                 srcDirs('src/main/java', 'src/jni/SDL2/android-project/app/src/main/java')
+            }
+        }
+        embed {
+            java {
+                exclude '**/DownloadActivity.java'
+                exclude '**/DownloadService.java'
             }
         }
     }

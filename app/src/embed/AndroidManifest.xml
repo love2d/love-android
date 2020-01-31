@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+  package="org.love2d.android.executable"
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="18" tools:replace="android:maxSdkVersion" />
+
+  <application
+      android:allowBackup="true"
+      android:icon="@drawable/love"
+      android:label="LÖVE for Android"
+      android:usesCleartextTraffic="true"
+	  tools:node="replace" >
+      <activity
+        android:name="org.love2d.android.GameActivity"
+        android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        android:label="LÖVE for Android"
+        android:launchMode="singleTask"
+        android:screenOrientation="landscape"
+        android:resizeableActivity="false"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        <intent-filter>
+          <action android:name="android.intent.action.MAIN" />
+          <category android:name="android.intent.category.LAUNCHER" />
+          <category android:name="tv.ouya.intent.category.GAME" />
+        </intent-filter>
+      </activity>
+    </application>
+</manifest> 
