@@ -64,7 +64,11 @@ LOCAL_CFLAGS += \
 	-Wmissing-variable-declarations \
 	-Wfloat-conversion \
 	-Wshorten-64-to-32 \
-	-Wunreachable-code-return
+	-Wunreachable-code-return \
+	-Wshift-sign-overflow \
+	-Wstrict-prototypes \
+	-Wkeyword-macro \
+
 
 # Warnings we haven't fixed (yet)
 LOCAL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare
@@ -90,7 +94,7 @@ LOCAL_MODULE := SDL2_static
 
 LOCAL_MODULE_FILENAME := libSDL2
 
-LOCAL_LDLIBS :=
+LOCAL_LDLIBS := 
 LOCAL_EXPORT_LDLIBS := -ldl -lGLESv1_CM -lGLESv2 -llog -landroid
 
 include $(BUILD_STATIC_LIBRARY)
