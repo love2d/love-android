@@ -33,8 +33,6 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 
 public class DownloadActivity extends Activity {
-    public static final int EXTERNAL_STORAGE_REQUEST_CODE = 3;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,7 +43,7 @@ public class DownloadActivity extends Activity {
             runDownloader();
             finish();
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, EXTERNAL_STORAGE_REQUEST_CODE);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, GameActivity.EXTERNAL_STORAGE_REQUEST_CODE);
         }
     }
 
@@ -56,7 +54,7 @@ public class DownloadActivity extends Activity {
         if (grantResults.length > 0) {
             Log.d("DownloadActivity", "Received a request permission result");
 
-            if (requestCode == EXTERNAL_STORAGE_REQUEST_CODE) {
+            if (requestCode == GameActivity.EXTERNAL_STORAGE_REQUEST_CODE) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     runDownloader();
                     finish();
@@ -66,6 +64,9 @@ public class DownloadActivity extends Activity {
                         showExternalStoragePermissionMissingDialog();
                     }
                 }
+            }
+            else {
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
             }
         }
     }
