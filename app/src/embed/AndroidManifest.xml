@@ -9,7 +9,8 @@
 
   <application
       android:allowBackup="true"
-      android:icon="@drawable/love"
+      android:icon="@mipmap/love"
+      android:roundIcon="@mipmap/love_round"
       android:label="LÖVE for Android"
       android:usesCleartextTraffic="true"
 	  tools:node="replace" >
