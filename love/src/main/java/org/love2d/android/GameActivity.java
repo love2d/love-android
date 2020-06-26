@@ -55,8 +55,8 @@ public class GameActivity extends SDLActivity {
     private static Vibrator vibrator = null;
     protected final int[] externalStorageRequestDummy = new int[1];
     protected final int[] recordAudioRequestDummy = new int[1];
-    public static final int EXTERNAL_STORAGE_REQUEST_CODE = 1;
-    public static final int RECORD_AUDIO_REQUEST_CODE = 2;
+    public static final int EXTERNAL_STORAGE_REQUEST_CODE = 2;
+    public static final int RECORD_AUDIO_REQUEST_CODE = 3;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
     private boolean storagePermissionUnnecessary = false;
@@ -424,8 +424,6 @@ public class GameActivity extends SDLActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (grantResults.length > 0) {
             Log.d("GameActivity", "Received a request permission result");
 
@@ -461,6 +459,8 @@ public class GameActivity extends SDLActivity {
                     }
                     break;
                 }
+                default:
+                    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
             }
         }
     }
