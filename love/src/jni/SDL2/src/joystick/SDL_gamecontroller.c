@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -42,7 +42,9 @@
 /* Many controllers turn the center button into an instantaneous button press */
 #define SDL_MINIMUM_GUIDE_BUTTON_DELAY_MS   250
 
-#define SDL_CONTROLLER_PLATFORM_FIELD "platform:"
+#define SDL_CONTROLLER_PLATFORM_FIELD   "platform:"
+#define SDL_CONTROLLER_SDKGE_FIELD      "sdk>=:"
+#define SDL_CONTROLLER_SDKLE_FIELD      "sdk<=:"
 
 /* a list of currently opened game controllers */
 static SDL_GameController *SDL_gamecontrollers = NULL;
@@ -1136,7 +1138,7 @@ SDL_GameControllerAddMappingsFromRW(SDL_RWops * rw, int freerw)
                 }
             }
         }
-        
+
         line = line_end + 1;
     }
 
@@ -1161,6 +1163,27 @@ SDL_PrivateGameControllerAddMapping(const char *mappingString, SDL_ControllerMap
     if (!mappingString) {
         return SDL_InvalidParamError("mappingString");
     }
+
+#ifdef ANDROID
+    { /* Extract and verify the SDK version */
+        const char *tmp;
+
+        tmp = SDL_strstr(mappingString, SDL_CONTROLLER_SDKGE_FIELD);
+        if (tmp != NULL) {
+            tmp += SDL_strlen(SDL_CONTROLLER_SDKGE_FIELD);
+            if (!(SDL_GetAndroidSDKVersion() >= SDL_atoi(tmp))) {
+                return SDL_SetError("SDK version %d < minimum version %d", SDL_GetAndroidSDKVersion(), SDL_atoi(tmp));
+            }
+        }
+        tmp = SDL_strstr(mappingString, SDL_CONTROLLER_SDKLE_FIELD);
+        if (tmp != NULL) {
+            tmp += SDL_strlen(SDL_CONTROLLER_SDKLE_FIELD);
+            if (!(SDL_GetAndroidSDKVersion() <= SDL_atoi(tmp))) {
+                return SDL_SetError("SDK version %d > maximum version %d", SDL_GetAndroidSDKVersion(), SDL_atoi(tmp));
+            }
+        }
+    }
+#endif
 
     pchGUID = SDL_PrivateGetControllerGUIDFromMappingString(mappingString);
     if (!pchGUID) {
@@ -1494,8 +1517,8 @@ SDL_bool SDL_ShouldIgnoreGameController(const char *name, SDL_JoystickGUID guid)
     Uint32 vidpid;
 
 #if defined(__LINUX__)
-    if (name && SDL_strstr(name, "Wireless Controller Motion Sensors")) {
-        /* Don't treat the PS4 motion controls as a separate game controller */
+    if (name && SDL_strstr(name, "Controller Motion Sensors")) {
+        /* Don't treat the PS3 and PS4 motion controls as a separate game controller */
         return SDL_TRUE;
     }
 #endif
@@ -1765,6 +1788,15 @@ SDL_GameControllerGetPlayerIndex(SDL_GameController *gamecontroller)
     return SDL_JoystickGetPlayerIndex(SDL_GameControllerGetJoystick(gamecontroller));
 }
 
+/**
+ *  Set the player index of an opened game controller
+ */
+void
+SDL_GameControllerSetPlayerIndex(SDL_GameController *gamecontroller, int player_index)
+{
+    SDL_JoystickSetPlayerIndex(SDL_GameControllerGetJoystick(gamecontroller), player_index);
+}
+
 Uint16
 SDL_GameControllerGetVendor(SDL_GameController * gamecontroller)
 {
@@ -1809,7 +1841,7 @@ SDL_Joystick *SDL_GameControllerGetJoystick(SDL_GameController * gamecontroller)
 
 
 /*
- * Find the SDL_GameController that owns this instance id
+ * Return the SDL_GameController associated with an instance id.
  */
 SDL_GameController *
 SDL_GameControllerFromInstanceID(SDL_JoystickID joyid)
@@ -1826,6 +1858,19 @@ SDL_GameControllerFromInstanceID(SDL_JoystickID joyid)
         gamecontroller = gamecontroller->next;
     }
     SDL_UnlockJoysticks();
+    return NULL;
+}
+
+
+/**
+ * Return the SDL_GameController associated with a player index.
+ */
+SDL_GameController *SDL_GameControllerFromPlayerIndex(int player_index)
+{
+    SDL_Joystick *joystick = SDL_JoystickFromPlayerIndex(player_index);
+    if (joystick) {
+        return SDL_GameControllerFromInstanceID(joystick->instance_id);
+    }
     return NULL;
 }
 

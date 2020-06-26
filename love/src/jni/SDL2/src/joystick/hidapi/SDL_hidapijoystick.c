@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,15 +22,17 @@
 
 #ifdef SDL_JOYSTICK_HIDAPI
 
+#include "SDL_assert.h"
+#include "SDL_atomic.h"
 #include "SDL_endian.h"
 #include "SDL_hints.h"
 #include "SDL_log.h"
-#include "SDL_mutex.h"
 #include "SDL_thread.h"
 #include "SDL_timer.h"
 #include "SDL_joystick.h"
 #include "../SDL_sysjoystick.h"
 #include "SDL_hidapijoystick_c.h"
+#include "SDL_hidapi_rumble.h"
 #include "../../SDL_hints_c.h"
 
 #if defined(__WIN32__)
@@ -41,6 +43,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <mach/mach.h>
 #include <IOKit/IOKitLib.h>
+#include <IOKit/hid/IOHIDDevice.h>
 #include <IOKit/usb/USBSpec.h>
 #endif
 
@@ -53,32 +56,8 @@
 
 struct joystick_hwdata
 {
-    SDL_HIDAPI_DeviceDriver *driver;
-    void *context;
-
-    SDL_mutex *mutex;
-    hid_device *dev;
+    SDL_HIDAPI_Device *device;
 };
-
-typedef struct _SDL_HIDAPI_Device
-{
-    SDL_JoystickID instance_id;
-    char *name;
-    char *path;
-    Uint16 vendor_id;
-    Uint16 product_id;
-    Uint16 version;
-    SDL_JoystickGUID guid;
-    int interface_number;   /* Available on Windows and Linux */
-    Uint16 usage_page;      /* Available on Windows and Mac OS X */
-    Uint16 usage;           /* Available on Windows and Mac OS X */
-    SDL_HIDAPI_DeviceDriver *driver;
-
-    /* Used during scanning for device changes */
-    SDL_bool seen;
-
-    struct _SDL_HIDAPI_Device *next;
-} SDL_HIDAPI_Device;
 
 static SDL_HIDAPI_DeviceDriver *SDL_HIDAPI_drivers[] = {
 #ifdef SDL_JOYSTICK_HIDAPI_PS4
@@ -92,15 +71,21 @@ static SDL_HIDAPI_DeviceDriver *SDL_HIDAPI_drivers[] = {
 #endif
 #ifdef SDL_JOYSTICK_HIDAPI_XBOX360
     &SDL_HIDAPI_DriverXbox360,
+    &SDL_HIDAPI_DriverXbox360W,
 #endif
 #ifdef SDL_JOYSTICK_HIDAPI_XBOXONE
     &SDL_HIDAPI_DriverXboxOne,
 #endif
+#ifdef SDL_JOYSTICK_HIDAPI_GAMECUBE
+    &SDL_HIDAPI_DriverGameCube,
+#endif
 };
 static int SDL_HIDAPI_numdrivers = 0;
+static SDL_SpinLock SDL_HIDAPI_spinlock;
 static SDL_HIDAPI_Device *SDL_HIDAPI_devices;
 static int SDL_HIDAPI_numjoysticks = 0;
 static SDL_bool initialized = SDL_FALSE;
+static SDL_bool shutting_down = SDL_FALSE;
 
 #if defined(SDL_USE_LIBUDEV)
 static const SDL_UDEV_Symbols * usyms = NULL;
@@ -234,12 +219,15 @@ HIDAPI_InitializeDiscovery()
     SDL_HIDAPI_discovery.m_notificationPort = IONotificationPortCreate(kIOMasterPortDefault);
     if (SDL_HIDAPI_discovery.m_notificationPort) {
         {
-            CFMutableDictionaryRef matchingDict = IOServiceMatching("IOUSBDevice");
-
-            /* Note: IOServiceAddMatchingNotification consumes the reference to matchingDict */
             io_iterator_t portIterator = 0;
             io_object_t entry;
-            if (IOServiceAddMatchingNotification(SDL_HIDAPI_discovery.m_notificationPort, kIOMatchedNotification, matchingDict, CallbackIOServiceFunc, &SDL_HIDAPI_discovery.m_bHaveDevicesChanged, &portIterator) == 0) {
+            IOReturn result = IOServiceAddMatchingNotification(
+                SDL_HIDAPI_discovery.m_notificationPort,
+                kIOFirstMatchNotification,
+                IOServiceMatching(kIOHIDDeviceKey),
+                CallbackIOServiceFunc, &SDL_HIDAPI_discovery.m_bHaveDevicesChanged, &portIterator);
+
+            if (result == 0) {
                 /* Must drain the existing iterator, or we won't receive new notifications */
                 while ((entry = IOIteratorNext(portIterator)) != 0) {
                     IOObjectRelease(entry);
@@ -250,12 +238,15 @@ HIDAPI_InitializeDiscovery()
             }
         }
         {
-            CFMutableDictionaryRef matchingDict = IOServiceMatching("IOBluetoothDevice");
-
-            /* Note: IOServiceAddMatchingNotification consumes the reference to matchingDict */
             io_iterator_t portIterator = 0;
             io_object_t entry;
-            if (IOServiceAddMatchingNotification(SDL_HIDAPI_discovery.m_notificationPort, kIOMatchedNotification, matchingDict, CallbackIOServiceFunc, &SDL_HIDAPI_discovery.m_bHaveDevicesChanged, &portIterator) == 0) {
+            IOReturn result = IOServiceAddMatchingNotification(
+                SDL_HIDAPI_discovery.m_notificationPort,
+                kIOTerminatedNotification,
+                IOServiceMatching(kIOHIDDeviceKey),
+                CallbackIOServiceFunc, &SDL_HIDAPI_discovery.m_bHaveDevicesChanged, &portIterator);
+
+            if (result == 0) {
                 /* Must drain the existing iterator, or we won't receive new notifications */
                 while ((entry = IOIteratorNext(portIterator)) != 0) {
                     IOObjectRelease(entry);
@@ -396,14 +387,18 @@ HIDAPI_ShutdownDiscovery()
 #endif
 }
 
+static void HIDAPI_JoystickDetect(void);
+static void HIDAPI_JoystickClose(SDL_Joystick * joystick);
+
 static SDL_bool
 HIDAPI_IsDeviceSupported(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
 {
     int i;
+    SDL_GameControllerType type = SDL_GetJoystickGameControllerType(name, vendor_id, product_id, -1, 0, 0, 0);
 
     for (i = 0; i < SDL_arraysize(SDL_HIDAPI_drivers); ++i) {
         SDL_HIDAPI_DeviceDriver *driver = SDL_HIDAPI_drivers[i];
-        if (driver->enabled && driver->IsSupportedDevice(vendor_id, product_id, version, -1, name)) {
+        if (driver->enabled && driver->IsSupportedDevice(name, type, vendor_id, product_id, version, -1, 0, 0, 0)) {
             return SDL_TRUE;
         }
     }
@@ -418,6 +413,7 @@ HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device)
     const Uint16 USAGE_GAMEPAD = 0x0005;
     const Uint16 USAGE_MULTIAXISCONTROLLER = 0x0008;
     int i;
+    SDL_GameControllerType type;
 
     if (SDL_ShouldIgnoreJoystick(device->name, device->guid)) {
         return NULL;
@@ -430,9 +426,10 @@ HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device)
         return NULL;
     }
 
+    type = SDL_GetJoystickGameControllerType(device->name, device->vendor_id, device->product_id, device->interface_number, device->interface_class, device->interface_subclass, device->interface_protocol);
     for (i = 0; i < SDL_arraysize(SDL_HIDAPI_drivers); ++i) {
         SDL_HIDAPI_DeviceDriver *driver = SDL_HIDAPI_drivers[i];
-        if (driver->enabled && driver->IsSupportedDevice(device->vendor_id, device->product_id, device->version, device->interface_number, device->name)) {
+        if (driver->enabled && driver->IsSupportedDevice(device->name, type, device->vendor_id, device->product_id, device->version, device->interface_number, device->interface_class, device->interface_subclass, device->interface_protocol)) {
             return driver;
         }
     }
@@ -440,19 +437,22 @@ HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device)
 }
 
 static SDL_HIDAPI_Device *
-HIDAPI_GetJoystickByIndex(int device_index)
+HIDAPI_GetDeviceByIndex(int device_index, SDL_JoystickID *pJoystickID)
 {
     SDL_HIDAPI_Device *device = SDL_HIDAPI_devices;
     while (device) {
         if (device->driver) {
-            if (device_index == 0) {
-                break;
+            if (device_index < device->num_joysticks) {
+                if (pJoystickID) {
+                    *pJoystickID = device->joysticks[device_index];
+                }
+                return device;
             }
-            --device_index;
+            device_index -= device->num_joysticks;
         }
         device = device->next;
     }
-    return device;
+    return NULL;
 }
 
 static SDL_HIDAPI_Device *
@@ -469,11 +469,51 @@ HIDAPI_GetJoystickByInfo(const char *path, Uint16 vendor_id, Uint16 product_id)
     return device;
 }
 
+static void
+HIDAPI_SetupDeviceDriver(SDL_HIDAPI_Device *device)
+{
+    if (device->driver) {
+        /* Already setup */
+        return;
+    }
+
+    device->driver = HIDAPI_GetDeviceDriver(device);
+    if (device->driver) {
+        const char *name = device->driver->GetDeviceName(device->vendor_id, device->product_id);
+        if (name) {
+            SDL_free(device->name);
+            device->name = SDL_strdup(name);
+        }
+    }
+
+    /* Initialize the device, which may cause a connected event */
+    if (device->driver && !device->driver->InitDevice(device)) {
+        device->driver = NULL;
+    }
+}
+
+static void
+HIDAPI_CleanupDeviceDriver(SDL_HIDAPI_Device *device)
+{
+    if (!device->driver) {
+        /* Already cleaned up */
+        return;
+    }
+
+    /* Disconnect any joysticks */
+    while (device->num_joysticks) {
+        HIDAPI_JoystickDisconnected(device, device->joysticks[0]);
+    }
+
+    device->driver->FreeDevice(device);
+    device->driver = NULL;
+}
+
 static void SDLCALL
 SDL_HIDAPIDriverHintChanged(void *userdata, const char *name, const char *oldValue, const char *hint)
 {
     int i;
-    SDL_HIDAPI_Device *device = SDL_HIDAPI_devices;
+    SDL_HIDAPI_Device *device;
     SDL_bool enabled = SDL_GetStringBoolean(hint, SDL_TRUE);
 
     if (SDL_strcmp(name, SDL_HINT_JOYSTICK_HIDAPI) == 0) {
@@ -486,7 +526,6 @@ SDL_HIDAPIDriverHintChanged(void *userdata, const char *name, const char *oldVal
             SDL_HIDAPI_DeviceDriver *driver = SDL_HIDAPI_drivers[i];
             if (SDL_strcmp(name, driver->hint) == 0) {
                 driver->enabled = enabled;
-                break;
             }
         }
     }
@@ -500,30 +539,17 @@ SDL_HIDAPIDriverHintChanged(void *userdata, const char *name, const char *oldVal
     }
 
     /* Update device list if driver availability changes */
-    while (device) {
-        if (device->driver) {
-            if (!device->driver->enabled) {
-                device->driver = NULL;
+    SDL_LockJoysticks();
 
-                --SDL_HIDAPI_numjoysticks;
-
-                SDL_PrivateJoystickRemoved(device->instance_id);
-            }
-        } else {
-            device->driver = HIDAPI_GetDeviceDriver(device);
-            if (device->driver) {
-                device->instance_id = SDL_GetNextJoystickInstanceID();
-
-                ++SDL_HIDAPI_numjoysticks;
-
-                SDL_PrivateJoystickAdded(device->instance_id);
-            }
+    for (device = SDL_HIDAPI_devices; device; device = device->next) {
+        if (device->driver && !device->driver->enabled) {
+            HIDAPI_CleanupDeviceDriver(device);
         }
-        device = device->next;
+        HIDAPI_SetupDeviceDriver(device);
     }
-}
 
-static void HIDAPI_JoystickDetect(void);
+    SDL_UnlockJoysticks();
+}
 
 static int
 HIDAPI_JoystickInit(void)
@@ -533,6 +559,16 @@ HIDAPI_JoystickInit(void)
     if (initialized) {
         return 0;
     }
+
+#if defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__TVOS__)
+	/* The hidapi framwork is weak-linked on Apple platforms */
+    int HID_API_EXPORT HID_API_CALL hid_init(void) __attribute__((weak_import));
+
+    if (hid_init == NULL) {
+        SDL_SetError("Couldn't initialize hidapi, framework not available");
+        return -1;
+    }
+#endif /* __MACOSX__ || __IPHONEOS__ || __TVOS__ */
 
     if (hid_init() < 0) {
         SDL_SetError("Couldn't initialize hidapi");
@@ -547,10 +583,61 @@ HIDAPI_JoystickInit(void)
                         SDL_HIDAPIDriverHintChanged, NULL);
     HIDAPI_InitializeDiscovery();
     HIDAPI_JoystickDetect();
+    HIDAPI_UpdateDevices();
 
     initialized = SDL_TRUE;
 
     return 0;
+}
+
+SDL_bool
+HIDAPI_JoystickConnected(SDL_HIDAPI_Device *device, SDL_JoystickID *pJoystickID)
+{
+    SDL_JoystickID joystickID;
+    SDL_JoystickID *joysticks = (SDL_JoystickID *)SDL_realloc(device->joysticks, (device->num_joysticks + 1)*sizeof(*device->joysticks));
+    if (!joysticks) {
+        return SDL_FALSE;
+    }
+
+    joystickID = SDL_GetNextJoystickInstanceID();
+    device->joysticks = joysticks;
+    device->joysticks[device->num_joysticks++] = joystickID;
+    ++SDL_HIDAPI_numjoysticks;
+
+    SDL_PrivateJoystickAdded(joystickID);
+
+    if (pJoystickID) {
+        *pJoystickID = joystickID;
+    }
+    return SDL_TRUE;
+}
+
+void
+HIDAPI_JoystickDisconnected(SDL_HIDAPI_Device *device, SDL_JoystickID joystickID)
+{
+    int i;
+
+    for (i = 0; i < device->num_joysticks; ++i) {
+        if (device->joysticks[i] == joystickID) {
+            SDL_Joystick *joystick = SDL_JoystickFromInstanceID(joystickID);
+            if (joystick) {
+                HIDAPI_JoystickClose(joystick);
+            }
+
+            SDL_memmove(&device->joysticks[i], &device->joysticks[i+1], device->num_joysticks - i - 1);
+            --device->num_joysticks;
+            --SDL_HIDAPI_numjoysticks;
+            if (device->num_joysticks == 0) {
+                SDL_free(device->joysticks);
+                device->joysticks = NULL;
+            }
+
+            if (!shutting_down) {
+                SDL_PrivateJoystickRemoved(joystickID);
+            }
+            return;
+        }
+    }
 }
 
 static int
@@ -573,12 +660,19 @@ HIDAPI_AddDevice(struct hid_device_info *info)
     if (!device) {
         return;
     }
-    device->instance_id = -1;
+    device->path = SDL_strdup(info->path);
+    if (!device->path) {
+        SDL_free(device);
+        return;
+    }
     device->seen = SDL_TRUE;
     device->vendor_id = info->vendor_id;
     device->product_id = info->product_id;
     device->version = info->release_number;
     device->interface_number = info->interface_number;
+    device->interface_class = info->interface_class;
+    device->interface_subclass = info->interface_subclass;
+    device->interface_protocol = info->interface_protocol;
     device->usage_page = info->usage_page;
     device->usage = info->usage;
     {
@@ -601,6 +695,7 @@ HIDAPI_AddDevice(struct hid_device_info *info)
         device->guid.data[14] = 'h';
         device->guid.data[15] = 0;
     }
+    device->dev_lock = SDL_CreateMutex();
 
     /* Need the device name before getting the driver to know whether to ignore this device */
     if (!device->name) {
@@ -651,32 +746,12 @@ HIDAPI_AddDevice(struct hid_device_info *info)
         size_t name_size = (6 + 1 + 6 + 1);
         device->name = (char *)SDL_malloc(name_size);
         if (!device->name) {
+            SDL_free(device->path);
             SDL_free(device);
             return;
         }
         SDL_snprintf(device->name, name_size, "0x%.4x/0x%.4x", info->vendor_id, info->product_id);
     }
-
-    device->driver = HIDAPI_GetDeviceDriver(device);
-
-    if (device->driver) {
-        const char *name = device->driver->GetDeviceName(device->vendor_id, device->product_id);
-        if (name) {
-            SDL_free(device->name);
-            device->name = SDL_strdup(name);
-        }
-    }
-
-    device->path = SDL_strdup(info->path);
-    if (!device->path) {
-        SDL_free(device->name);
-        SDL_free(device);
-        return;
-    }
-
-#ifdef DEBUG_HIDAPI
-    SDL_Log("Adding HIDAPI device '%s' VID 0x%.4x, PID 0x%.4x, version %d, interface %d, usage page 0x%.4x, usage 0x%.4x, driver = %s\n", device->name, device->vendor_id, device->product_id, device->version, device->interface_number, device->usage_page, device->usage, device->driver ? device->driver->hint : "NONE");
-#endif
 
     /* Add it to the list */
     if (last) {
@@ -685,19 +760,16 @@ HIDAPI_AddDevice(struct hid_device_info *info)
         SDL_HIDAPI_devices = device;
     }
 
-    if (device->driver) {
-        /* It's a joystick! */
-        device->instance_id = SDL_GetNextJoystickInstanceID();
+    HIDAPI_SetupDeviceDriver(device);
 
-        ++SDL_HIDAPI_numjoysticks;
-
-        SDL_PrivateJoystickAdded(device->instance_id);
-    }
+#ifdef DEBUG_HIDAPI
+    SDL_Log("Added HIDAPI device '%s' VID 0x%.4x, PID 0x%.4x, version %d, interface %d, interface_class %d, interface_subclass %d, interface_protocol %d, usage page 0x%.4x, usage 0x%.4x, path = %s, driver = %s (%s)\n", device->name, device->vendor_id, device->product_id, device->version, device->interface_number, device->interface_class, device->interface_subclass, device->interface_protocol, device->usage_page, device->usage, device->path, device->driver ? device->driver->hint : "NONE", device->driver && device->driver->enabled ? "ENABLED" : "DISABLED");
+#endif
 }
 
 
 static void
-HIDAPI_DelDevice(SDL_HIDAPI_Device *device, SDL_bool send_event)
+HIDAPI_DelDevice(SDL_HIDAPI_Device *device)
 {
     SDL_HIDAPI_Device *curr, *last;
     for (curr = SDL_HIDAPI_devices, last = NULL; curr; last = curr, curr = curr->next) {
@@ -708,13 +780,9 @@ HIDAPI_DelDevice(SDL_HIDAPI_Device *device, SDL_bool send_event)
                 SDL_HIDAPI_devices = curr->next;
             }
 
-            if (device->driver && send_event) {
-                /* Need to decrement the joystick count before we post the event */
-                --SDL_HIDAPI_numjoysticks;
+            HIDAPI_CleanupDeviceDriver(device);
 
-                SDL_PrivateJoystickRemoved(device->instance_id);
-            }
-
+            SDL_DestroyMutex(device->dev_lock);
             SDL_free(device->name);
             SDL_free(device->path);
             SDL_free(device);
@@ -728,6 +796,8 @@ HIDAPI_UpdateDeviceList(void)
 {
     SDL_HIDAPI_Device *device;
     struct hid_device_info *devs, *info;
+
+    SDL_LockJoysticks();
 
     /* Prepare the existing device list */
     device = SDL_HIDAPI_devices;
@@ -758,100 +828,188 @@ HIDAPI_UpdateDeviceList(void)
         SDL_HIDAPI_Device *next = device->next;
 
         if (!device->seen) {
-            HIDAPI_DelDevice(device, SDL_TRUE);
+            HIDAPI_DelDevice(device);
         }
         device = next;
     }
+
+    SDL_UnlockJoysticks();
 }
 
 SDL_bool
 HIDAPI_IsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
 {
     SDL_HIDAPI_Device *device;
+    SDL_bool supported = SDL_FALSE;
+    SDL_bool result = SDL_FALSE;
 
     /* Make sure we're initialized, as this could be called from other drivers during startup */
     if (HIDAPI_JoystickInit() < 0) {
         return SDL_FALSE;
     }
 
-    /* Don't update the device list for devices we know aren't supported */
-    if (!HIDAPI_IsDeviceSupported(vendor_id, product_id, version, name)) {
-        return SDL_FALSE;
+    /* Only update the device list for devices we know might be supported.
+       If we did this for every device, it would hit the USB driver too hard and potentially 
+       lock up the system. This won't catch devices that we support but can only detect using 
+       USB interface details, like Xbox controllers, but hopefully the device list update is
+       responsive enough to catch those.
+     */
+    supported = HIDAPI_IsDeviceSupported(vendor_id, product_id, version, name);
+#if defined(SDL_JOYSTICK_HIDAPI_XBOX360) || defined(SDL_JOYSTICK_HIDAPI_XBOXONE)
+    if (!supported &&
+        (SDL_strstr(name, "Xbox") || SDL_strstr(name, "X-Box") || SDL_strstr(name, "XBOX"))) {
+        supported = SDL_TRUE;
     }
-
-    /* Make sure the device list is completely up to date when we check for device presence */
-    HIDAPI_UpdateDeviceList();
+#endif /* SDL_JOYSTICK_HIDAPI_XBOX360 || SDL_JOYSTICK_HIDAPI_XBOXONE */
+    if (supported) {
+        if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+            HIDAPI_UpdateDeviceList();
+            SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+        }
+    }
 
     /* Note that this isn't a perfect check - there may be multiple devices with 0 VID/PID,
        or a different name than we have it listed here, etc, but if we support the device
        and we have something similar in our device list, mark it as present.
      */
+    SDL_LockJoysticks();
     device = SDL_HIDAPI_devices;
     while (device) {
         if (device->vendor_id == vendor_id && device->product_id == product_id && device->driver) {
-            return SDL_TRUE;
+            result = SDL_TRUE;
         }
         device = device->next;
     }
-    return SDL_FALSE;
+    SDL_UnlockJoysticks();
+
+    /* If we're looking for the wireless XBox 360 controller, also look for the dongle */
+    if (!result && vendor_id == USB_VENDOR_MICROSOFT && product_id == 0x02a1) {
+        return HIDAPI_IsDevicePresent(USB_VENDOR_MICROSOFT, 0x0719, version, name);
+    }
+
+#ifdef DEBUG_HIDAPI
+    SDL_Log("HIDAPI_IsDevicePresent() returning %s for 0x%.4x / 0x%.4x\n", result ? "true" : "false", vendor_id, product_id);
+#endif
+    return result;
 }
 
 static void
 HIDAPI_JoystickDetect(void)
 {
-    HIDAPI_UpdateDiscovery();
-    if (SDL_HIDAPI_discovery.m_bHaveDevicesChanged) {
-        /* FIXME: We probably need to schedule an update in a few seconds as well */
-        HIDAPI_UpdateDeviceList();
-        SDL_HIDAPI_discovery.m_bHaveDevicesChanged = SDL_FALSE;
+    if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+        HIDAPI_UpdateDiscovery();
+        if (SDL_HIDAPI_discovery.m_bHaveDevicesChanged) {
+            /* FIXME: We probably need to schedule an update in a few seconds as well */
+            HIDAPI_UpdateDeviceList();
+            SDL_HIDAPI_discovery.m_bHaveDevicesChanged = SDL_FALSE;
+        }
+        SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
+    }
+}
+
+void
+HIDAPI_UpdateDevices(void)
+{
+    SDL_HIDAPI_Device *device;
+
+    /* Update the devices, which may change connected joysticks and send events */
+
+    /* Prepare the existing device list */
+    if (SDL_AtomicTryLock(&SDL_HIDAPI_spinlock)) {
+        device = SDL_HIDAPI_devices;
+        while (device) {
+            if (device->driver) {
+                if (SDL_TryLockMutex(device->dev_lock) == 0) {
+                    device->driver->UpdateDevice(device);
+                    SDL_UnlockMutex(device->dev_lock);
+                }
+            }
+            device = device->next;
+        }
+        SDL_AtomicUnlock(&SDL_HIDAPI_spinlock);
     }
 }
 
 static const char *
 HIDAPI_JoystickGetDeviceName(int device_index)
 {
-    return HIDAPI_GetJoystickByIndex(device_index)->name;
+    SDL_HIDAPI_Device *device;
+    const char *name = NULL;
+
+    device = HIDAPI_GetDeviceByIndex(device_index, NULL);
+    if (device) {
+        /* FIXME: The device could be freed after this name is returned... */
+        name = device->name;
+    }
+
+    return name;
 }
 
 static int
 HIDAPI_JoystickGetDevicePlayerIndex(int device_index)
 {
-    return -1;
+    SDL_HIDAPI_Device *device;
+    SDL_JoystickID instance_id;
+    int player_index = -1;
+
+    device = HIDAPI_GetDeviceByIndex(device_index, &instance_id);
+    if (device) {
+        player_index = device->driver->GetDevicePlayerIndex(device, instance_id);
+    }
+
+    return player_index;
+}
+
+static void
+HIDAPI_JoystickSetDevicePlayerIndex(int device_index, int player_index)
+{
+    SDL_HIDAPI_Device *device;
+    SDL_JoystickID instance_id;
+
+    device = HIDAPI_GetDeviceByIndex(device_index, &instance_id);
+    if (device) {
+        device->driver->SetDevicePlayerIndex(device, instance_id, player_index);
+    }
 }
 
 static SDL_JoystickGUID
 HIDAPI_JoystickGetDeviceGUID(int device_index)
 {
-    return HIDAPI_GetJoystickByIndex(device_index)->guid;
+    SDL_HIDAPI_Device *device;
+    SDL_JoystickGUID guid;
+
+    device = HIDAPI_GetDeviceByIndex(device_index, NULL);
+    if (device) {
+        SDL_memcpy(&guid, &device->guid, sizeof(guid));
+    } else {
+        SDL_zero(guid);
+    }
+
+    return guid;
 }
 
 static SDL_JoystickID
 HIDAPI_JoystickGetDeviceInstanceID(int device_index)
 {
-    return HIDAPI_GetJoystickByIndex(device_index)->instance_id;
+    SDL_JoystickID joystickID = -1;
+    HIDAPI_GetDeviceByIndex(device_index, &joystickID);
+    return joystickID;
 }
 
 static int
 HIDAPI_JoystickOpen(SDL_Joystick * joystick, int device_index)
 {
-    SDL_HIDAPI_Device *device = HIDAPI_GetJoystickByIndex(device_index);
+    SDL_JoystickID joystickID;
+    SDL_HIDAPI_Device *device = HIDAPI_GetDeviceByIndex(device_index, &joystickID);
     struct joystick_hwdata *hwdata;
 
     hwdata = (struct joystick_hwdata *)SDL_calloc(1, sizeof(*hwdata));
     if (!hwdata) {
         return SDL_OutOfMemory();
     }
+    hwdata->device = device;
 
-    hwdata->driver = device->driver;
-    hwdata->dev = hid_open_path(device->path, 0);
-    if (!hwdata->dev) {
-        SDL_free(hwdata);
-        return SDL_SetError("Couldn't open HID device %s", device->path);
-    }
-    hwdata->mutex = SDL_CreateMutex();
-
-    if (!device->driver->Init(joystick, hwdata->dev, device->vendor_id, device->product_id, &hwdata->context)) {
-        hid_close(hwdata->dev);
+    if (!device->driver->OpenJoystick(device, joystick)) {
         SDL_free(hwdata);
         return -1;
     }
@@ -861,51 +1019,44 @@ HIDAPI_JoystickOpen(SDL_Joystick * joystick, int device_index)
 }
 
 static int
-HIDAPI_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms)
+HIDAPI_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
-    struct joystick_hwdata *hwdata = joystick->hwdata;
-    SDL_HIDAPI_DeviceDriver *driver = hwdata->driver;
     int result;
 
-    SDL_LockMutex(hwdata->mutex);
-    result = driver->Rumble(joystick, hwdata->dev, hwdata->context, low_frequency_rumble, high_frequency_rumble, duration_ms);
-    SDL_UnlockMutex(hwdata->mutex);
+    if (joystick->hwdata) {
+        SDL_HIDAPI_Device *device = joystick->hwdata->device;
+
+        result = device->driver->RumbleJoystick(device, joystick, low_frequency_rumble, high_frequency_rumble);
+    } else {
+        SDL_SetError("Rumble failed, device disconnected");
+        result = -1;
+    }
+
     return result;
 }
 
 static void
 HIDAPI_JoystickUpdate(SDL_Joystick * joystick)
 {
-    struct joystick_hwdata *hwdata = joystick->hwdata;
-    SDL_HIDAPI_DeviceDriver *driver = hwdata->driver;
-    SDL_bool succeeded;
-
-    SDL_LockMutex(hwdata->mutex);
-    succeeded = driver->Update(joystick, hwdata->dev, hwdata->context);
-    SDL_UnlockMutex(hwdata->mutex);
-    
-    if (!succeeded) {
-        SDL_HIDAPI_Device *device;
-        for (device = SDL_HIDAPI_devices; device; device = device->next) {
-            if (device->instance_id == joystick->instance_id) {
-                HIDAPI_DelDevice(device, SDL_TRUE);
-                break;
-            }
-        }
-    }
+    /* This is handled in SDL_HIDAPI_UpdateDevices() */
 }
 
 static void
 HIDAPI_JoystickClose(SDL_Joystick * joystick)
 {
-    struct joystick_hwdata *hwdata = joystick->hwdata;
-    SDL_HIDAPI_DeviceDriver *driver = hwdata->driver;
-    driver->Quit(joystick, hwdata->dev, hwdata->context);
+    if (joystick->hwdata) {
+        SDL_HIDAPI_Device *device = joystick->hwdata->device;
 
-    hid_close(hwdata->dev);
-    SDL_DestroyMutex(hwdata->mutex);
-    SDL_free(hwdata);
-    joystick->hwdata = NULL;
+        /* Wait for pending rumble to complete */
+        while (SDL_AtomicGet(&device->rumble_pending) > 0) {
+            SDL_Delay(10);
+        }
+
+        device->driver->CloseJoystick(device, joystick);
+
+        SDL_free(joystick->hwdata);
+        joystick->hwdata = NULL;
+    }
 }
 
 static void
@@ -913,21 +1064,29 @@ HIDAPI_JoystickQuit(void)
 {
     int i;
 
+    shutting_down = SDL_TRUE;
+
     HIDAPI_ShutdownDiscovery();
 
     while (SDL_HIDAPI_devices) {
-        HIDAPI_DelDevice(SDL_HIDAPI_devices, SDL_FALSE);
+        HIDAPI_DelDevice(SDL_HIDAPI_devices);
     }
+
+    SDL_HIDAPI_QuitRumble();
+
     for (i = 0; i < SDL_arraysize(SDL_HIDAPI_drivers); ++i) {
         SDL_HIDAPI_DeviceDriver *driver = SDL_HIDAPI_drivers[i];
         SDL_DelHintCallback(driver->hint, SDL_HIDAPIDriverHintChanged, NULL);
     }
     SDL_DelHintCallback(SDL_HINT_JOYSTICK_HIDAPI,
                         SDL_HIDAPIDriverHintChanged, NULL);
-    SDL_HIDAPI_numjoysticks = 0;
 
     hid_exit();
 
+    /* Make sure the drivers cleaned up properly */
+    SDL_assert(SDL_HIDAPI_numjoysticks == 0);
+
+    shutting_down = SDL_FALSE;
     initialized = SDL_FALSE;
 }
 
@@ -938,6 +1097,7 @@ SDL_JoystickDriver SDL_HIDAPI_JoystickDriver =
     HIDAPI_JoystickDetect,
     HIDAPI_JoystickGetDeviceName,
     HIDAPI_JoystickGetDevicePlayerIndex,
+    HIDAPI_JoystickSetDevicePlayerIndex,
     HIDAPI_JoystickGetDeviceGUID,
     HIDAPI_JoystickGetDeviceInstanceID,
     HIDAPI_JoystickOpen,

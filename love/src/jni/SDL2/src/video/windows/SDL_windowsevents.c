@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -86,6 +86,11 @@ VKeytoScancode(WPARAM vkey)
 /* Windows generates this virtual keycode for Keypad 5 when NumLock is off.
     case VK_CLEAR: return SDL_SCANCODE_CLEAR;
 */
+    case VK_LEFT: return SDL_SCANCODE_LEFT;
+    case VK_UP: return SDL_SCANCODE_UP;
+    case VK_RIGHT: return SDL_SCANCODE_RIGHT;
+    case VK_DOWN: return SDL_SCANCODE_DOWN;
+
     case VK_MODECHANGE: return SDL_SCANCODE_MODE;
     case VK_SELECT: return SDL_SCANCODE_SELECT;
     case VK_EXECUTE: return SDL_SCANCODE_EXECUTE;
@@ -537,6 +542,9 @@ WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         SDL_SendMouseMotion(data->window, 0, 0, center_x, center_y);
                     }
                 }
+            } else {
+                /* We still need to update focus */
+                SDL_SetMouseFocus(data->window);
             }
         }
         /* don't break here, fall through to check the wParam like the button presses */

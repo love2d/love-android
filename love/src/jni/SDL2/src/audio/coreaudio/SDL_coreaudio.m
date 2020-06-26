@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -326,12 +326,18 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
     @autoreleasepool {
         AVAudioSession *session = [AVAudioSession sharedInstance];
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+
         /* Set category to ambient by default so that other music continues playing. */
         NSString *category = AVAudioSessionCategoryAmbient;
+        NSString *mode = AVAudioSessionModeDefault;
+        NSUInteger options = 0;
         NSError *err = nil;
 
         if (open_playback_devices && open_capture_devices) {
             category = AVAudioSessionCategoryPlayAndRecord;
+#if !TARGET_OS_TV
+            options = AVAudioSessionCategoryOptionDefaultToSpeaker;
+#endif
         } else if (open_capture_devices) {
             category = AVAudioSessionCategoryRecord;
         } else {
@@ -348,10 +354,18 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             }
         }
 
-        if (![session setCategory:category error:&err]) {
-            NSString *desc = err.description;
-            SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
-            return NO;
+        if ([session respondsToSelector:@selector(setCategory:mode:options:error:)]) {
+            if (![session setCategory:category mode:mode options:options error:&err]) {
+                NSString *desc = err.description;
+                SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
+                return NO;
+            }
+        } else {
+            if (![session setCategory:category error:&err]) {
+                NSString *desc = err.description;
+                SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
+                return NO;
+            }
         }
 
         if (open && (open_playback_devices + open_capture_devices) == 1) {
@@ -566,6 +580,12 @@ COREAUDIO_CloseDevice(_THIS)
     AudioObjectRemovePropertyListener(this->hidden->deviceID, &alive_address, device_unplugged, this);
 #endif
 
+    if (iscapture) {
+        open_capture_devices--;
+    } else {
+        open_playback_devices--;
+    }
+
 #if !MACOSX_COREAUDIO
     update_audio_session(this, SDL_FALSE);
 #endif
@@ -591,12 +611,6 @@ COREAUDIO_CloseDevice(_THIS)
     SDL_free(this->hidden->thread_error);
     SDL_free(this->hidden->buffer);
     SDL_free(this->hidden);
-
-    if (iscapture) {
-        open_capture_devices--;
-    } else {
-        open_playback_devices--;
-    }
 }
 
 #if MACOSX_COREAUDIO
@@ -695,6 +709,41 @@ prepare_audioqueue(_THIS)
 
     /* Calculate the final parameters for this audio specification */
     SDL_CalculateAudioSpec(&this->spec);
+
+    /* Set the channel layout for the audio queue */
+    AudioChannelLayout layout;
+    SDL_zero(layout);
+    switch (this->spec.channels) {
+    case 1:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_Mono;
+        break;
+    case 2:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo;
+        break;
+    case 3:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_DVD_4;
+        break;
+    case 4:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_Quadraphonic;
+        break;
+    case 5:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_MPEG_5_0_A;
+        break;
+    case 6:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_MPEG_5_1_A;
+        break;
+    case 7:
+        /* FIXME: Need to move channel[4] (BC) to channel[6] */
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_MPEG_6_1_A;
+        break;
+    case 8:
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_MPEG_7_1_A;
+        break;
+    }
+    if (layout.mChannelLayoutTag != 0) {
+        result = AudioQueueSetProperty(this->hidden->audioQueue, kAudioQueueProperty_ChannelLayout, &layout, sizeof(layout));
+        CHECK_RESULT("AudioQueueSetProperty(kAudioQueueProperty_ChannelLayout)");
+    }
 
     /* Allocate a sample buffer */
     this->hidden->bufferSize = this->spec.size;
@@ -806,6 +855,17 @@ COREAUDIO_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         AVAudioSession* session = [AVAudioSession sharedInstance];
         [session setPreferredSampleRate:this->spec.freq error:nil];
         this->spec.freq = (int)session.sampleRate;
+#if TARGET_OS_TV
+        if (iscapture) {
+            [session setPreferredInputNumberOfChannels:this->spec.channels error:nil];
+            this->spec.channels = session.preferredInputNumberOfChannels;
+        } else {
+            [session setPreferredOutputNumberOfChannels:this->spec.channels error:nil];
+            this->spec.channels = session.preferredOutputNumberOfChannels;
+        }
+#else
+		/* Calling setPreferredOutputNumberOfChannels seems to break audio output on iOS */
+#endif /* TARGET_OS_TV */
     }
 #endif
 
@@ -850,7 +910,7 @@ COREAUDIO_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         return SDL_SetError("Unsupported audio format");
     }
 
-    strdesc->mBytesPerFrame = strdesc->mBitsPerChannel * strdesc->mChannelsPerFrame / 8;
+    strdesc->mBytesPerFrame = strdesc->mChannelsPerFrame * strdesc->mBitsPerChannel / 8;
     strdesc->mBytesPerPacket = strdesc->mBytesPerFrame * strdesc->mFramesPerPacket;
 
 #if MACOSX_COREAUDIO

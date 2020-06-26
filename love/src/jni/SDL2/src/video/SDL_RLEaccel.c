@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,6 +19,8 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 #include "../SDL_internal.h"
+
+#if SDL_HAVE_RLE
 
 /*
  * RLE encoding for software colorkey and alpha-channel acceleration
@@ -445,7 +447,7 @@ RLEClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
 
 
 /* blit a colorkeyed RLE surface */
-int SDLCALL
+static int SDLCALL
 SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
             SDL_Surface * surf_dst, SDL_Rect * dstrect)
 {
@@ -723,7 +725,7 @@ RLEAlphaClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
 }
 
 /* blit a pixel-alpha RLE surface */
-int SDLCALL
+static int SDLCALL
 SDL_RLEAlphaBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
                  SDL_Surface * surf_dst, SDL_Rect * dstrect)
 {
@@ -1430,7 +1432,7 @@ SDL_RLESurface(SDL_Surface * surface)
     /* Pass on combinations not supported */
     if ((flags & SDL_COPY_MODULATE_COLOR) ||
         ((flags & SDL_COPY_MODULATE_ALPHA) && surface->format->Amask) ||
-        (flags & (SDL_COPY_ADD | SDL_COPY_MOD)) ||
+        (flags & (SDL_COPY_ADD | SDL_COPY_MOD | SDL_COPY_MUL)) ||
         (flags & SDL_COPY_NEAREST)) {
         return -1;
     }
@@ -1583,5 +1585,7 @@ SDL_UnRLESurface(SDL_Surface * surface, int recode)
         surface->map->data = NULL;
     }
 }
+
+#endif /* SDL_HAVE_RLE */
 
 /* vi: set ts=4 sw=4 expandtab: */

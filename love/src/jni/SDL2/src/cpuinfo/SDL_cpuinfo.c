@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -88,6 +88,11 @@
 #if __ARM_ARCH < 8
 #include <cpu-features.h>
 #endif
+#endif
+
+#ifdef __RISCOS__
+#include <kernel.h>
+#include <swis.h>
 #endif
 
 #define CPU_HAS_RDTSC   (1 << 0)
@@ -333,7 +338,14 @@ CPU_haveAltiVec(void)
     return altivec;
 }
 
-#if !defined(__ARM_ARCH)
+#if defined(__ARM_ARCH) && (__ARM_ARCH >= 6)
+static int
+CPU_haveARMSIMD(void)
+{
+	return 1;
+}
+
+#elif !defined(__arm__)
 static int
 CPU_haveARMSIMD(void)
 {
@@ -373,14 +385,33 @@ CPU_haveARMSIMD(void)
     return arm_simd;
 }
 
+#elif defined(__RISCOS__)
+
+static int
+CPU_haveARMSIMD(void)
+{
+	_kernel_swi_regs regs;
+	regs.r[0] = 0;
+	if (_kernel_swi(OS_PlatformFeatures, &regs, &regs) != NULL)
+		return 0;
+
+	if (!(regs.r[0] & (1<<31)))
+		return 0;
+
+	regs.r[0] = 34;
+	regs.r[1] = 29;
+	if (_kernel_swi(OS_PlatformFeatures, &regs, &regs) != NULL)
+		return 0;
+
+	return regs.r[0];
+}
+
 #else
 static int
 CPU_haveARMSIMD(void)
 {
-#if !defined(__ANDROID__) && !defined(__IPHONEOS__) && !defined(__TVOS__)
-#warning SDL_HasARMSIMD is not implemented for this ARM platform, defaulting to TRUE
-#endif
-    return 1;
+#warning SDL_HasARMSIMD is not implemented for this ARM platform. Write me.
+    return 0;
 }
 #endif
 
@@ -419,15 +450,15 @@ CPU_haveNEON(void)
 #  endif
 /* All WinRT ARM devices are required to support NEON, but just in case. */
     return IsProcessorFeaturePresent(PF_ARM_NEON_INSTRUCTIONS_AVAILABLE) != 0;
-#elif !defined(__ARM_ARCH)
-    return 0;  /* not an ARM CPU at all. */
-#elif __ARM_ARCH >= 8
+#elif defined(__ARM_ARCH) && (__ARM_ARCH >= 8)
     return 1;  /* ARMv8 always has non-optional NEON support. */
-#elif defined(__APPLE__) && (__ARM_ARCH >= 7)
+#elif defined(__APPLE__) && defined(__ARM_ARCH) && (__ARM_ARCH >= 7)
     /* (note that sysctlbyname("hw.optional.neon") doesn't work!) */
     return 1;  /* all Apple ARMv7 chips and later have NEON. */
 #elif defined(__APPLE__)
     return 0;  /* assume anything else from Apple doesn't have NEON. */
+#elif !defined(__arm__)
+    return 0;  /* not an ARM CPU at all. */
 #elif defined(__QNXNTO__)
     return SYSPAGE_ENTRY(cpuinfo)->flags & ARM_CPU_FLAG_NEON;
 #elif (defined(__LINUX__) || defined(__ANDROID__)) && defined(HAVE_GETAUXVAL)
@@ -441,6 +472,18 @@ CPU_haveNEON(void)
         if (cpu_family == ANDROID_CPU_FAMILY_ARM) {
             uint64_t cpu_features = android_getCpuFeatures();
             if ((cpu_features & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+#elif defined(__RISCOS__)
+    /* Use the VFPSupport_Features SWI to access the MVFR registers */
+    {
+        _kernel_swi_regs regs;
+	regs.r[0] = 0;
+        if (_kernel_swi(VFPSupport_Features, &regs, &regs) == NULL) {
+            if ((regs.r[2] & 0xFFF000) == 0x111000) {
                 return 1;
             }
         }
@@ -869,6 +912,15 @@ SDL_GetSystemRAM(void)
             Uint32 sysram = 0;
             DosQuerySysInfo(QSV_TOTPHYSMEM, QSV_TOTPHYSMEM, &sysram, 4);
             SDL_SystemRAM = (int) (sysram / 0x100000U);
+        }
+#endif
+#ifdef __RISCOS__
+        if (SDL_SystemRAM <= 0) {
+            _kernel_swi_regs regs;
+            regs.r[0] = 0x108;
+            if (_kernel_swi(OS_Memory, &regs, &regs) == NULL) {
+                SDL_SystemRAM = (int)(regs.r[1] * regs.r[2] / (1024 * 1024));
+            }
         }
 #endif
 #endif

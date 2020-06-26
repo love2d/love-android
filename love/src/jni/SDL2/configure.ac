@@ -20,9 +20,9 @@ dnl Set various version strings - taken gratefully from the GTk sources
 #
 SDL_MAJOR_VERSION=2
 SDL_MINOR_VERSION=0
-SDL_MICRO_VERSION=11
+SDL_MICRO_VERSION=12
 SDL_INTERFACE_AGE=0
-SDL_BINARY_AGE=11
+SDL_BINARY_AGE=12
 SDL_VERSION=$SDL_MAJOR_VERSION.$SDL_MINOR_VERSION.$SDL_MICRO_VERSION
 
 AC_SUBST(SDL_MAJOR_VERSION)
@@ -1344,8 +1344,8 @@ dnl Check for ARM NEON instruction support using gas syntax
 CheckNEON()
 {
     AC_ARG_ENABLE(arm-neon,
-AC_HELP_STRING([--enable-arm-neon], [use NEON assembly blitters on ARM [[default=yes]]]),
-                  enable_arm_neon=$enableval, enable_arm_neon=yes)
+AC_HELP_STRING([--enable-arm-neon], [use NEON assembly blitters on ARM [[default=no]]]),
+                  enable_arm_neon=$enableval, enable_arm_neon=no)
     if test x$enable_video = xyes -a x$enable_assembly = xyes -a x$enable_arm_neon = xyes; then
         save_CFLAGS="$CFLAGS"
         have_arm_neon=no
@@ -2035,6 +2035,9 @@ AS_HELP_STRING([--enable-video-x11-vm], [use X11 VM extension for fullscreen [[d
                 SUMMARY_video_x11="${SUMMARY_video_x11} xvidmode"
             fi
         fi
+    else
+        # Prevent Mesa from including X11 headers
+        EXTRA_CFLAGS="$EXTRA_CFLAGS -DMESA_EGL_NO_X11_HEADERS -DEGL_NO_X11"
     fi
 }
 
@@ -3326,7 +3329,6 @@ AS_HELP_STRING([--enable-hidapi], [use HIDAPI for low level joystick drivers [[d
                     if test x$have_loadso != xyes; then
                         AC_MSG_WARN([You must have SDL_LoadObject() support for dynamic libusb loading])
                     fi
-                    SOURCES="$SOURCES $srcdir/src/hidapi/SDL_hidapi.c"
                     # libusb is loaded dynamically, so don't add it to LDFLAGS
                     libusb_lib=""
                     case "$host" in
@@ -3342,8 +3344,6 @@ AS_HELP_STRING([--enable-hidapi], [use HIDAPI for low level joystick drivers [[d
                     fi
                     AC_DEFINE_UNQUOTED(SDL_LIBUSB_DYNAMIC, "$libusb_lib", [ ])
                 fi
-            else
-                SOURCES="$SOURCES $srcdir/src/hidapi/SDL_hidapi.c"
             fi
         fi
 
@@ -3859,6 +3859,12 @@ AS_HELP_STRING([--enable-render-d3d], [enable the Direct3D render driver [[defau
         #    have_haptic=yes
         #    EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,ForceFeedback"
         #fi
+        # Set up files for the sensor library
+        if test x$enable_sensor = xyes; then
+            AC_DEFINE(SDL_SENSOR_COREMOTION, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/sensor/coremotion/*.m"
+            have_sensor=yes
+        fi
         # Set up files for the power library
         if test x$enable_power = xyes; then
             AC_DEFINE(SDL_POWER_UIKIT, 1, [ ])
@@ -4053,6 +4059,25 @@ AS_HELP_STRING([--enable-render-d3d], [enable the Direct3D render driver [[defau
             SOURCES="$SOURCES $srcdir/src/filesystem/emscripten/*.c"
             have_filesystem=yes
         fi
+        # Set up files for the timer library
+        if test x$enable_timers = xyes; then
+            AC_DEFINE(SDL_TIMER_UNIX, 1, [ ])
+            SOURCES="$SOURCES $srcdir/src/timer/unix/*.c"
+            have_timers=yes
+        fi
+        ;;
+    *-*-riscos*)
+        ARCH=riscos
+        CheckVisibilityHidden
+        CheckDeclarationAfterStatement
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckDummyAudio
+        CheckDLOPEN
+        CheckOSS
+        CheckPTHREAD
+        CheckClockGettime
+
         # Set up files for the timer library
         if test x$enable_timers = xyes; then
             AC_DEFINE(SDL_TIMER_UNIX, 1, [ ])
@@ -4271,7 +4296,7 @@ $WAYLAND_PROTOCOLS_DEPENDS
 __EOF__
 
 AC_CONFIG_FILES([
-    Makefile:Makefile.in:Makefile.rules sdl2-config sdl2-config.cmake SDL2.spec sdl2.pc
+    Makefile:Makefile.in:Makefile.rules sdl2-config sdl2-config.cmake sdl2-config-version.cmake SDL2.spec sdl2.pc
 ])
 AC_CONFIG_COMMANDS([sdl2_config],[chmod a+x sdl2-config])
 

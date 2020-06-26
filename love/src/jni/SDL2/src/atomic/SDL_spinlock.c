@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -30,6 +30,10 @@
 
 #if !defined(HAVE_GCC_ATOMICS) && defined(__SOLARIS__)
 #include <atomic.h>
+#endif
+
+#if !defined(HAVE_GCC_ATOMICS) && defined(__RISCOS__)
+#include <unixlib/local.h>
 #endif
 
 #if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
@@ -84,6 +88,16 @@ SDL_AtomicTryLock(SDL_SpinLock *lock)
          defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_5TE__) || \
          defined(__ARM_ARCH_5TEJ__))
     int result;
+
+#if defined(__RISCOS__)
+    if (__cpucap_have_rex()) {
+        __asm__ __volatile__ (
+            "ldrex %0, [%2]\nteq   %0, #0\nstrexeq %0, %1, [%2]"
+            : "=&r" (result) : "r" (1), "r" (lock) : "cc", "memory");
+        return (result == 0);
+    }
+#endif
+
     __asm__ __volatile__ (
         "swp %0, %1, [%2]\n"
         : "=&r,&r" (result) : "r,0" (1), "r,r" (lock) : "memory");

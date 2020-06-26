@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -38,6 +38,7 @@
 #include "SDL_hints.h"
 #include "SDL_audio.h"
 #include "SDL_wave.h"
+#include "SDL_audio_c.h"
 
 /* Reads the value stored at the location of the f1 pointer, multiplies it
  * with the second argument and then stores the result to f1.
@@ -2080,6 +2081,8 @@ WaveLoad(SDL_RWops *src, WaveFile *file, SDL_AudioSpec *spec, Uint8 **audio_buf,
         }
         break;
     }
+
+    spec->silence = SDL_SilenceValueForFormat(spec->format);
 
     /* Report the end position back to the cleanup code. */
     if (RIFFlengthknown) {

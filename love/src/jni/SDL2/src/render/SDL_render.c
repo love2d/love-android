@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -75,6 +75,10 @@
     SDL_COMPOSE_BLENDMODE(SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_COLOR, SDL_BLENDOPERATION_ADD, \
                           SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD)
 
+#define SDL_BLENDMODE_MUL_FULL \
+    SDL_COMPOSE_BLENDMODE(SDL_BLENDFACTOR_DST_COLOR, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD, \
+                          SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD)
+
 #if !SDL_RENDER_DISABLED
 static const SDL_RenderDriver *render_drivers[] = {
 #if SDL_VIDEO_RENDER_D3D
@@ -101,7 +105,9 @@ static const SDL_RenderDriver *render_drivers[] = {
 #if SDL_VIDEO_RENDER_PSP
     &PSP_RenderDriver,
 #endif
+#if SDL_VIDEO_RENDER_SW
     &SW_RenderDriver
+#endif
 };
 #endif /* !SDL_RENDER_DISABLED */
 
@@ -903,7 +909,7 @@ error:
 SDL_Renderer *
 SDL_CreateSoftwareRenderer(SDL_Surface * surface)
 {
-#if !SDL_RENDER_DISABLED
+#if !SDL_RENDER_DISABLED && SDL_VIDEO_RENDER_SW
     SDL_Renderer *renderer;
 
     renderer = SW_CreateRendererForSurface(surface);
@@ -970,6 +976,7 @@ IsSupportedBlendMode(SDL_Renderer * renderer, SDL_BlendMode blendMode)
     case SDL_BLENDMODE_BLEND:
     case SDL_BLENDMODE_ADD:
     case SDL_BLENDMODE_MOD:
+    case SDL_BLENDMODE_MUL:
         return SDL_TRUE;
 
     default:
@@ -1109,7 +1116,11 @@ SDL_CreateTexture(SDL_Renderer * renderer, Uint32 format, int access, int w, int
         renderer->textures = texture;
 
         if (SDL_ISPIXELFORMAT_FOURCC(texture->format)) {
+#if SDL_HAVE_YUV
             texture->yuv = SDL_SW_CreateYUVTexture(format, w, h);
+#else
+            SDL_SetError("SDL not built with YUV support");
+#endif
             if (!texture->yuv) {
                 SDL_DestroyTexture(texture);
                 return NULL;
@@ -1156,7 +1167,7 @@ SDL_CreateTextureFromSurface(SDL_Renderer * renderer, SDL_Surface * surface)
     if (fmt->palette) {
         for (i = 0; i < fmt->palette->ncolors; i++) {
             Uint8 alpha_value = fmt->palette->colors[i].a;
-            if (alpha_value != 0 || alpha_value != SDL_ALPHA_OPAQUE) {
+            if (alpha_value != 0 && alpha_value != SDL_ALPHA_OPAQUE) {
                 needAlpha = SDL_TRUE;
                 break;
             }
@@ -1388,6 +1399,34 @@ SDL_GetTextureBlendMode(SDL_Texture * texture, SDL_BlendMode *blendMode)
     return 0;
 }
 
+int
+SDL_SetTextureScaleMode(SDL_Texture * texture, SDL_ScaleMode scaleMode)
+{
+    SDL_Renderer *renderer;
+
+    CHECK_TEXTURE_MAGIC(texture, -1);
+
+    renderer = texture->renderer;
+    renderer->SetTextureScaleMode(renderer, texture, scaleMode);
+    texture->scaleMode = scaleMode;
+    if (texture->native) {
+        return SDL_SetTextureScaleMode(texture->native, scaleMode);
+    }
+    return 0;
+}
+
+int
+SDL_GetTextureScaleMode(SDL_Texture * texture, SDL_ScaleMode *scaleMode)
+{
+    CHECK_TEXTURE_MAGIC(texture, -1);
+
+    if (scaleMode) {
+        *scaleMode = texture->scaleMode;
+    }
+    return 0;
+}
+
+#if SDL_HAVE_YUV
 static int
 SDL_UpdateTextureYUV(SDL_Texture * texture, const SDL_Rect * rect,
                      const void *pixels, int pitch)
@@ -1433,6 +1472,7 @@ SDL_UpdateTextureYUV(SDL_Texture * texture, const SDL_Rect * rect,
     }
     return 0;
 }
+#endif /* SDL_HAVE_YUV */
 
 static int
 SDL_UpdateTextureNative(SDL_Texture * texture, const SDL_Rect * rect,
@@ -1500,8 +1540,10 @@ SDL_UpdateTexture(SDL_Texture * texture, const SDL_Rect * rect,
 
     if ((rect->w == 0) || (rect->h == 0)) {
         return 0;  /* nothing to do. */
+#if SDL_HAVE_YUV
     } else if (texture->yuv) {
         return SDL_UpdateTextureYUV(texture, rect, pixels, pitch);
+#endif
     } else if (texture->native) {
         return SDL_UpdateTextureNative(texture, rect, pixels, pitch);
     } else {
@@ -1513,6 +1555,7 @@ SDL_UpdateTexture(SDL_Texture * texture, const SDL_Rect * rect,
     }
 }
 
+#if SDL_HAVE_YUV
 static int
 SDL_UpdateTextureYUVPlanar(SDL_Texture * texture, const SDL_Rect * rect,
                            const Uint8 *Yplane, int Ypitch,
@@ -1564,12 +1607,14 @@ SDL_UpdateTextureYUVPlanar(SDL_Texture * texture, const SDL_Rect * rect,
     }
     return 0;
 }
+#endif /* SDL_HAVE_YUV */
 
 int SDL_UpdateYUVTexture(SDL_Texture * texture, const SDL_Rect * rect,
                          const Uint8 *Yplane, int Ypitch,
                          const Uint8 *Uplane, int Upitch,
                          const Uint8 *Vplane, int Vpitch)
 {
+#if SDL_HAVE_YUV
     SDL_Renderer *renderer;
     SDL_Rect full_rect;
 
@@ -1626,14 +1671,19 @@ int SDL_UpdateYUVTexture(SDL_Texture * texture, const SDL_Rect * rect,
             return SDL_Unsupported();
         }
     }
+#else
+    return -1;
+#endif
 }
 
+#if SDL_HAVE_YUV
 static int
 SDL_LockTextureYUV(SDL_Texture * texture, const SDL_Rect * rect,
                    void **pixels, int *pitch)
 {
     return SDL_SW_LockYUVTexture(texture->yuv, rect, pixels, pitch);
 }
+#endif /* SDL_HAVE_YUV */
 
 static int
 SDL_LockTextureNative(SDL_Texture * texture, const SDL_Rect * rect,
@@ -1667,12 +1717,15 @@ SDL_LockTexture(SDL_Texture * texture, const SDL_Rect * rect,
         rect = &full_rect;
     }
 
+#if SDL_HAVE_YUV
     if (texture->yuv) {
         if (FlushRenderCommandsIfTextureNeeded(texture) < 0) {
             return -1;
         }
         return SDL_LockTextureYUV(texture, rect, pixels, pitch);
-    } else if (texture->native) {
+    } else
+#endif
+    if (texture->native) {
         /* Calls a real SDL_LockTexture/SDL_UnlockTexture on unlock, flushing then. */
         return SDL_LockTextureNative(texture, rect, pixels, pitch);
     } else {
@@ -1720,6 +1773,7 @@ SDL_LockTextureToSurface(SDL_Texture *texture, const SDL_Rect *rect,
     return 0;
 }
 
+#if SDL_HAVE_YUV
 static void
 SDL_UnlockTextureYUV(SDL_Texture * texture)
 {
@@ -1740,6 +1794,7 @@ SDL_UnlockTextureYUV(SDL_Texture * texture)
                         rect.w, rect.h, native_pixels, native_pitch);
     SDL_UnlockTexture(native);
 }
+#endif /* SDL_HAVE_YUV */
 
 static void
 SDL_UnlockTextureNative(SDL_Texture * texture)
@@ -1770,9 +1825,12 @@ SDL_UnlockTexture(SDL_Texture * texture)
     if (texture->access != SDL_TEXTUREACCESS_STREAMING) {
         return;
     }
+#if SDL_HAVE_YUV
     if (texture->yuv) {
         SDL_UnlockTextureYUV(texture);
-    } else if (texture->native) {
+    } else
+#endif
+    if (texture->native) {
         SDL_UnlockTextureNative(texture);
     } else {
         SDL_Renderer *renderer = texture->renderer;
@@ -3127,9 +3185,11 @@ SDL_DestroyTexture(SDL_Texture * texture)
     if (texture->native) {
         SDL_DestroyTexture(texture->native);
     }
+#if SDL_HAVE_YUV
     if (texture->yuv) {
         SDL_SW_DestroyYUVTexture(texture->yuv);
     }
+#endif
     SDL_free(texture->pixels);
 
     renderer->DestroyTexture(renderer, texture);
@@ -3261,6 +3321,9 @@ SDL_GetShortBlendMode(SDL_BlendMode blendMode)
     if (blendMode == SDL_BLENDMODE_MOD_FULL) {
         return SDL_BLENDMODE_MOD;
     }
+    if (blendMode == SDL_BLENDMODE_MUL_FULL) {
+        return SDL_BLENDMODE_MUL;
+    }
     return blendMode;
 }
 
@@ -3278,6 +3341,9 @@ SDL_GetLongBlendMode(SDL_BlendMode blendMode)
     }
     if (blendMode == SDL_BLENDMODE_MOD) {
         return SDL_BLENDMODE_MOD_FULL;
+    }
+    if (blendMode == SDL_BLENDMODE_MUL) {
+        return SDL_BLENDMODE_MUL_FULL;
     }
     return blendMode;
 }

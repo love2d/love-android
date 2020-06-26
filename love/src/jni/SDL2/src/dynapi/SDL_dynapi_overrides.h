@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -733,3 +733,19 @@
 #define SDL_wcsncmp SDL_wcsncmp_REAL
 #define SDL_GameControllerTypeForIndex SDL_GameControllerTypeForIndex_REAL
 #define SDL_GameControllerGetType SDL_GameControllerGetType_REAL
+#define SDL_GameControllerFromPlayerIndex SDL_GameControllerFromPlayerIndex_REAL
+#define SDL_GameControllerSetPlayerIndex SDL_GameControllerSetPlayerIndex_REAL
+#define SDL_JoystickFromPlayerIndex SDL_JoystickFromPlayerIndex_REAL
+#define SDL_JoystickSetPlayerIndex SDL_JoystickSetPlayerIndex_REAL
+#define SDL_SetTextureScaleMode SDL_SetTextureScaleMode_REAL
+#define SDL_GetTextureScaleMode SDL_GetTextureScaleMode_REAL
+#define SDL_OnApplicationWillTerminate SDL_OnApplicationWillTerminate_REAL
+#define SDL_OnApplicationDidReceiveMemoryWarning SDL_OnApplicationDidReceiveMemoryWarning_REAL
+#define SDL_OnApplicationWillResignActive SDL_OnApplicationWillResignActive_REAL
+#define SDL_OnApplicationDidEnterBackground SDL_OnApplicationDidEnterBackground_REAL
+#define SDL_OnApplicationWillEnterForeground SDL_OnApplicationWillEnterForeground_REAL
+#define SDL_OnApplicationDidBecomeActive SDL_OnApplicationDidBecomeActive_REAL
+#define SDL_OnApplicationDidChangeStatusBarOrientation SDL_OnApplicationDidChangeStatusBarOrientation_REAL
+#define SDL_GetAndroidSDKVersion SDL_GetAndroidSDKVersion_REAL
+#define SDL_isupper SDL_isupper_REAL
+#define SDL_islower SDL_islower_REAL

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -344,8 +344,6 @@ SDL_XINPUT_JoystickOpen(SDL_Joystick * joystick, JoyStick_DeviceData *joystickde
     SDL_assert(XINPUTSETSTATE);
     SDL_assert(userId < XUSER_MAX_COUNT);
 
-    joystick->player_index = userId;
-
     joystick->hwdata->bXInputDevice = SDL_TRUE;
 
     if (XINPUTGETCAPABILITIES(userId, XINPUT_FLAG_GAMEPAD, &capabilities) != ERROR_SUCCESS) {
@@ -467,7 +465,7 @@ UpdateXInputJoystickState(SDL_Joystick * joystick, XINPUT_STATE_EX *pXInputState
 }
 
 int
-SDL_XINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms)
+SDL_XINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
     XINPUT_VIBRATION XVibration;
 
@@ -479,12 +477,6 @@ SDL_XINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, 
     XVibration.wRightMotorSpeed = high_frequency_rumble;
     if (XINPUTSETSTATE(joystick->hwdata->userid, &XVibration) != ERROR_SUCCESS) {
         return SDL_SetError("XInputSetState() failed");
-    }
-
-    if ((low_frequency_rumble || high_frequency_rumble) && duration_ms) {
-        joystick->hwdata->rumble_expiration = SDL_GetTicks() + duration_ms;
-    } else {
-        joystick->hwdata->rumble_expiration = 0;
     }
     return 0;
 }
@@ -517,13 +509,6 @@ SDL_XINPUT_JoystickUpdate(SDL_Joystick * joystick)
             UpdateXInputJoystickState(joystick, &XInputState, &XBatteryInformation);
         }
         joystick->hwdata->dwPacketNumber = XInputState.dwPacketNumber;
-    }
-
-    if (joystick->hwdata->rumble_expiration) {
-        Uint32 now = SDL_GetTicks();
-        if (SDL_TICKS_PASSED(now, joystick->hwdata->rumble_expiration)) {
-            SDL_XINPUT_JoystickRumble(joystick, 0, 0, 0);
-        }
     }
 }
 
@@ -567,7 +552,7 @@ SDL_XINPUT_JoystickOpen(SDL_Joystick * joystick, JoyStick_DeviceData *joystickde
 }
 
 int
-SDL_XINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms)
+SDL_XINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
     return SDL_Unsupported();
 }

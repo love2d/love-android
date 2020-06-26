@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -1003,9 +1003,11 @@ SDL_MapSurface(SDL_Surface * src, SDL_Surface * dst)
 
     /* Clear out any previous mapping */
     map = src->map;
+#if SDL_HAVE_RLE
     if ((src->flags & SDL_RLEACCEL) == SDL_RLEACCEL) {
         SDL_UnRLESurface(src, 1);
     }
+#endif
     SDL_InvalidateMap(map);
 
     /* Figure out what kind of mapping we're doing */

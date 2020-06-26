@@ -1625,7 +1625,7 @@ Optional Features:
   --enable-libsamplerate-shared
                           dynamically load libsamplerate [[default=yes]]
   --enable-arm-simd       use SIMD assembly blitters on ARM [[default=yes]]
-  --enable-arm-neon       use NEON assembly blitters on ARM [[default=yes]]
+  --enable-arm-neon       use NEON assembly blitters on ARM [[default=no]]
   --enable-video-wayland  use Wayland video driver [[default=yes]]
   --enable-video-wayland-qt-touch
                           QtWayland server support for Wayland video driver
@@ -2817,9 +2817,9 @@ orig_CFLAGS="$CFLAGS"
 #
 SDL_MAJOR_VERSION=2
 SDL_MINOR_VERSION=0
-SDL_MICRO_VERSION=11
+SDL_MICRO_VERSION=12
 SDL_INTERFACE_AGE=0
-SDL_BINARY_AGE=11
+SDL_BINARY_AGE=12
 SDL_VERSION=$SDL_MAJOR_VERSION.$SDL_MINOR_VERSION.$SDL_MICRO_VERSION
 
 
@@ -19417,7 +19417,7 @@ CheckNEON()
 if test "${enable_arm_neon+set}" = set; then :
   enableval=$enable_arm_neon; enable_arm_neon=$enableval
 else
-  enable_arm_neon=yes
+  enable_arm_neon=no
 fi
 
     if test x$enable_video = xyes -a x$enable_assembly = xyes -a x$enable_arm_neon = xyes; then
@@ -21487,6 +21487,9 @@ $as_echo "#define SDL_VIDEO_DRIVER_X11_XVIDMODE 1" >>confdefs.h
                 SUMMARY_video_x11="${SUMMARY_video_x11} xvidmode"
             fi
         fi
+    else
+        # Prevent Mesa from including X11 headers
+        EXTRA_CFLAGS="$EXTRA_CFLAGS -DMESA_EGL_NO_X11_HEADERS -DEGL_NO_X11"
     fi
 }
 
@@ -24332,6 +24335,7 @@ $as_echo "#define SDL_JOYSTICK_HIDAPI 1" >>confdefs.h
 
             EXTRA_CFLAGS="$EXTRA_CFLAGS -I$srcdir/src/hidapi/hidapi"
             SOURCES="$SOURCES $srcdir/src/joystick/hidapi/*.c"
+            SOURCES="$SOURCES $srcdir/src/hidapi/SDL_hidapi.c"
 
             if test x$have_libusb_h = xyes; then
                 EXTRA_CFLAGS="$EXTRA_CFLAGS $LIBUSB_CFLAGS"
@@ -24343,7 +24347,6 @@ $as_echo "#define SDL_JOYSTICK_HIDAPI 1" >>confdefs.h
                         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You must have SDL_LoadObject() support for dynamic libusb loading" >&5
 $as_echo "$as_me: WARNING: You must have SDL_LoadObject() support for dynamic libusb loading" >&2;}
                     fi
-                    SOURCES="$SOURCES $srcdir/src/hidapi/SDL_hidapi.c"
                     # libusb is loaded dynamically, so don't add it to LDFLAGS
                     libusb_lib=""
                     case "$host" in
@@ -24363,8 +24366,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
                 fi
-            else
-                SOURCES="$SOURCES $srcdir/src/hidapi/SDL_hidapi.c"
             fi
         fi
 
@@ -25108,6 +25109,14 @@ $as_echo "#define SDL_JOYSTICK_MFI 1" >>confdefs.h
         #    have_haptic=yes
         #    EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,-framework,ForceFeedback"
         #fi
+        # Set up files for the sensor library
+        if test x$enable_sensor = xyes; then
+
+$as_echo "#define SDL_SENSOR_COREMOTION 1" >>confdefs.h
+
+            SOURCES="$SOURCES $srcdir/src/sensor/coremotion/*.m"
+            have_sensor=yes
+        fi
         # Set up files for the power library
         if test x$enable_power = xyes; then
 
@@ -25344,6 +25353,27 @@ $as_echo "#define SDL_FILESYSTEM_EMSCRIPTEN 1" >>confdefs.h
             SOURCES="$SOURCES $srcdir/src/filesystem/emscripten/*.c"
             have_filesystem=yes
         fi
+        # Set up files for the timer library
+        if test x$enable_timers = xyes; then
+
+$as_echo "#define SDL_TIMER_UNIX 1" >>confdefs.h
+
+            SOURCES="$SOURCES $srcdir/src/timer/unix/*.c"
+            have_timers=yes
+        fi
+        ;;
+    *-*-riscos*)
+        ARCH=riscos
+        CheckVisibilityHidden
+        CheckDeclarationAfterStatement
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckDummyAudio
+        CheckDLOPEN
+        CheckOSS
+        CheckPTHREAD
+        CheckClockGettime
+
         # Set up files for the timer library
         if test x$enable_timers = xyes; then
 
@@ -25600,7 +25630,7 @@ $SDLTEST_DEPENDS
 $WAYLAND_PROTOCOLS_DEPENDS
 __EOF__
 
-ac_config_files="$ac_config_files Makefile:Makefile.in:Makefile.rules sdl2-config sdl2-config.cmake SDL2.spec sdl2.pc"
+ac_config_files="$ac_config_files Makefile:Makefile.in:Makefile.rules sdl2-config sdl2-config.cmake sdl2-config-version.cmake SDL2.spec sdl2.pc"
 
 ac_config_commands="$ac_config_commands sdl2_config"
 
@@ -26752,6 +26782,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile:Makefile.in:Makefile.rules" ;;
     "sdl2-config") CONFIG_FILES="$CONFIG_FILES sdl2-config" ;;
     "sdl2-config.cmake") CONFIG_FILES="$CONFIG_FILES sdl2-config.cmake" ;;
+    "sdl2-config-version.cmake") CONFIG_FILES="$CONFIG_FILES sdl2-config-version.cmake" ;;
     "SDL2.spec") CONFIG_FILES="$CONFIG_FILES SDL2.spec" ;;
     "sdl2.pc") CONFIG_FILES="$CONFIG_FILES sdl2.pc" ;;
     "sdl2_config") CONFIG_COMMANDS="$CONFIG_COMMANDS sdl2_config" ;;

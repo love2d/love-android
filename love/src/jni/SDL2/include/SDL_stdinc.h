@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -408,6 +408,8 @@ extern DECLSPEC int SDLCALL SDL_abs(int x);
 
 extern DECLSPEC int SDLCALL SDL_isdigit(int x);
 extern DECLSPEC int SDLCALL SDL_isspace(int x);
+extern DECLSPEC int SDLCALL SDL_isupper(int x);
+extern DECLSPEC int SDLCALL SDL_islower(int x);
 extern DECLSPEC int SDLCALL SDL_toupper(int x);
 extern DECLSPEC int SDLCALL SDL_tolower(int x);
 

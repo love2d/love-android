@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -206,14 +206,14 @@ static const SDL_Scancode emscripten_scancode_table[] = {
     /* 160 */   SDL_SCANCODE_UNKNOWN,
     /* 161 */   SDL_SCANCODE_UNKNOWN,
     /* 162 */   SDL_SCANCODE_UNKNOWN,
-    /* 163 */   SDL_SCANCODE_UNKNOWN,
+    /* 163 */   SDL_SCANCODE_KP_HASH, /*KaiOS phone keypad*/
     /* 164 */   SDL_SCANCODE_UNKNOWN,
     /* 165 */   SDL_SCANCODE_UNKNOWN,
     /* 166 */   SDL_SCANCODE_UNKNOWN,
     /* 167 */   SDL_SCANCODE_UNKNOWN,
     /* 168 */   SDL_SCANCODE_UNKNOWN,
     /* 169 */   SDL_SCANCODE_UNKNOWN,
-    /* 170 */   SDL_SCANCODE_UNKNOWN,
+    /* 170 */   SDL_SCANCODE_KP_MULTIPLY, /*KaiOS phone keypad*/
     /* 171 */   SDL_SCANCODE_UNKNOWN,
     /* 172 */   SDL_SCANCODE_UNKNOWN,
     /* 173 */   SDL_SCANCODE_MINUS, /*FX*/

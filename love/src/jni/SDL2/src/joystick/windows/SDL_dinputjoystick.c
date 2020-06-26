@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -374,7 +374,7 @@ SDL_IsXInputDevice(const GUID* pGuidProductFromDirectInput)
     if (SDL_memcmp(&pGuidProductFromDirectInput->Data4[2], "PIDVID", 6) == 0) {
         Uint16 vendor_id = (Uint16)LOWORD(pGuidProductFromDirectInput->Data1);
         Uint16 product_id = (Uint16)HIWORD(pGuidProductFromDirectInput->Data1);
-        SDL_GameControllerType type = SDL_GetJoystickGameControllerType(vendor_id, product_id, "");
+        SDL_GameControllerType type = SDL_GetJoystickGameControllerType("", vendor_id, product_id, -1, 0, 0, 0);
         if (type == SDL_CONTROLLER_TYPE_XBOX360 ||
             type == SDL_CONTROLLER_TYPE_XBOXONE ||
             (vendor_id == 0x28DE && product_id == 0x11FF)) {
@@ -432,7 +432,7 @@ void FreeRumbleEffectData(DIEFFECT *effect)
     SDL_free(effect);
 }
 
-DIEFFECT *CreateRumbleEffectData(Sint16 magnitude, Uint32 duration_ms)
+DIEFFECT *CreateRumbleEffectData(Sint16 magnitude)
 {
     DIEFFECT *effect;
     DIPERIODIC *periodic;
@@ -445,7 +445,7 @@ DIEFFECT *CreateRumbleEffectData(Sint16 magnitude, Uint32 duration_ms)
     effect->dwSize = sizeof(*effect);
     effect->dwGain = 10000;
     effect->dwFlags = DIEFF_OBJECTOFFSETS;
-    effect->dwDuration = duration_ms * 1000; /* In microseconds. */
+    effect->dwDuration = SDL_MAX_RUMBLE_DURATION_MS * 1000; /* In microseconds. */
     effect->dwTriggerButton = DIEB_NOTRIGGER;
 
     effect->cAxes = 2;
@@ -944,7 +944,7 @@ SDL_DINPUT_JoystickOpen(SDL_Joystick * joystick, JoyStick_DeviceData *joystickde
 }
 
 static int
-SDL_DINPUT_JoystickInitRumble(SDL_Joystick * joystick, Sint16 magnitude, Uint32 duration_ms)
+SDL_DINPUT_JoystickInitRumble(SDL_Joystick * joystick, Sint16 magnitude)
 {
     HRESULT result;
 
@@ -966,7 +966,7 @@ SDL_DINPUT_JoystickInitRumble(SDL_Joystick * joystick, Sint16 magnitude, Uint32 
     }
 
     /* Create the effect */
-    joystick->hwdata->ffeffect = CreateRumbleEffectData(magnitude, duration_ms);
+    joystick->hwdata->ffeffect = CreateRumbleEffectData(magnitude);
     if (!joystick->hwdata->ffeffect) {
         return SDL_OutOfMemory();
     }
@@ -980,7 +980,7 @@ SDL_DINPUT_JoystickInitRumble(SDL_Joystick * joystick, Sint16 magnitude, Uint32 
 }
 
 int
-SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms)
+SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
     HRESULT result;
 
@@ -993,7 +993,6 @@ SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, 
 
     if (joystick->hwdata->ff_initialized) {
         DIPERIODIC *periodic = ((DIPERIODIC *)joystick->hwdata->ffeffect->lpvTypeSpecificParams);
-        joystick->hwdata->ffeffect->dwDuration = duration_ms * 1000; /* In microseconds. */
         periodic->dwMagnitude = CONVERT_MAGNITUDE(magnitude);
 
         result = IDirectInputEffect_SetParameters(joystick->hwdata->ffeffect_ref, joystick->hwdata->ffeffect, (DIEP_DURATION | DIEP_TYPESPECIFICPARAMS));
@@ -1007,7 +1006,7 @@ SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, 
             return SetDIerror("IDirectInputDevice8::SetParameters", result);
         }
     } else {
-        if (SDL_DINPUT_JoystickInitRumble(joystick, magnitude, duration_ms) < 0) {
+        if (SDL_DINPUT_JoystickInitRumble(joystick, magnitude) < 0) {
             return -1;
         }
         joystick->hwdata->ff_initialized = SDL_TRUE;
@@ -1252,7 +1251,7 @@ SDL_DINPUT_JoystickOpen(SDL_Joystick * joystick, JoyStick_DeviceData *joystickde
 }
 
 int
-SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms)
+SDL_DINPUT_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
     return SDL_Unsupported();
 }
