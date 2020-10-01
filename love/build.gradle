@@ -8,7 +8,7 @@ android {
     // defaultPublishConfig "debug"
     compileSdkVersion 30
     buildToolsVersion '30.0.2'
-	ndkVersion '21.3.6528147'
+    ndkVersion '21.3.6528147'
 
     defaultConfig {
         compileSdkVersion 30
