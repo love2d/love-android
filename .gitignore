@@ -26,3 +26,4 @@ local.properties
 # Gradle build files
 build
 .externalNativeBuild
+.cxx
