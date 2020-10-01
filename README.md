@@ -33,27 +33,24 @@ In the repository directory. For the last command, add `--depth 1` if needed.
 Instructions:
 -------------
 
-Detailed instructions can be viewed at https://bitbucket.org/MartinFelis/love-android-sdl2/wiki/Home (at the moment)
+Detailed instructions can be viewed at https://github.com/love2d/love-android/wiki
 
 Quick Start:
 ------------
 
-Install the Android NDK and the Android SDK with SDK API 28, set the
-environment variables:
+Install the Android SDK with SDK API 30 and Android NDK 21.3.6528147, set the environment variables:
 
 * `ANDROID_HOME` to your Android SDK location.
 
-* `ANDROID_NDK_HOME` to your Android NDK location. NDK r16 or later!
-
 (you may have to adjust the paths to the install directories of the Android
-SDK and Android NDK on your system) and run
+SDK on your system) and run
 
 ```
 ./gradlew assembleNormal
 ```
 
-in the root folder of this project. This should give you a .apk file in the app/build/outputs/apk/normal
-subdirectory that you can then sign and install on your phone. The .apk flavor is what you normally have
+in the root folder of this project. This should give you a .apk file in the `app/build/outputs/apk/normal`
+subdirectory that you can then sign and install on your phone. The `normal` .apk flavor is what you normally have
 when downloading one from love2d.org. If you want to build the ["embed"](https://love2d.org/wiki/Game_Distribution/APKTool
 APK, change `assembleNormal` to `assembleEmbedRelease` instead at command above.
 
@@ -63,7 +60,7 @@ and on the tab "SDK Tools", select NDK. After that, open the repository root.
 Bugs:
 -----
 
-Bugs and feature requests should be reported to the issue tracker at https://bitbucket.org/MartinFelis/love-android-sdl2/issues?status=new&status=open
+Bugs and feature requests should be reported to the issue tracker at https://github.com/love2d/love-android/issues
 
 Changelog:
 ----------
@@ -72,7 +69,7 @@ Changelog:
 
 * Contains all relevant changes for desktop LÖVE [11.3](https://love2d.org/wiki/11.3).
 * Added support for microphone recording on Android. **This is disabled in Play Store builds**.
-* Added t.audio.mic (false by default). On Android, setting it to true requests microphone recording permission from the user.
+* Added t.audio.mic (`false` by default). On Android, setting it to true requests microphone recording permission from the user.
 * Fixed performance regression on Android devices with Adreno GPU.
 * Fixed video playback support on Android devices with Adreno GPU.
 
