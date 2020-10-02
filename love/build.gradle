@@ -14,7 +14,7 @@ android {
         compileSdkVersion 30
         buildToolsVersion "30.0.2"
         minSdkVersion 14
-        resValue "bool", "embed", "false"
+        resValue 'bool', 'embed', 'false'
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4"
@@ -43,7 +43,7 @@ android {
         }
         embed {
             dimension 'mode'
-            resValue "bool", "embed", "true"
+            resValue 'bool', 'embed', 'true'
         }
     }
     sourceSets {
@@ -61,7 +61,7 @@ android {
     }
     externalNativeBuild {
         ndkBuild {
-            path "src/jni/Android.mk"
+            path 'src/jni/Android.mk'
         }
     }
     lintOptions {

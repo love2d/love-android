@@ -16,8 +16,4 @@
 #   public *;
 #}
 
--keep class br.com.tapps.love.LoveActivity { *; }
-
--keepclassmembers class br.com.tapps.love.LoveActivity {
-   public com.naef.jnlua.LuaState createLuaState();
-}
+-keep class org.love2d.android.GameActivity { *; }

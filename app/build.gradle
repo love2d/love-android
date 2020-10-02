@@ -5,9 +5,9 @@ android {
     buildToolsVersion '30.0.2'
     ndkVersion '21.3.6528147'
     defaultConfig {
-        applicationId "org.love2d.android"
+        applicationId 'org.love2d.android'
         versionCode 29
-        versionName "11.3a"
+        versionName '11.3a'
         minSdkVersion 14
         targetSdkVersion 30
     }
@@ -27,7 +27,7 @@ android {
         }
         embed {
             dimension 'mode'
-            applicationIdSuffix "embed"
+            applicationIdSuffix '.embed'
         }
     }
     lintOptions {
