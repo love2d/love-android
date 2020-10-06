@@ -24,7 +24,6 @@ android {
             // libraries Gradle should build and package with your APK.
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
-        targetSdkVersion 29
     }
     buildTypes {
         release {

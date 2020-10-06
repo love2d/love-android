@@ -8,7 +8,7 @@ android {
         versionCode 29
         versionName "11.3a"
         minSdkVersion 14
-        targetSdkVersion 29
+        targetSdkVersion 28
     }
     buildTypes {
         release {
