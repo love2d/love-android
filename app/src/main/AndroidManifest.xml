@@ -32,7 +32,7 @@
         android:label="LÖVE for Android"
         android:launchMode="singleTask"
         android:screenOrientation="landscape"
-        android:resizeableActivity="false"
+        android:resizeableActivity="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
         <intent-filter>
           <action android:name="android.intent.action.MAIN" />
