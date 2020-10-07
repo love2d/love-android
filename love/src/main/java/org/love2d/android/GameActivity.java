@@ -38,7 +38,6 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
@@ -112,6 +111,7 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = context.getResources().getBoolean(R.bool.embed);
 
+        // Get filename from "Open with" of another application
         handleIntent(this.getIntent());
 
         super.onCreate(savedInstanceState);
@@ -134,7 +134,17 @@ public class GameActivity extends SDLActivity {
     }
 
     protected void handleIntent(Intent intent) {
-        Uri game = intent.getData();
+        Uri game = null;
+
+        // Try to handle "Share" intent.
+        // This is actually "bit tricky" to get working in user phone
+        // because shared static variables issue in the native side
+        // (user have to clear LOVE for Android in their recent apps list).
+        if (Intent.ACTION_SEND.equals(intent.getAction())) {
+            game = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        } else {
+            game = intent.getData();
+        }
 
         if (!embed && game != null) {
             String scheme = game.getScheme();

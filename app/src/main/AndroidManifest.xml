@@ -62,6 +62,11 @@
           <data android:scheme="content" />
           <data android:mimeType="application/octet-stream" />
         </intent-filter>
+        <intent-filter>
+          <action android:name="android.intent.action.SEND" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <data android:mimeType="application/*" />
+        </intent-filter>
       </activity>
       <activity
         android:name="org.love2d.android.DownloadActivity"

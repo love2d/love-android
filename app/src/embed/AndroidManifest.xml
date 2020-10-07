@@ -12,7 +12,8 @@
       android:icon="@drawable/love"
       android:label="LÖVE for Android"
       android:usesCleartextTraffic="true"
-	  tools:node="replace" >
+      android:hardwareAccelerated="true"
+      tools:node="replace" >
       <activity
         android:name="org.love2d.android.GameActivity"
         android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
