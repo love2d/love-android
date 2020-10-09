@@ -38,7 +38,6 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
@@ -112,6 +111,7 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = context.getResources().getBoolean(R.bool.embed);
 
+        // Get filename from "Open with" of another application
         handleIntent(this.getIntent());
 
         super.onCreate(savedInstanceState);
@@ -134,7 +134,17 @@ public class GameActivity extends SDLActivity {
     }
 
     protected void handleIntent(Intent intent) {
-        Uri game = intent.getData();
+        Uri game = null;
+
+        // Try to handle "Share" intent.
+        // This is actually "bit tricky" to get working in user phone
+        // because shared static variables issue in the native side
+        // (user have to clear LOVE for Android in their recent apps list).
+        if (Intent.ACTION_SEND.equals(intent.getAction())) {
+            game = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        } else {
+            game = intent.getData();
+        }
 
         if (!embed && game != null) {
             String scheme = game.getScheme();
@@ -229,17 +239,13 @@ public class GameActivity extends SDLActivity {
     }
 
     protected void checkLovegameFolder() {
-        // If no game.love was found fall back to the game in <external storage>/lovegame
-        // if using normal or playstore build
+        // If no game.love was found and embed flavor is not used, fall back to the game in
+        // <external storage>/Android/data/<package name>/games/lovegame
         if (!embed) {
             Log.d("GameActivity", "fallback to lovegame folder");
-            if (hasExternalStoragePermission()) {
-                File ext = Environment.getExternalStorageDirectory();
-                if ((new File(ext, "/lovegame/main.lua")).exists()) {
-                    gamePath = ext.getPath() + "/lovegame/";
-                }
-            } else {
-                Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
+            File ext = getExternalFilesDir("games");
+            if ((new File(ext, "/lovegame/main.lua")).exists()) {
+                gamePath = ext.getPath() + "/lovegame/";
             }
         }
     }
@@ -295,7 +301,6 @@ public class GameActivity extends SDLActivity {
             } else {
                 Log.d("GameActivity", "cannot open game " + gamePath + ": no external storage permission given!");
             }
-
         } else {
             self.checkLovegameFolder();
             if (gamePath.length() > 0)

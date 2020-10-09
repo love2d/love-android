@@ -6,14 +6,15 @@ android {
     // See https://code.google.com/p/android/issues/detail?id=52962
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
-    compileSdkVersion 28
-    buildToolsVersion '28.0.3'
+    compileSdkVersion 30
+    buildToolsVersion '30.0.2'
+    ndkVersion '21.3.6528147'
 
     defaultConfig {
-        compileSdkVersion 28
-        buildToolsVersion "28.0.3"
+        compileSdkVersion 30
+        buildToolsVersion "30.0.2"
         minSdkVersion 14
-        resValue "bool", "embed", "false"
+        resValue 'bool', 'embed', 'false'
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4"
@@ -24,6 +25,7 @@ android {
             // libraries Gradle should build and package with your APK.
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
+        targetSdkVersion 30
     }
     buildTypes {
         release {
@@ -41,7 +43,7 @@ android {
         }
         embed {
             dimension 'mode'
-            resValue "bool", "embed", "true"
+            resValue 'bool', 'embed', 'true'
         }
     }
     sourceSets {
@@ -59,7 +61,7 @@ android {
     }
     externalNativeBuild {
         ndkBuild {
-            path "src/jni/Android.mk"
+            path 'src/jni/Android.mk'
         }
     }
     lintOptions {
@@ -73,5 +75,5 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.1.0-alpha01'
+    api 'androidx.appcompat:appcompat:1.2.0'
 }

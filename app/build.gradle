@@ -1,14 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    compileSdkVersion 30
+    buildToolsVersion '30.0.2'
+    ndkVersion '21.3.6528147'
     defaultConfig {
-        applicationId "org.love2d.android"
+        applicationId 'org.love2d.android'
         versionCode 29
-        versionName "11.3a"
+        versionName '11.3a'
         minSdkVersion 14
-        targetSdkVersion 28
+        targetSdkVersion 30
     }
     buildTypes {
         release {
@@ -26,7 +27,7 @@ android {
         }
         embed {
             dimension 'mode'
-            applicationIdSuffix "embed"
+            applicationIdSuffix '.embed'
         }
     }
     lintOptions {
@@ -35,8 +36,8 @@ android {
 }
 
 dependencies {
-    api 'androidx.multidex:multidex:2.0.0'
+    api 'androidx.multidex:multidex:2.0.1'
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.1.0-alpha01'
+    api 'androidx.appcompat:appcompat:1.2.0'
     api project(':love')
 }

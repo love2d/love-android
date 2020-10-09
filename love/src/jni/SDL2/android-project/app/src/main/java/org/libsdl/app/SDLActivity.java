@@ -243,6 +243,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
     // love2d-mod-start: allow restarting of the native thread
     public void startNative() {
+        boolean hadSDLThread = SDLActivity.mSDLThread != null;
+
         // Set up JNI
         SDL.setupJNI();
 
@@ -282,6 +284,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                 Log.v(TAG, "Got filename: " + filename);
                 SDLActivity.onNativeDropFile(filename);
             }
+        }
+
+        if (hadSDLThread) {
+            resumeNativeThread();
         }
     }
     // love2d-mod-end: allow restarting of the native thread
