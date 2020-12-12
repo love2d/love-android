@@ -6,6 +6,7 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
+    - name: Very cursed solution, Y E S
     - name: Setup Java 8
       uses: actions/setup-java@v1.3.0
       with:
