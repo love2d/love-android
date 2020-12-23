@@ -46,21 +46,29 @@ Install the Android SDK with SDK API 30 and Android NDK 21.3.6528147, set the en
 SDK on your system) and run
 
 ```
-./gradlew assembleNormal
+$ ./gradlew assembleNormal
 ```
 
 in the root folder of this project. This should give you a .apk file in the `app/build/outputs/apk/normal`
 subdirectory that you can then sign and install on your phone. The `normal` .apk flavor is what you normally have
-when downloading one from love2d.org. If you want to build the ["embed"](https://love2d.org/wiki/Game_Distribution/APKTool
-APK, change `assembleNormal` to `assembleEmbedRelease` instead at command above.
+when downloading one from love2d.org.
+
+If you want to put your game inside the APK, put your zipped \*.love in `app/src/main/assets` with name `game.love`
+then change the package name, application display name, and the icons. Afterwards, run either `gradlew assembleEmbedRelease`
+to generate APK which you can install or `gradlew bundleEmbedRelease` which you can upload to Play Store.
 
 Alternatively, you can install Android Studio. After opening it for the first time, open it's SDK Manager
 and on the tab "SDK Tools", select NDK. After that, open the repository root.
 
+Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google causes that method
+to obsolete.
+
 Bugs:
 -----
 
-Bugs and feature requests should be reported to the issue tracker at https://github.com/love2d/love-android/issues
+Bugs and/or feature requests should be reported to the issue tracker at:
+* https://github.com/love2d/love-android/issues - for internal, LÖVE-Android-specific stuff
+* https://github.com/love2d/love/issues - for LÖVE in general
 
 Changelog:
 ----------
