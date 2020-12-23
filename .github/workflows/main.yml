@@ -15,9 +15,24 @@ jobs:
       with:
         submodules: true
     - name: Build
-      run: bash ./gradlew assembleRelease
-    - name: Artifact
-      uses: actions/upload-artifact@v1.0.0
+      run: bash ./gradlew assembleNormalRelease assembleEmbedRelease bundleNormalRelease bundleEmbedRelease
+    - name: Artifact (embed APK)
+      uses: actions/upload-artifact@v2
       with:
-        name: unsigned-apk
-        path: app/build/outputs/apk
+        name: love-android-embed.apk
+        path: app/build/outputs/apk/embed/release/app-embed-release-unsigned.apk
+    - name: Artifact (normal APK)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android.apk
+        path: app/build/outputs/apk/normal/release/app-normal-release-unsigned.apk
+    - name: Artifact (embed AAB)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android-embed.aab
+        path: app/build/outputs/bundle/embedRelease/app-embed-release.aab
+    - name: Artifact (normal AAB)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android.aab
+        path: app/build/outputs/bundle/normalRelease/app-normal-release.aab
