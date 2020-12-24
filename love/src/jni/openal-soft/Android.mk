@@ -120,7 +120,8 @@ LOCAL_SRC_FILES := \
     alc/uhjfilter.cpp \
     alc/uiddefs.cpp \
     alc/voice.cpp \
-    alc/mixer/mixer_c.cpp
+    alc/mixer/mixer_c.cpp \
+	opensl_latency.cpp
 
 #
 # Conditionals source files
@@ -158,11 +159,6 @@ LOCAL_SRC_FILES += \
     alc/backends/oboe.cpp \
     alc/backends/opensl.cpp \
     alc/backends/wave.cpp
-
-#
-# OpenSL latency setting workaround
-#
-LOCAL_SRC_FILES += opensl_latency.cpp
 
 #
 # Libraries related

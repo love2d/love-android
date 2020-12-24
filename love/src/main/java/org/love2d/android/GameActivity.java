@@ -66,9 +66,11 @@ public class GameActivity extends SDLActivity {
     public int safeAreaBottom = 0;
     public int safeAreaRight = 0;
 
+    private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
+
     @Override
     protected String[] getLibraries() {
-        return new String[]{
+        return new String[] {
             "c++_shared",
             "mpg123",
             "openal",
@@ -116,6 +118,9 @@ public class GameActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        // Set low-latency audio values
+        nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
 
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
@@ -533,5 +538,29 @@ public class GameActivity extends SDLActivity {
         }
 
         return false;
+    }
+
+    public int getAudioSMP() {
+        int smp = 256;
+
+        if (android.os.Build.VERSION.SDK_INT >= 17) {
+            AudioManager a = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int b = Integer.parseInt(a.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER));
+            return b > 0 ? b : smp;
+        }
+
+        return smp;
+    }
+
+    public int getAudioFreq() {
+        int freq = 44100;
+
+        if (android.os.Build.VERSION.SDK_INT >= 17) {
+            AudioManager a = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int b = Integer.parseInt(a.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE));
+            return b > 0 ? b : freq;
+        }
+
+        return freq;
     }
 }
