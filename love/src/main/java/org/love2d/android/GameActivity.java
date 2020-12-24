@@ -327,18 +327,9 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
-    public static boolean openURL(String url) {
+    public static boolean openURLFromLOVE(String url) {
         Log.d("GameActivity", "opening url = " + url);
-        try {
-            Intent i = new Intent(Intent.ACTION_VIEW);
-            i.setData(Uri.parse(url));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            context.startActivity(i);
-            return true;
-        } catch (RuntimeException e) {
-            Log.d("GameActivity", "love.system.openURL", e);
-            return false;
-        }
+        return openURL(url) == 0;
     }
 
     /**
