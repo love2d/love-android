@@ -1,46 +1,48 @@
 #ifndef AMBDEC_H
 #define AMBDEC_H
 
-#include "alstring.h"
-#include "alMain.h"
+#include <array>
+#include <string>
+
+#include "ambidefs.h"
+#include "vector.h"
 
 /* Helpers to read .ambdec configuration files. */
 
-enum AmbDecScaleType {
-    ADS_N3D,
-    ADS_SN3D,
-    ADS_FuMa,
+enum class AmbDecScale {
+    N3D,
+    SN3D,
+    FuMa,
 };
-typedef struct AmbDecConf {
-    al_string Description;
-    ALuint Version; /* Must be 3 */
+struct AmbDecConf {
+    std::string Description;
+    int Version{0}; /* Must be 3 */
 
-    ALuint ChanMask;
-    ALuint FreqBands; /* Must be 1 or 2 */
-    ALsizei NumSpeakers;
-    enum AmbDecScaleType CoeffScale;
+    unsigned int ChanMask{0u};
+    unsigned int FreqBands{0u}; /* Must be 1 or 2 */
+    AmbDecScale CoeffScale{};
 
-    ALfloat XOverFreq;
-    ALfloat XOverRatio;
+    float XOverFreq{0.0f};
+    float XOverRatio{0.0f};
 
-    struct {
-        al_string Name;
-        ALfloat Distance;
-        ALfloat Azimuth;
-        ALfloat Elevation;
-        al_string Connection;
-    } Speakers[MAX_OUTPUT_CHANNELS];
+    struct SpeakerConf {
+        std::string Name;
+        float Distance{0.0f};
+        float Azimuth{0.0f};
+        float Elevation{0.0f};
+        std::string Connection;
+    };
+    al::vector<SpeakerConf> Speakers;
 
+    using CoeffArray = std::array<float,MAX_AMBI_CHANNELS>;
     /* Unused when FreqBands == 1 */
-    ALfloat LFOrderGain[MAX_AMBI_ORDER+1];
-    ALfloat LFMatrix[MAX_OUTPUT_CHANNELS][MAX_AMBI_COEFFS];
+    float LFOrderGain[MAX_AMBI_ORDER+1]{};
+    al::vector<CoeffArray> LFMatrix;
 
-    ALfloat HFOrderGain[MAX_AMBI_ORDER+1];
-    ALfloat HFMatrix[MAX_OUTPUT_CHANNELS][MAX_AMBI_COEFFS];
-} AmbDecConf;
+    float HFOrderGain[MAX_AMBI_ORDER+1]{};
+    al::vector<CoeffArray> HFMatrix;
 
-void ambdec_init(AmbDecConf *conf);
-void ambdec_deinit(AmbDecConf *conf);
-int ambdec_load(AmbDecConf *conf, const char *fname);
+    int load(const char *fname) noexcept;
+};
 
 #endif /* AMBDEC_H */

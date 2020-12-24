@@ -1,40 +1,36 @@
 #ifndef FILTER_SPLITTER_H
 #define FILTER_SPLITTER_H
 
-#include "alMain.h"
+#include <cstddef>
+
+#include "alspan.h"
 
 
 /* Band splitter. Splits a signal into two phase-matching frequency bands. */
-typedef struct BandSplitter {
-    ALfloat coeff;
-    ALfloat lp_z1;
-    ALfloat lp_z2;
-    ALfloat hp_z1;
-} BandSplitter;
+template<typename Real>
+class BandSplitterR {
+    Real mCoeff{0.0f};
+    Real mLpZ1{0.0f};
+    Real mLpZ2{0.0f};
+    Real mApZ1{0.0f};
 
-void bandsplit_init(BandSplitter *splitter, ALfloat f0norm);
-void bandsplit_clear(BandSplitter *splitter);
-void bandsplit_process(BandSplitter *splitter, ALfloat *restrict hpout, ALfloat *restrict lpout,
-                       const ALfloat *input, ALsizei count);
+public:
+    BandSplitterR() = default;
+    BandSplitterR(const BandSplitterR&) = default;
+    BandSplitterR(Real f0norm) { init(f0norm); }
 
-/* The all-pass portion of the band splitter. Applies the same phase shift
- * without splitting the signal.
- */
-typedef struct SplitterAllpass {
-    ALfloat coeff;
-    ALfloat z1;
-} SplitterAllpass;
+    void init(Real f0norm);
+    void clear() noexcept { mLpZ1 = mLpZ2 = mApZ1 = 0.0f; }
+    void process(const al::span<const Real> input, Real *hpout, Real *lpout);
 
-void splitterap_init(SplitterAllpass *splitter, ALfloat f0norm);
-void splitterap_clear(SplitterAllpass *splitter);
-void splitterap_process(SplitterAllpass *splitter, ALfloat *restrict samples, ALsizei count);
+    void processHfScale(const al::span<Real> samples, const Real hfscale);
 
-
-typedef struct FrontStablizer {
-    SplitterAllpass APFilter[MAX_OUTPUT_CHANNELS];
-    BandSplitter LFilter, RFilter;
-    alignas(16) ALfloat LSplit[2][BUFFERSIZE];
-    alignas(16) ALfloat RSplit[2][BUFFERSIZE];
-} FrontStablizer;
+    /* The all-pass portion of the band splitter. Applies the same phase shift
+     * without splitting the signal. Note that each use of this method is
+     * indepedent, it does not track history between calls.
+     */
+    void applyAllpass(const al::span<Real> samples) const;
+};
+using BandSplitter = BandSplitterR<float>;
 
 #endif /* FILTER_SPLITTER_H */

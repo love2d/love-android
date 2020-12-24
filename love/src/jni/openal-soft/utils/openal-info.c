@@ -22,13 +22,17 @@
  * THE SOFTWARE.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "AL/alc.h"
 #include "AL/al.h"
 #include "AL/alext.h"
+
+#include "win_main_utf8.h"
+
 
 #ifndef ALC_ENUMERATE_ALL_EXT
 #define ALC_DEFAULT_ALL_DEVICES_SPECIFIER        0x1012
@@ -53,7 +57,7 @@ static WCHAR *FromUTF8(const char *str)
 
     if((len=MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0)) > 0)
     {
-        out = calloc(sizeof(WCHAR), len);
+        out = calloc(sizeof(WCHAR), (unsigned int)(len));
         MultiByteToWideChar(CP_UTF8, 0, str, -1, out, len);
     }
     return out;
@@ -124,7 +128,7 @@ static void printList(const char *list, char separator)
         next = strchr(list, separator);
         if(next)
         {
-            len = next-list;
+            len = (size_t)(next-list);
             do {
                 next++;
             } while(*next == separator);
@@ -223,7 +227,7 @@ static void printHRTFInfo(ALCdevice *device)
         return;
     }
 
-    alcGetStringiSOFT = alcGetProcAddress(device, "alcGetStringiSOFT");
+    alcGetStringiSOFT = (LPALCGETSTRINGISOFT)alcGetProcAddress(device, "alcGetStringiSOFT");
 
     alcGetIntegerv(device, ALC_NUM_HRTF_SPECIFIERS_SOFT, 1, &num_hrtfs);
     if(!num_hrtfs)
@@ -263,7 +267,7 @@ static void printResamplerInfo(void)
         return;
     }
 
-    alGetStringiSOFT = alGetProcAddress("alGetStringiSOFT");
+    alGetStringiSOFT = (LPALGETSTRINGISOFT)alGetProcAddress("alGetStringiSOFT");
 
     num_resamplers = alGetInteger(AL_NUM_RESAMPLERS_SOFT);
     def_resampler = alGetInteger(AL_DEFAULT_RESAMPLER_SOFT);

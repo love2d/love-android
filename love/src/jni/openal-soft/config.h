@@ -1,79 +1,123 @@
 /* API declaration export attribute */
 #define AL_API  __attribute__((visibility("protected")))
 #define ALC_API __attribute__((visibility("protected")))
-#define ALIGN(x) __attribute__((aligned(x)))
-#define ASSUME_ALIGNED(x, y) __builtin_assume_aligned(x, y)
-/* #undef ALSOFT_EMBED_HRTF_DATA */
-#define HAVE_SYSCONF
-/* #undef HAVE_ALIGNED_ALLOC */
-/* #undef HAVE_POSIX_MEMALIGN */ /* ARM64: define; x86-64: define */
+
+/* Define a restrict macro for non-aliased pointers */
+#define RESTRICT __restrict
+
+/* Define if HRTF data is embedded in the library */
+#define ALSOFT_EMBED_HRTF_DATA
+
+/* Define if we have the std::aligned_alloc function */
+/* #undef HAVE_STD_ALIGNED_ALLOC */
+
+/* Define if we have the posix_memalign function */
+/* #undef HAVE_POSIX_MEMALIGN */ /* arm64-v8a/x86_64: define */
+
+/* Define if we have the _aligned_malloc function */
 /* #undef HAVE__ALIGNED_MALLOC */
+
+/* Define if we have the proc_pidpath function */
 /* #undef HAVE_PROC_PIDPATH */
+
+/* Define if we have the getopt function */
 #define HAVE_GETOPT
-/* #undef HAVE_SSE */ /* x86(-64): define */
-/* #undef HAVE_SSE2 */ /* x86(-64): define */
-/* #undef HAVE_SSE3 */ /* x86(-64): define */
-/* #undef HAVE_SSE4_1 */ /* x86-64: define */
-/* #undef HAVE_NEON */ /* ARM32: define; ARM64: define */
+
+/* Define if we have SSE CPU extensions */
+/* #undef HAVE_SSE */ /* x86(_64): define */
+/* #undef HAVE_SSE2 */ /* x86(_64): define */
+/* #undef HAVE_SSE3 */ /* x86(_64): define */
+/* #undef HAVE_SSE4_1 */ /* x86_64: define */
+
+/* Define if we have ARM Neon CPU extensions */
+/* #undef HAVE_NEON */ /* armeabi-v7a/arm64-v8a: define */
+
+/* Define if we have the ALSA backend */
 /* #undef HAVE_ALSA */
+
+/* Define if we have the OSS backend */
 /* #undef HAVE_OSS */
+
+/* Define if we have the Solaris backend */
 /* #undef HAVE_SOLARIS */
+
+/* Define if we have the SndIO backend */
 /* #undef HAVE_SNDIO */
-/* #undef HAVE_QSA */
+
+/* Define if we have the WASAPI backend */
 /* #undef HAVE_WASAPI */
+
+/* Define if we have the DSound backend */
 /* #undef HAVE_DSOUND */
+
+/* Define if we have the Windows Multimedia backend */
 /* #undef HAVE_WINMM */
+
+/* Define if we have the PortAudio backend */
 /* #undef HAVE_PORTAUDIO */
+
+/* Define if we have the PulseAudio backend */
 /* #undef HAVE_PULSEAUDIO */
+
+/* Define if we have the JACK backend */
 /* #undef HAVE_JACK */
+
+/* Define if we have the CoreAudio backend */
 /* #undef HAVE_COREAUDIO */
-#define HAVE_OPENSL
+
+/* Define if we have the OpenSL backend */
+/* #undef HAVE_OPENSL */
+
+/* Define if we have the Oboe backend */
+/* #undef HAVE_OBOE */
+
+/* Define if we have the Wave Writer backend */
 #define HAVE_WAVE
+
+/* Define if we have the SDL2 backend */
 /* #undef HAVE_SDL2 */
-#define HAVE_STAT
-#define HAVE_LRINTF
-#define HAVE_MODFF
-/* #undef HAVE_LOG2F */ /* ARM64: define; x86-64: define */
-#define HAVE_CBRTF
-#define HAVE_COPYSIGNF
-/* #undef HAVE_STRTOF */ /* ARM64: define */
-#define HAVE_STRNLEN
-/* #undef HAVE___INT64 */
-/* #undef SIZEOF_LONG 4 */ /* ARM32: 4; ARM64: 8; x86: 4; x86-64: 8 */
-#define SIZEOF_LONG_LONG 8
-#define HAVE_C99_BOOL
-#define HAVE_C11_STATIC_ASSERT
-#define HAVE_C11_ALIGNAS
-/* #undef HAVE_C11_ATOMIC */
-#define HAVE_GCC_DESTRUCTOR
-#define HAVE_GCC_FORMAT
-#define HAVE_STDINT_H
-#define HAVE_STDBOOL_H
-#define HAVE_STDALIGN_H
-/* #undef HAVE_WINDOWS_H */
-/* #undef HAVE_DLFCN_H */
+
+/* Define if we have dlfcn.h */
+#define HAVE_DLFCN_H
+
+/* Define if we have pthread_np.h */
 /* #undef HAVE_PTHREAD_NP_H */
+
+/* Define if we have malloc.h */
 #define HAVE_MALLOC_H
-#define HAVE_DIRENT_H
-#define HAVE_STRINGS_H
-/* #undef HAVE_CPUID_H */ /* x86(-64): define */
+
+/* Define if we have cpuid.h */
+/* #undef HAVE_CPUID_H */ /* x86(_64): define */
+
+/* Define if we have intrin.h */
 /* #undef HAVE_INTRIN_H */
-#define HAVE_SYS_SYSCONF_H
+
+/* Define if we have guiddef.h */
 /* #undef HAVE_GUIDDEF_H */
+
+/* Define if we have initguid.h */
 /* #undef HAVE_INITGUID_H */
-/* #undef HAVE_IEEEFP_H */
-#define HAVE_FLOAT_H
-#define HAVE_FENV_H
-/* #undef HAVE_GCC_GET_CPUID */ /* x86(-64): define */
+
+/* Define if we have GCC's __get_cpuid() */
+/* #undef HAVE_GCC_GET_CPUID */ /* x86(_64): define */
+
+/* Define if we have the __cpuid() intrinsic */
 /* #undef HAVE_CPUID_INTRINSIC */
-/* #undef HAVE_BITSCANFORWARD64_INTRINSIC */
-/* #undef HAVE_BITSCANFORWARD_INTRINSIC */
-/* #undef HAVE__CONTROLFP */
-/* #undef HAVE___CONTROL87_2 */
+
+/* Define if we have SSE intrinsics */
+/* #undef HAVE_SSE_INTRINSICS */ /* x86(_64): define */
+
+/* Define if we have pthread_setschedparam() */
 #define HAVE_PTHREAD_SETSCHEDPARAM
+
+/* Define if we have pthread_setname_np() */
 #define HAVE_PTHREAD_SETNAME_NP
+
+/* Define if pthread_setname_np() only accepts one parameter */
 /* #undef PTHREAD_SETNAME_NP_ONE_PARAM */
+
+/* Define if pthread_setname_np() accepts three parameters */
 /* #undef PTHREAD_SETNAME_NP_THREE_PARAMS */
+
+/* Define if we have pthread_set_name_np() */
 /* #undef HAVE_PTHREAD_SET_NAME_NP */
-/* #undef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP */
-/* #undef HAVE_PTHREAD_MUTEX_TIMEDLOCK */ /* ARM64: define; x86-64: define */

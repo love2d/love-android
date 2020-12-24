@@ -3,67 +3,45 @@
 
 #include <stdio.h>
 
+#include "opthelpers.h"
 
-#ifdef __GNUC__
-#define DECL_FORMAT(x, y, z) __attribute__((format(x, (y), (z))))
-#else
-#define DECL_FORMAT(x, y, z)
-#endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern FILE *LogFile;
-
-#if defined(__GNUC__) && !defined(_WIN32)
-#define AL_PRINT(T, MSG, ...) fprintf(LogFile, "AL lib: %s %s: "MSG, T, __FUNCTION__ , ## __VA_ARGS__)
-#else
-void al_print(const char *type, const char *func, const char *fmt, ...) DECL_FORMAT(printf, 3,4);
-#define AL_PRINT(T, ...) al_print((T), __FUNCTION__, __VA_ARGS__)
-#endif
-
-#ifdef __ANDROID__
-#include <android/log.h>
-#define LOG_ANDROID(T, MSG, ...) __android_log_print(T, "openal", "AL lib: %s: "MSG, __FUNCTION__ , ## __VA_ARGS__)
-#else
-#define LOG_ANDROID(T, MSG, ...) ((void)0)
-#endif
-
-enum LogLevel {
-    NoLog,
-    LogError,
-    LogWarning,
-    LogTrace,
-    LogRef
+enum class LogLevel {
+    Disable,
+    Error,
+    Warning,
+    Trace
 };
-extern enum LogLevel LogLevel;
+extern LogLevel gLogLevel;
 
-#define TRACEREF(...) do {                                                    \
-    if(LogLevel >= LogRef)                                                    \
-        AL_PRINT("(--)", __VA_ARGS__);                                        \
-} while(0)
+extern FILE *gLogFile;
 
+
+#if !defined(_WIN32) && !defined(__ANDROID__)
 #define TRACE(...) do {                                                       \
-    if(LogLevel >= LogTrace)                                                  \
-        AL_PRINT("(II)", __VA_ARGS__);                                        \
-    LOG_ANDROID(ANDROID_LOG_DEBUG, __VA_ARGS__);                              \
+    if UNLIKELY(gLogLevel >= LogLevel::Trace)                                 \
+        fprintf(gLogFile, "[ALSOFT] (II) " __VA_ARGS__);                      \
 } while(0)
 
 #define WARN(...) do {                                                        \
-    if(LogLevel >= LogWarning)                                                \
-        AL_PRINT("(WW)", __VA_ARGS__);                                        \
-    LOG_ANDROID(ANDROID_LOG_WARN, __VA_ARGS__);                               \
+    if UNLIKELY(gLogLevel >= LogLevel::Warning)                               \
+        fprintf(gLogFile, "[ALSOFT] (WW) " __VA_ARGS__);                      \
 } while(0)
 
 #define ERR(...) do {                                                         \
-    if(LogLevel >= LogError)                                                  \
-        AL_PRINT("(EE)", __VA_ARGS__);                                        \
-    LOG_ANDROID(ANDROID_LOG_ERROR, __VA_ARGS__);                              \
+    if UNLIKELY(gLogLevel >= LogLevel::Error)                                 \
+        fprintf(gLogFile, "[ALSOFT] (EE) " __VA_ARGS__);                      \
 } while(0)
 
-#ifdef __cplusplus
-} /* extern "C" */
+#else
+
+[[gnu::format(printf,3,4)]] void al_print(LogLevel level, FILE *logfile, const char *fmt, ...);
+
+#define TRACE(...) al_print(LogLevel::Trace, gLogFile, "[ALSOFT] (II) " __VA_ARGS__)
+
+#define WARN(...) al_print(LogLevel::Warning, gLogFile, "[ALSOFT] (WW) " __VA_ARGS__)
+
+#define ERR(...) al_print(LogLevel::Error, gLogFile, "[ALSOFT] (EE) " __VA_ARGS__)
 #endif
 
 #endif /* LOGGING_H */
