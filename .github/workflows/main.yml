@@ -15,7 +15,12 @@ jobs:
       with:
         submodules: true
     - name: Build
-      run: bash ./gradlew assembleNormalRelease assembleEmbedRelease bundleNormalRelease bundleEmbedRelease
+      run: bash ./gradlew assembleNormalDebug assembleNormalRelease assembleEmbedRelease bundleNormalRelease bundleEmbedRelease
+    - name: Artifact (normal debug APK)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android-debug.apk
+        path: app/build/outputs/apk/normal/debug/app-normal-debug.apk
     - name: Artifact (embed APK)
       uses: actions/upload-artifact@v2
       with:
