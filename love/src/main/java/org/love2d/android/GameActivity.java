@@ -38,6 +38,7 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
@@ -251,7 +252,21 @@ public class GameActivity extends SDLActivity {
             File ext = getExternalFilesDir("games");
             if ((new File(ext, "/lovegame/main.lua")).exists()) {
                 gamePath = ext.getPath() + "/lovegame/";
+                storagePermissionUnnecessary = true;
+            } else if (android.os.Build.VERSION.SDK_INT <= 28) {
+                // Try to fallback to /sdcard/lovegame in Android 9 and earlier too.
+                if (hasExternalStoragePermission()) {
+                    ext = Environment.getExternalStorageDirectory();
+                    if ((new File(ext, "/lovegame/main.lua")).exists()) {
+                        gamePath = ext.getPath() + "/lovegame/";
+                        storagePermissionUnnecessary = false;
+                    }
+                } else {
+                    Log.d("GameActivity", "Cannot load game from /sdcard/lovegame: permission not granted");
+                }
             }
+
+            Log.d("GameActivity", "lovegame directory: " + gamePath);
         }
     }
 
@@ -308,11 +323,9 @@ public class GameActivity extends SDLActivity {
             }
         } else {
             self.checkLovegameFolder();
-            if (gamePath.length() > 0)
-                return gamePath;
         }
 
-        return "";
+        return gamePath;
     }
 
     public static DisplayMetrics getMetrics() {
