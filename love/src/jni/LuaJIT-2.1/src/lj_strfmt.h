@@ -1,6 +1,6 @@
 /*
 ** String formatting.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_STRFMT_H
@@ -64,11 +64,12 @@ typedef enum FormatType {
 #define STRFMT_S	(STRFMT_STR)
 #define STRFMT_U	(STRFMT_UINT)
 #define STRFMT_X	(STRFMT_UINT|STRFMT_T_HEX)
+#define STRFMT_G14	(STRFMT_G | ((14+1) << STRFMT_SH_PREC))
 
 /* Maximum buffer sizes for conversions. */
 #define STRFMT_MAXBUF_XINT	(1+22)  /* '0' prefix + uint64_t in octal. */
 #define STRFMT_MAXBUF_INT	(1+10)  /* Sign + int32_t in decimal. */
-#define STRFMT_MAXBUF_NUM	LUAI_MAXNUMBER2STR
+#define STRFMT_MAXBUF_NUM	32  /* Must correspond with STRFMT_G14. */
 #define STRFMT_MAXBUF_PTR	(2+2*sizeof(ptrdiff_t))  /* "0x" + hex ptr. */
 
 /* Format parser. */
@@ -78,15 +79,15 @@ static LJ_AINLINE void lj_strfmt_init(FormatState *fs, const char *p, MSize len)
 {
   fs->p = (const uint8_t *)p;
   fs->e = (const uint8_t *)p + len;
-  lua_assert(*fs->e == 0);  /* Must be NUL-terminated (may have NULs inside). */
+  /* Must be NUL-terminated. May have NULs inside, too. */
+  lj_assertX(*fs->e == 0, "format not NUL-terminated");
 }
 
 /* Raw conversions. */
 LJ_FUNC char * LJ_FASTCALL lj_strfmt_wint(char *p, int32_t k);
-LJ_FUNC char * LJ_FASTCALL lj_strfmt_wnum(char *p, cTValue *o);
 LJ_FUNC char * LJ_FASTCALL lj_strfmt_wptr(char *p, const void *v);
 LJ_FUNC char * LJ_FASTCALL lj_strfmt_wuleb128(char *p, uint32_t v);
-LJ_FUNC const char *lj_strfmt_wstrnum(char *buf, cTValue *o, MSize *lenp);
+LJ_FUNC const char *lj_strfmt_wstrnum(lua_State *L, cTValue *o, MSize *lenp);
 
 /* Unformatted conversions to buffer. */
 LJ_FUNC SBuf * LJ_FASTCALL lj_strfmt_putint(SBuf *sb, int32_t k);
@@ -117,7 +118,7 @@ LJ_FUNC GCstr * LJ_FASTCALL lj_strfmt_obj(lua_State *L, cTValue *o);
 LJ_FUNC const char *lj_strfmt_pushvf(lua_State *L, const char *fmt,
 				     va_list argp);
 LJ_FUNC const char *lj_strfmt_pushf(lua_State *L, const char *fmt, ...)
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
   __attribute__ ((format (printf, 2, 3)))
 #endif
   ;

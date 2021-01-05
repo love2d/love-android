@@ -1,6 +1,6 @@
 /*
 ** SPLIT: Split 64 bit IR instructions into 32 bit IR instructions.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #define lj_opt_split_c
@@ -8,7 +8,7 @@
 
 #include "lj_obj.h"
 
-#if LJ_HASJIT && (LJ_SOFTFP || (LJ_32 && LJ_HASFFI))
+#if LJ_HASJIT && (LJ_SOFTFP32 || (LJ_32 && LJ_HASFFI))
 
 #include "lj_err.h"
 #include "lj_buf.h"
@@ -16,6 +16,7 @@
 #include "lj_jit.h"
 #include "lj_ircall.h"
 #include "lj_iropt.h"
+#include "lj_dispatch.h"
 #include "lj_vm.h"
 
 /* SPLIT pass:
@@ -192,7 +193,7 @@ static IRRef split_ptr(jit_State *J, IRIns *oir, IRRef ref)
     nref = ir->op1;
     if (ofs == 0) return nref;
   }
-  return split_emit(J, IRTI(IR_ADD), nref, lj_ir_kint(J, ofs));
+  return split_emit(J, IRT(IR_ADD, IRT_PTR), nref, lj_ir_kint(J, ofs));
 }
 
 #if LJ_HASFFI
@@ -234,7 +235,7 @@ static IRRef split_bitshift(jit_State *J, IRRef1 *hisubst,
 	return split_emit(J, IRTI(IR_BOR), t1, t2);
       } else {
 	IRRef t1 = ir->prev, t2;
-	lua_assert(op == IR_BSHR || op == IR_BSAR);
+	lj_assertJ(op == IR_BSHR || op == IR_BSAR, "bad usage");
 	nir->o = IR_BSHR;
 	t2 = split_emit(J, IRTI(IR_BSHL), hi, lj_ir_kint(J, (-k&31)));
 	ir->prev = split_emit(J, IRTI(IR_BOR), t1, t2);
@@ -249,7 +250,7 @@ static IRRef split_bitshift(jit_State *J, IRRef1 *hisubst,
 	ir->prev = lj_ir_kint(J, 0);
 	return lo;
       } else {
-	lua_assert(op == IR_BSHR || op == IR_BSAR);
+	lj_assertJ(op == IR_BSHR || op == IR_BSAR, "bad usage");
 	if (k == 32) {
 	  J->cur.nins--;
 	  ir->prev = hi;
@@ -353,6 +354,8 @@ static void split_ir(jit_State *J)
       ir->prev = ref;  /* Identity substitution for loword. */
       hisubst[ref] = 0;
     }
+    if (irt_is64(ir->t) && ir->o != IR_KNULL)
+      ref++;
   }
 
   /* Process old IR instructions. */
@@ -400,31 +403,7 @@ static void split_ir(jit_State *J)
 	hi = split_call_li(J, hisubst, oir, ir, IRCALL_lj_vm_powi);
 	break;
       case IR_FPMATH:
-	/* Try to rejoin pow from EXP2, MUL and LOG2. */
-	if (nir->op2 == IRFPM_EXP2 && nir->op1 > J->loopref) {
-	  IRIns *irp = IR(nir->op1);
-	  if (irp->o == IR_CALLN && irp->op2 == IRCALL_softfp_mul) {
-	    IRIns *irm4 = IR(irp->op1);
-	    IRIns *irm3 = IR(irm4->op1);
-	    IRIns *irm12 = IR(irm3->op1);
-	    IRIns *irl1 = IR(irm12->op1);
-	    if (irm12->op1 > J->loopref && irl1->o == IR_CALLN &&
-		irl1->op2 == IRCALL_lj_vm_log2) {
-	      IRRef tmp = irl1->op1;  /* Recycle first two args from LOG2. */
-	      IRRef arg3 = irm3->op2, arg4 = irm4->op2;
-	      J->cur.nins--;
-	      tmp = split_emit(J, IRT(IR_CARG, IRT_NIL), tmp, arg3);
-	      tmp = split_emit(J, IRT(IR_CARG, IRT_NIL), tmp, arg4);
-	      ir->prev = tmp = split_emit(J, IRTI(IR_CALLN), tmp, IRCALL_pow);
-	      hi = split_emit(J, IRT(IR_HIOP, IRT_SOFTFP), tmp, tmp);
-	      break;
-	    }
-	  }
-	}
 	hi = split_call_l(J, hisubst, oir, ir, IRCALL_lj_vm_floor + ir->op2);
-	break;
-      case IR_ATAN2:
-	hi = split_call_ll(J, hisubst, oir, ir, IRCALL_atan2);
 	break;
       case IR_LDEXP:
 	hi = split_call_li(J, hisubst, oir, ir, IRCALL_ldexp);
@@ -433,7 +412,8 @@ static void split_ir(jit_State *J)
 	nir->o = IR_CONV;  /* Pass through loword. */
 	nir->op2 = (IRT_INT << 5) | IRT_INT;
 	hi = split_emit(J, IRT(ir->o == IR_NEG ? IR_BXOR : IR_BAND, IRT_SOFTFP),
-			hisubst[ir->op1], hisubst[ir->op2]);
+	       hisubst[ir->op1],
+	       lj_ir_kint(J, (int32_t)(0x7fffffffu + (ir->o == IR_NEG))));
 	break;
       case IR_SLOAD:
 	if ((nir->op2 & IRSLOAD_CONVERT)) {  /* Convert from int to number. */
@@ -448,15 +428,24 @@ static void split_ir(jit_State *J)
       case IR_STRTO:
 	hi = split_emit(J, IRT(IR_HIOP, IRT_SOFTFP), nref, nref);
 	break;
+      case IR_FLOAD:
+	lj_assertJ(ir->op1 == REF_NIL, "expected FLOAD from GG_State");
+	hi = lj_ir_kint(J, *(int32_t*)((char*)J2GG(J) + ir->op2 + LJ_LE*4));
+	nir->op2 += LJ_BE*4;
+	break;
       case IR_XLOAD: {
 	IRIns inslo = *nir;  /* Save/undo the emit of the lo XLOAD. */
 	J->cur.nins--;
 	hi = split_ptr(J, oir, ir->op1);  /* Insert the hiref ADD. */
+#if LJ_BE
+	hi = split_emit(J, IRT(IR_XLOAD, IRT_INT), hi, ir->op2);
+	inslo.t.irt = IRT_SOFTFP | (inslo.t.irt & IRT_GUARD);
+#endif
 	nref = lj_ir_nextins(J);
 	nir = IR(nref);
-	*nir = inslo;  /* Re-emit lo XLOAD immediately before hi XLOAD. */
-	hi = split_emit(J, IRT(IR_XLOAD, IRT_SOFTFP), hi, ir->op2);
+	*nir = inslo;  /* Re-emit lo XLOAD. */
 #if LJ_LE
+	hi = split_emit(J, IRT(IR_XLOAD, IRT_SOFTFP), hi, ir->op2);
 	ir->prev = nref;
 #else
 	ir->prev = hi; hi = nref;
@@ -476,8 +465,9 @@ static void split_ir(jit_State *J)
 	  break;
 	}
 #endif
-	lua_assert(st == IRT_INT ||
-		   (LJ_32 && LJ_HASFFI && (st == IRT_U32 || st == IRT_FLOAT)));
+	lj_assertJ(st == IRT_INT ||
+		   (LJ_32 && LJ_HASFFI && (st == IRT_U32 || st == IRT_FLOAT)),
+		   "bad source type for CONV");
 	nir->o = IR_CALLN;
 #if LJ_32 && LJ_HASFFI
 	nir->op2 = st == IRT_INT ? IRCALL_softfp_i2d :
@@ -507,7 +497,8 @@ static void split_ir(jit_State *J)
 	hi = nir->op2;
 	break;
       default:
-	lua_assert(ir->o <= IR_NE || ir->o == IR_MIN || ir->o == IR_MAX);
+	lj_assertJ(ir->o <= IR_NE || ir->o == IR_MIN || ir->o == IR_MAX,
+		   "bad IR op %d", ir->o);
 	hi = split_emit(J, IRTG(IR_HIOP, IRT_SOFTFP),
 			hisubst[ir->op1], hisubst[ir->op2]);
 	break;
@@ -564,7 +555,7 @@ static void split_ir(jit_State *J)
 	hi = split_bitshift(J, hisubst, oir, nir, ir);
 	break;
       case IR_FLOAD:
-	lua_assert(ir->op2 == IRFL_CDATA_INT64);
+	lj_assertJ(ir->op2 == IRFL_CDATA_INT64, "only INT64 supported");
 	hi = split_emit(J, IRTI(IR_FLOAD), nir->op1, IRFL_CDATA_INT64_4);
 #if LJ_BE
 	ir->prev = hi; hi = nref;
@@ -630,7 +621,7 @@ static void split_ir(jit_State *J)
 	hi = nir->op2;
 	break;
       default:
-	lua_assert(ir->o <= IR_NE);  /* Comparisons. */
+	lj_assertJ(ir->o <= IR_NE, "bad IR op %d", ir->o);  /* Comparisons. */
 	split_emit(J, IRTGI(IR_HIOP), hiref, hisubst[ir->op2]);
 	break;
       }
@@ -708,7 +699,7 @@ static void split_ir(jit_State *J)
 #if LJ_SOFTFP
       if (st == IRT_NUM || (LJ_32 && LJ_HASFFI && st == IRT_FLOAT)) {
 	if (irt_isguard(ir->t)) {
-	  lua_assert(st == IRT_NUM && irt_isint(ir->t));
+	  lj_assertJ(st == IRT_NUM && irt_isint(ir->t), "bad CONV types");
 	  J->cur.nins--;
 	  ir->prev = split_num2int(J, nir->op1, hisubst[ir->op1], 1);
 	} else {
@@ -839,7 +830,7 @@ void lj_opt_split(jit_State *J)
   if (!J->needsplit)
     J->needsplit = split_needsplit(J);
 #else
-  lua_assert(J->needsplit >= split_needsplit(J));  /* Verify flag. */
+  lj_assertJ(J->needsplit >= split_needsplit(J), "bad SPLIT state");
 #endif
   if (J->needsplit) {
     int errcode = lj_vm_cpcall(J->L, NULL, J, cpsplit);

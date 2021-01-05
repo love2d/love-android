@@ -1,6 +1,6 @@
 /*
 ** I/O library.
-** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Major portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2011 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -99,11 +99,8 @@ static int io_file_close(lua_State *L, IOFileUD *iof)
     int stat = -1;
 #if LJ_TARGET_POSIX
     stat = pclose(iof->fp);
-#elif LJ_TARGET_WINDOWS && !LJ_TARGET_XBOXONE
+#elif LJ_TARGET_WINDOWS && !LJ_TARGET_XBOXONE && !LJ_TARGET_UWP
     stat = _pclose(iof->fp);
-#else
-    lua_assert(0);
-    return 0;
 #endif
 #if LJ_52
     iof->fp = NULL;
@@ -112,7 +109,8 @@ static int io_file_close(lua_State *L, IOFileUD *iof)
     ok = (stat != -1);
 #endif
   } else {
-    lua_assert((iof->type & IOFILE_TYPE_MASK) == IOFILE_TYPE_STDF);
+    lj_assertL((iof->type & IOFILE_TYPE_MASK) == IOFILE_TYPE_STDF,
+	       "close of unknown FILE* type");
     setnilV(L->top++);
     lua_pushliteral(L, "cannot close standard file");
     return 2;
@@ -203,13 +201,12 @@ static int io_file_read(lua_State *L, FILE *fp, int start)
     for (n = start; nargs-- && ok; n++) {
       if (tvisstr(L->base+n)) {
 	const char *p = strVdata(L->base+n);
-	if (p[0] != '*')
-	  lj_err_arg(L, n+1, LJ_ERR_INVOPT);
-	if (p[1] == 'n')
+	if (p[0] == '*') p++;
+	if (p[0] == 'n')
 	  ok = io_file_readnum(L, fp);
-	else if ((p[1] & ~0x20) == 'L')
-	  ok = io_file_readline(L, fp, (p[1] == 'l'));
-	else if (p[1] == 'a')
+	else if ((p[0] & ~0x20) == 'L')
+	  ok = io_file_readline(L, fp, (p[0] == 'l'));
+	else if (p[0] == 'a')
 	  io_file_readall(L, fp);
 	else
 	  lj_err_arg(L, n+1, LJ_ERR_INVFMT);
@@ -232,9 +229,8 @@ static int io_file_write(lua_State *L, FILE *fp, int start)
   cTValue *tv;
   int status = 1;
   for (tv = L->base+start; tv < L->top; tv++) {
-    char buf[STRFMT_MAXBUF_NUM];
     MSize len;
-    const char *p = lj_strfmt_wstrnum(buf, tv, &len);
+    const char *p = lj_strfmt_wstrnum(L, tv, &len);
     if (!p)
       lj_err_argt(L, (int)(tv - L->base) + 1, LUA_TSTRING);
     status = status && (fwrite(p, 1, len, fp) == len);
@@ -307,6 +303,14 @@ LJLIB_CF(io_method_flush)		LJLIB_REC(io_flush 0)
 {
   return luaL_fileresult(L, fflush(io_tofile(L)->fp) == 0, NULL);
 }
+
+#if LJ_32 && defined(__ANDROID__) && __ANDROID_API__ < 24
+/* The Android NDK is such an unmatched marvel of engineering. */
+extern int fseeko32(FILE *, long int, int) __asm__("fseeko");
+extern long int ftello32(FILE *) __asm__("ftello");
+#define fseeko(fp, pos, whence)	(fseeko32((fp), (pos), (whence)))
+#define ftello(fp)		(ftello32((fp)))
+#endif
 
 LJLIB_CF(io_method_seek)
 {
@@ -408,7 +412,7 @@ LJLIB_CF(io_open)
 
 LJLIB_CF(io_popen)
 {
-#if LJ_TARGET_POSIX || (LJ_TARGET_WINDOWS && !LJ_TARGET_XBOXONE)
+#if LJ_TARGET_POSIX || (LJ_TARGET_WINDOWS && !LJ_TARGET_XBOXONE && !LJ_TARGET_UWP)
   const char *fname = strdata(lj_lib_checkstr(L, 1));
   GCstr *s = lj_lib_optstr(L, 2);
   const char *mode = s ? strdata(s) : "r";
