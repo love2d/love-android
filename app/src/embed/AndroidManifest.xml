@@ -27,6 +27,9 @@
           <category android:name="android.intent.category.LAUNCHER" />
           <category android:name="tv.ouya.intent.category.GAME" />
         </intent-filter>
+        <intent-filter>
+          <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+        </intent-filter>
       </activity>
     </application>
 </manifest> 

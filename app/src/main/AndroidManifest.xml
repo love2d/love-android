@@ -31,7 +31,7 @@
       <service android:name="org.love2d.android.DownloadService" />
       <activity
         android:name="org.love2d.android.GameActivity"
-        android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
         android:label="LÖVE for Android"
         android:launchMode="singleTask"
         android:screenOrientation="landscape"
@@ -41,6 +41,9 @@
           <action android:name="android.intent.action.MAIN" />
           <category android:name="android.intent.category.LAUNCHER" />
           <category android:name="tv.ouya.intent.category.GAME" />
+        </intent-filter>
+        <intent-filter>
+          <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
         </intent-filter>
         <intent-filter>
           <action android:name="android.intent.action.VIEW" />
