@@ -35,6 +35,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -542,6 +543,11 @@ public class GameActivity extends SDLActivity {
         }
 
         return false;
+    }
+
+    @Keep
+    public AssetManager getAssetManager() {
+        return getResources().getAssets();
     }
 
     public int getAudioSMP() {
