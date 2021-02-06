@@ -22,7 +22,6 @@ package org.love2d.android;
 
 import org.libsdl.app.SDLActivity;
 
-import java.util.Arrays;
 import java.util.List;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -60,6 +59,7 @@ public class GameActivity extends SDLActivity {
     public static final int RECORD_AUDIO_REQUEST_CODE = 3;
     private static boolean immersiveActive = false;
     private static boolean mustCacheArchive = false;
+    private static boolean needToCopyGameInArchive = false;
     private boolean storagePermissionUnnecessary = false;
     private boolean shortEdgesMode = false;
     public boolean embed = false;
@@ -210,39 +210,30 @@ public class GameActivity extends SDLActivity {
             }
         } else {
             // No game specified via the intent data or embed build is used.
-            // Check whether we have a game.love in our assets.
-            boolean game_love_in_assets = false;
-            try {
-                List<String> assets = Arrays.asList(getAssets().list(""));
-                game_love_in_assets = assets.contains("game.love");
-            } catch (Exception e) {
-                Log.d("GameActivity", "could not list application assets:" + e.getMessage());
-            }
-
-            if (game_love_in_assets) {
-                // If we have a game.love in our assets folder copy it to the cache folder
-                // so that we can load it from native LÖVE code
-                String destination_file = this.getCacheDir().getPath() + "/game.love";
-                
-                try {
-                    InputStream gameStream = getAssets().open("game.love");
-                    if (mustCacheArchive && copyAssetFile(gameStream, destination_file))
-                        gamePath = destination_file;
-                    else
-                        gamePath = "game.love";
-                    storagePermissionUnnecessary = true;
-                } catch (IOException e) {
-                    Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
-                    gamePath = "";
-                    storagePermissionUnnecessary = false;
-                }
-            } else {
-                gamePath = "";
-                storagePermissionUnnecessary = false;
-            }
+            // Load game archive only when needed.
+            needToCopyGameInArchive = true;
         }
 
         Log.d("GameActivity", "new gamePath: " + gamePath);
+    }
+
+    private void copyGameInsideArchive() {
+        try {
+            // If we have a game.love in our assets folder copy it to the cache folder
+            // so that we can load it from native LÖVE code
+            AssetManager assetManager = getAssetManager();
+            InputStream gameStream = assetManager.open("game.love");
+
+            String destination_file = this.getCacheDir().getPath() + "/game.love";
+            if (mustCacheArchive && copyAssetFile(gameStream, destination_file))
+                gamePath = destination_file;
+            else
+                gamePath = "game.love";
+            storagePermissionUnnecessary = true;
+        } catch (IOException e) {
+            // There's no game.love in our assets
+            Log.d("GameActivity", "Could not open game.love from assets: " + e.getMessage());
+        }
     }
 
     protected void checkLovegameFolder() {
@@ -317,11 +308,13 @@ public class GameActivity extends SDLActivity {
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
 
         if (gamePath.length() > 0) {
-            if(self.storagePermissionUnnecessary || self.hasExternalStoragePermission()) {
+            if (self.storagePermissionUnnecessary || self.hasExternalStoragePermission()) {
                 return gamePath;
             } else {
                 Log.d("GameActivity", "cannot open game " + gamePath + ": no external storage permission given!");
             }
+        } else if (needToCopyGameInArchive) {
+            self.copyGameInsideArchive();
         } else {
             self.checkLovegameFolder();
         }
