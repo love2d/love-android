@@ -17,7 +17,7 @@ android {
         resValue 'bool', 'embed', 'false'
         externalNativeBuild {
             ndkBuild {
-                arguments "-j4"
+                arguments "-j" + Runtime.runtime.availableProcessors()
             }
         }
         ndk {
