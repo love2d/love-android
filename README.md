@@ -19,7 +19,7 @@ liblove.so and "Missing LÖVE" error when building. A proper way to clone this r
 git clone --recurse-submodules https://github.com/love2d/love-android
 ```
 
-Add `-b <branch name>` and `--depth 1` if needed.
+Add `-b <branch/tag name>` and `--depth 1` if needed.
 
 If you already cloned the repository but forgot to initialize the submodules, execute:
 
@@ -38,12 +38,14 @@ Detailed instructions can be viewed at https://github.com/love2d/love-android/wi
 Quick Start:
 ------------
 
-Install the Android SDK with SDK API 30 and Android NDK 21.3.6528147, set the environment variables:
+Before you start, install JDK 11 or later. If you intend to build from Android Studio, skip this step as
+Android Studio bundles its own JDK 11.
+
+Install Android SDK with SDK API 30 and Android NDK 21.3.6528147, set the environment variables:
 
 * `ANDROID_HOME` to your Android SDK location.
 
-(you may have to adjust the paths to the install directories of the Android
-SDK on your system) and run
+(you may have to adjust the paths to the install directories of the Android SDK on your system) and run
 
 ```
 $ ./gradlew assembleNormal
@@ -57,11 +59,11 @@ If you want to put your game inside the APK, put your zipped \*.love in `app/src
 then change the package name, application display name, and the icons. Afterwards, run either `gradlew assembleEmbedRelease`
 to generate APK which you can install or `gradlew bundleEmbedRelease` which you can upload to Play Store.
 
-Alternatively, you can install Android Studio. After opening it for the first time, open it's SDK Manager
-and on the tab "SDK Tools", select NDK. After that, open the repository root.
+Alternatively, you can install Android Studio **2020.3.1** or later. After opening it for the first time, open it's SDK Manager
+and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 21.3.6528147. After that, open
+the repository root.
 
-Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google causes that method
-to obsolete.
+Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google render that method obsolete.
 
 Bugs:
 -----
