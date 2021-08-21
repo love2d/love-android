@@ -32,6 +32,11 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        debug {
+            ndk {
+                abiFilters += 'x86_64'
+            }
+        }
     }
     flavorDimensions 'mode'
     productFlavors {
