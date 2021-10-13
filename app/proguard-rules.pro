@@ -17,3 +17,4 @@
 #}
 
 -keep class org.love2d.android.GameActivity { *; }
+-keep class org.libsdl.app.** { *; }
