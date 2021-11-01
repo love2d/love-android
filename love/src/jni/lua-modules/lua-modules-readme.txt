@@ -1,0 +1,8 @@
+This folder should contain external Lua C modules that will be shipped along with LOVE. One for each folder
+
+Each folder must contains:
+* Android.mk describing how to build the external Lua C module.
+  The LOCAL_MODULE_FILENAME must be set accordingly as ndk-build appends "lib" prefix from LOCAL_MODULE by default.
+* If your module interacts with Java-side, a file java.txt must contain where it should look Java source files.
+  Example, if you have src/java/your/package/name/MyFile.java, then you need to write "src/java" in java.txt.
+  If this file is absent, then your Java-side code will not be compiled along.

@@ -28,6 +28,40 @@ android {
         }
         targetSdkVersion 30
     }
+
+    def retrieveAll3pModules = { ->
+        def modules = []
+
+        fileTree("src/jni/lua-modules").visit { FileVisitDetails details ->
+            if (details.isDirectory()) {
+                if (file(details.file.path + "/Android.mk").exists()) {
+                    logger.lifecycle("3rd-party module: " + details.file.path)
+
+                    def javainfo = file(details.file.path + "/java.txt")
+                    if (javainfo.exists()) {
+                        def fstream = new FileInputStream(javainfo)
+                        def infile = new BufferedReader(new InputStreamReader(fstream))
+                        def javapath = infile.readLine().replace("\\", "/")
+                        def mpath = null
+
+                        if (javapath[0] != '/') {
+                            mpath = details.file.path + "/" + javapath
+                        } else {
+                            mpath = details.file.path + javapath
+                        }
+
+                        modules << mpath
+
+                        logger.lifecycle("Registered path " + mpath)
+                        infile.close()
+                    }
+                }
+            }
+        }
+
+        return modules
+    }
+
     buildTypes {
         release {
             minifyEnabled true
@@ -57,6 +91,7 @@ android {
             java {
                 srcDir 'src/jni/SDL2/android-project/app/src/main/java'
                 srcDir 'src/main/java'
+                srcDirs += retrieveAll3pModules()
             }
         }
         playstore {
