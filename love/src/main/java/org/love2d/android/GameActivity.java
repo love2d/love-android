@@ -28,12 +28,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.zip.ZipFile;
 
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -565,5 +567,37 @@ public class GameActivity extends SDLActivity {
         }
 
         return freq;
+    }
+
+    public String getCurrentAPKPath() {
+        return getApplicationInfo().sourceDir;
+    }
+
+    @Keep
+    public String getCRequirePath() {
+        ApplicationInfo applicationInfo = getApplicationInfo();
+        String[] libraries = getLibraries();
+        String packageFile = "lib" + libraries[libraries.length - 1] + ".so";
+
+        File test = new File(applicationInfo.nativeLibraryDir, packageFile);
+        if (test.exists()) {
+            return applicationInfo.nativeLibraryDir + "/?.so";
+        } else if (android.os.Build.VERSION.SDK_INT >= 23) {
+            // The native libs are inside the APK and can be loaded directly.
+            // FIXME: What about split APKs?
+            String apkPath = getCurrentAPKPath();
+
+            try {
+                ZipFile apk = new ZipFile(apkPath);
+                String abi = android.os.Build.SUPPORTED_ABIS[0];
+
+                if (apk.getEntry("lib/" + abi + "/" + packageFile) != null) {
+                    apk.close();
+                    return apkPath + "!/lib/" + abi + "/?.so";
+                }
+            } catch (IOException ignored) { }
+        }
+
+        return "";
     }
 }
