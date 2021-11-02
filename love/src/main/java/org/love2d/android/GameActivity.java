@@ -569,35 +569,37 @@ public class GameActivity extends SDLActivity {
         return freq;
     }
 
-    public String getCurrentAPKPath() {
-        return getApplicationInfo().sourceDir;
+    public boolean isNativeLibsExtracted() {
+        ApplicationInfo appInfo = getApplicationInfo();
+        boolean nativeLibsExtracted = true;
+
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            nativeLibsExtracted = (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
+        }
+
+        return nativeLibsExtracted;
     }
 
     @Keep
     public String getCRequirePath() {
         ApplicationInfo applicationInfo = getApplicationInfo();
-        String[] libraries = getLibraries();
-        String packageFile = "lib" + libraries[libraries.length - 1] + ".so";
 
-        File test = new File(applicationInfo.nativeLibraryDir, packageFile);
-        if (test.exists()) {
+        if (isNativeLibsExtracted()) {
             return applicationInfo.nativeLibraryDir + "/?.so";
-        } else if (android.os.Build.VERSION.SDK_INT >= 23) {
+        } else {
             // The native libs are inside the APK and can be loaded directly.
             // FIXME: What about split APKs?
-            String apkPath = getCurrentAPKPath();
+            String abi;
 
-            try {
-                ZipFile apk = new ZipFile(apkPath);
-                String abi = android.os.Build.SUPPORTED_ABIS[0];
+            if (android.os.Build.VERSION.SDK_INT >= 21) {
+                 abi = android.os.Build.SUPPORTED_ABIS[0];
+            } else {
+                // This codepath should NEVER be taken as if isNativeLibsExtracted()
+                // returns false, it's 100% safe to assume we're on API level 23 or later.
+                abi = android.os.Build.CPU_ABI;
+            }
 
-                if (apk.getEntry("lib/" + abi + "/" + packageFile) != null) {
-                    apk.close();
-                    return apkPath + "!/lib/" + abi + "/?.so";
-                }
-            } catch (IOException ignored) { }
+            return applicationInfo.sourceDir + "!/lib/" + abi + "/?.so";
         }
-
-        return "";
     }
 }
