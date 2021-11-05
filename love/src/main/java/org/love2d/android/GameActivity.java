@@ -226,7 +226,7 @@ public class GameActivity extends SDLActivity {
         try {
             // If we have a game.love in our assets folder copy it to the cache folder
             // so that we can load it from native LÖVE code
-            AssetManager assetManager = getAssetManager();
+            AssetManager assetManager = getAssets();
             InputStream gameStream = assetManager.open("game.love");
 
             String destination_file = this.getCacheDir().getPath() + "/game.love";
@@ -541,11 +541,6 @@ public class GameActivity extends SDLActivity {
         }
 
         return false;
-    }
-
-    @Keep
-    public AssetManager getAssetManager() {
-        return getResources().getAssets();
     }
 
     @Keep
