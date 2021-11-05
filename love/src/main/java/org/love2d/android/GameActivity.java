@@ -22,13 +22,16 @@ package org.love2d.android;
 
 import org.libsdl.app.SDLActivity;
 
-import java.util.List;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.zip.ZipFile;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -543,6 +546,61 @@ public class GameActivity extends SDLActivity {
     @Keep
     public AssetManager getAssetManager() {
         return getResources().getAssets();
+    }
+
+    @Keep
+    public String[] buildFileTree() {
+        // Map key is path, value is directory flag
+        HashMap<String, Boolean> map = buildFileTree(getAssets(), "", new HashMap<String, Boolean>());
+        ArrayList<String> result = new ArrayList<String>();
+
+        for (Map.Entry<String, Boolean> data: map.entrySet()) {
+            result.add((data.getValue() ? "d" : "f") + data.getKey());
+        }
+
+        String[] r = new String[result.size()];
+        result.toArray(r);
+        return r;
+    }
+
+    private HashMap<String, Boolean> buildFileTree(AssetManager assetManager, String dir, HashMap<String, Boolean> map) {
+        String strippedDir = dir.endsWith("/") ? dir.substring(0, dir.length() - 1) : dir;
+
+        // Try open dir
+        try {
+            InputStream test = assetManager.open(strippedDir);
+            // It's a file
+            test.close();
+            map.put(strippedDir, false);
+        } catch (FileNotFoundException e) {
+            // It's a directory
+            String[] list = null;
+
+            // List files
+            try {
+                list = assetManager.list(dir);
+            } catch (IOException e2) {
+                Log.e("GameActivity", dir, e2);
+            }
+
+            // Mark as file
+            map.put(dir, true);
+
+            // This Object comparison is intentional.
+            if (strippedDir != dir) {
+                map.put(strippedDir, true);
+            }
+
+            if (list != null) {
+                for (String path: list) {
+                    buildFileTree(assetManager, dir + path + "/", map);
+                }
+            }
+        } catch (IOException e) {
+            Log.e("GameActivity", dir, e);
+        }
+
+        return map;
     }
 
     public int getAudioSMP() {
