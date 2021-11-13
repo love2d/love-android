@@ -28,6 +28,8 @@ wsl make HOST_LUA=luajit.exe "HOST_CC=clang.exe -m32" HOST_CFLAGS=-D_CRT_SECURE_
 if not "%ERRORLEVEL%" == "0" goto :error
 copy src\libluajit.a android\armeabi-v7a\libluajit.a
 if not "%ERRORLEVEL%" == "0" goto :error
+xcopy src\jit android\armeabi-v7a\jit /I
+del android\armeabi-v7a\jit\.gitignore
 
 :x86
 rem x86
@@ -48,6 +50,8 @@ wsl make HOST_LUA=luajit.exe "HOST_CC=clang.exe %4" HOST_CFLAGS=-D_CRT_SECURE_NO
 if not "%ERRORLEVEL%" == "0" goto :error
 copy src\libluajit.a android\%1\libluajit.a
 if not "%ERRORLEVEL%" == "0" goto :error
+xcopy src\jit android\%1\jit /I
+del android\%1\jit\.gitignore
 goto :done
 
 :error
