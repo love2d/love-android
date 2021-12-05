@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="org.love2d.android.executable"
-  android:installLocation="auto" xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    package="org.love2d.android.executable"
+    xmlns:android="http://schemas.android.com/apk/res/android" >
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.BLUETOOTH" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="18" />
 
   <!-- OpenGL ES 2.0 -->
   <uses-feature android:glEsVersion="0x00020000" />
@@ -26,66 +26,24 @@
       android:allowBackup="true"
       android:icon="@drawable/love"
       android:label="LÖVE for Android"
-      android:usesCleartextTraffic="true"
-      android:hardwareAccelerated="true" >
-      <service android:name="org.love2d.android.DownloadService" />
-      <activity
+      android:usesCleartextTraffic="true" >
+    <activity
         android:name="org.love2d.android.GameActivity"
-        android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
+        android:exported="true"
+        android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
         android:label="LÖVE for Android"
         android:launchMode="singleTask"
         android:screenOrientation="landscape"
-        android:resizeableActivity="true"
+        android:resizeableActivity="false"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
-        <intent-filter>
-          <action android:name="android.intent.action.MAIN" />
-          <category android:name="android.intent.category.LAUNCHER" />
-          <category android:name="tv.ouya.intent.category.GAME" />
-        </intent-filter>
-        <intent-filter>
-          <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-        </intent-filter>
-        <intent-filter>
-          <action android:name="android.intent.action.VIEW" />
-          <category android:name="android.intent.category.DEFAULT" />
-          <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="file" />
-          <data android:mimeType="*/*" />
-          <data android:pathPattern=".*\\.love" />
-          <data android:host="*" />
-        </intent-filter>
-        <intent-filter>
-          <action android:name="android.intent.action.VIEW" />
-          <category android:name="android.intent.category.DEFAULT" />
-          <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="content" />
-          <data android:mimeType="application/x-love-game" />
-        </intent-filter>
-        <intent-filter>
-          <action android:name="android.intent.action.VIEW" />
-          <category android:name="android.intent.category.DEFAULT" />
-          <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="content" />
-          <data android:mimeType="application/octet-stream" />
-        </intent-filter>
-      </activity>
-      <activity
-        android:name="org.love2d.android.DownloadActivity"
-        android:noHistory="true"
-        android:theme="@android:style/Theme.NoTitleBar" >
-        <intent-filter>
-          <action android:name="android.intent.action.VIEW" />
-          <category android:name="android.intent.category.DEFAULT" />
-          <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="http"
-            android:host="*"
-            android:mimeType="*/*"
-            android:pathPattern=".*\\.love" />
-          <data android:scheme="https"
-            android:host="*"
-            android:mimeType="*/*"
-            android:pathPattern=".*\\.love" />
-        </intent-filter>
-      </activity>
-    </application>
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+        <category android:name="tv.ouya.intent.category.GAME" />
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+      </intent-filter>
+    </activity>
+  </application>
 </manifest> 

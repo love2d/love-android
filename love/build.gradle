@@ -78,9 +78,6 @@ android {
         normal {
             dimension 'mode'
         }
-        playstore {
-            dimension 'mode'
-        }
         embed {
             dimension 'mode'
             resValue 'bool', 'embed', 'true'
@@ -92,11 +89,6 @@ android {
                 srcDir 'src/jni/SDL2/android-project/app/src/main/java'
                 srcDir 'src/main/java'
                 srcDirs += retrieveAll3pModules()
-            }
-        }
-        playstore {
-            java {
-                srcDir 'src/normal/java'
             }
         }
     }

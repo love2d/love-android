@@ -17,17 +17,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    flavorDimensions 'mode'
+    flavorDimensions 'mode', 'recording'
     productFlavors {
         normal {
             dimension 'mode'
         }
-        playstore {
-            dimension 'mode'
-        }
         embed {
             dimension 'mode'
-            applicationIdSuffix '.embed'
+        }
+        record {
+            dimension 'recording'
+        }
+        noRecord {
+            dimension 'recording'
         }
     }
     lintOptions {
