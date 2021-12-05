@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -43,7 +43,7 @@ struct SDL_Texture
     int modMode;                /**< The texture modulation mode */
     SDL_BlendMode blendMode;    /**< The texture blend mode */
     SDL_ScaleMode scaleMode;    /**< The texture scale mode */
-    Uint8 r, g, b, a;           /**< Texture modulation values */
+    SDL_Color color;            /**< Texture modulation values */
 
     SDL_Renderer *renderer;
 
@@ -58,6 +58,7 @@ struct SDL_Texture
     Uint32 last_command_generation; /* last command queue generation this texture was in. */
 
     void *driverdata;           /**< Driver specific texture representation */
+    void *userdata;
 
     SDL_Texture *prev;
     SDL_Texture *next;
@@ -74,7 +75,8 @@ typedef enum
     SDL_RENDERCMD_DRAW_LINES,
     SDL_RENDERCMD_FILL_RECTS,
     SDL_RENDERCMD_COPY,
-    SDL_RENDERCMD_COPY_EX
+    SDL_RENDERCMD_COPY_EX,
+    SDL_RENDERCMD_GEOMETRY
 } SDL_RenderCommandType;
 
 typedef struct SDL_RenderCommand
@@ -127,15 +129,26 @@ struct SDL_Renderer
     int (*QueueCopyEx) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
                         const SDL_Rect * srcquad, const SDL_FRect * dstrect,
                         const double angle, const SDL_FPoint *center, const SDL_RendererFlip flip);
+    int (*QueueGeometry) (SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
+                          const float *xy, int xy_stride, const int *color, int color_stride, const float *uv, int uv_stride,
+                          int num_vertices, const void *indices, int num_indices, int size_indices,
+                          float scale_x, float scale_y);
+
     int (*RunCommandQueue) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, void *vertices, size_t vertsize);
     int (*UpdateTexture) (SDL_Renderer * renderer, SDL_Texture * texture,
                           const SDL_Rect * rect, const void *pixels,
                           int pitch);
+#if SDL_HAVE_YUV
     int (*UpdateTextureYUV) (SDL_Renderer * renderer, SDL_Texture * texture,
                             const SDL_Rect * rect,
                             const Uint8 *Yplane, int Ypitch,
                             const Uint8 *Uplane, int Upitch,
                             const Uint8 *Vplane, int Vpitch);
+    int (*UpdateTextureNV) (SDL_Renderer * renderer, SDL_Texture * texture,
+                            const SDL_Rect * rect,
+                            const Uint8 *Yplane, int Ypitch,
+                            const Uint8 *UVplane, int UVpitch);
+#endif
     int (*LockTexture) (SDL_Renderer * renderer, SDL_Texture * texture,
                         const SDL_Rect * rect, void **pixels, int *pitch);
     void (*UnlockTexture) (SDL_Renderer * renderer, SDL_Texture * texture);
@@ -147,6 +160,8 @@ struct SDL_Renderer
     void (*DestroyTexture) (SDL_Renderer * renderer, SDL_Texture * texture);
 
     void (*DestroyRenderer) (SDL_Renderer * renderer);
+
+    int (*SetVSync) (SDL_Renderer * renderer, int vsync);
 
     int (*GL_BindTexture) (SDL_Renderer * renderer, SDL_Texture *texture, float *texw, float *texh);
     int (*GL_UnbindTexture) (SDL_Renderer * renderer, SDL_Texture *texture);
@@ -201,7 +216,7 @@ struct SDL_Renderer
     SDL_Texture *target;
     SDL_mutex *target_mutex;
 
-    Uint8 r, g, b, a;                   /**< Color for drawing operations values */
+    SDL_Color color;                    /**< Color for drawing operations values */
     SDL_BlendMode blendMode;            /**< The drawing blend mode */
 
     SDL_bool always_batch;
@@ -244,6 +259,7 @@ extern SDL_RenderDriver DirectFB_RenderDriver;
 extern SDL_RenderDriver METAL_RenderDriver;
 extern SDL_RenderDriver PSP_RenderDriver;
 extern SDL_RenderDriver SW_RenderDriver;
+extern SDL_RenderDriver VITA_GXM_RenderDriver;
 
 /* Blend mode functions */
 extern SDL_BlendFactor SDL_GetBlendModeSrcColorFactor(SDL_BlendMode blendMode);
@@ -257,6 +273,9 @@ extern SDL_BlendOperation SDL_GetBlendModeAlphaOperation(SDL_BlendMode blendMode
    for a vertex buffer during RunCommandQueue(). Pointers returned here are only valid until
    the next call, because it might be in an array that gets realloc()'d. */
 extern void *SDL_AllocateRenderVertices(SDL_Renderer *renderer, const size_t numbytes, const size_t alignment, size_t *offset);
+
+extern int SDL_PrivateLowerBlitScaled(SDL_Surface * src, SDL_Rect * srcrect, SDL_Surface * dst, SDL_Rect * dstrect, SDL_ScaleMode scaleMode);
+extern int SDL_PrivateUpperBlitScaled(SDL_Surface * src, const SDL_Rect * srcrect, SDL_Surface * dst, SDL_Rect * dstrect, SDL_ScaleMode scaleMode);
 
 #endif /* SDL_sysrender_h_ */
 

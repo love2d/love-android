@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -84,7 +84,8 @@ GetAppName()
     return SDL_strdup("SDL_App");
 }
 
-size_t Fcitx_GetPreeditString(SDL_DBusContext *dbus, DBusMessage *msg, char **ret) {
+static size_t
+Fcitx_GetPreeditString(SDL_DBusContext *dbus, DBusMessage *msg, char **ret) {
     char *text = NULL, *subtext;
     size_t text_bytes = 0;
     DBusMessageIter iter, array, sub;
