@@ -17,29 +17,29 @@ jobs:
         java-version: 11
         cache: gradle
     - name: Build
-      run: bash ./gradlew assembleNormalDebug assembleNormalRelease assembleEmbedRelease bundleNormalRelease bundleEmbedRelease
-    - name: Artifact (normal debug APK)
+      run: bash ./gradlew assembleNormalRecord assembleEmbedRelease bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
+    - name: Artifact (Normal debug APK)
       uses: actions/upload-artifact@v2
       with:
         name: love-android-debug.apk
-        path: app/build/outputs/apk/normal/debug/app-normal-debug.apk
-    - name: Artifact (embed APK)
-      uses: actions/upload-artifact@v2
-      with:
-        name: love-android-embed.apk
-        path: app/build/outputs/apk/embed/release/app-embed-release-unsigned.apk
-    - name: Artifact (normal APK)
+        path: app/build/outputs/apk/normalRecord/debug/app-normal-record-debug.apk
+    - name: Artifact (Normal unsigned APK)
       uses: actions/upload-artifact@v2
       with:
         name: love-android.apk
-        path: app/build/outputs/apk/normal/release/app-normal-release-unsigned.apk
-    - name: Artifact (embed AAB)
+        path: app/build/outputs/apk/normalRecord/release/app-normal-record-release-unsigned.apk
+    - name: Artifact (Normal AAB w/o recording)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android-ps.aab
+        path: app/build/outputs/bundle/normalNoRecordRelease/app-normal-noRecord-release.aab
+    - name: Artifact (Embed AAB)
+      uses: actions/upload-artifact@v2
+      with:
+        name: love-android-embed-record.aab
+        path: app/build/outputs/bundle/embedRecordRelease/app-embed-record-release.aab
+    - name: Artifact (Embed AAB w/o recording)
       uses: actions/upload-artifact@v2
       with:
         name: love-android-embed.aab
-        path: app/build/outputs/bundle/embedRelease/app-embed-release.aab
-    - name: Artifact (normal AAB)
-      uses: actions/upload-artifact@v2
-      with:
-        name: love-android.aab
-        path: app/build/outputs/bundle/normalRelease/app-normal-release.aab
+        path: app/build/outputs/bundle/embedNoRecordRelease/app-embed-noRecord-release.aab
