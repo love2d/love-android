@@ -54,16 +54,14 @@ import androidx.annotation.Keep;
 import androidx.core.app.ActivityCompat;
 
 public class GameActivity extends SDLActivity {
-    private static DisplayMetrics metrics = new DisplayMetrics();
+    private static DisplayMetrics metrics = null;
     private static String gamePath = "";
-    private static Context context;
     private static Vibrator vibrator = null;
     protected final int[] externalStorageRequestDummy = new int[1];
     protected final int[] recordAudioRequestDummy = new int[1];
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 2;
     public static final int RECORD_AUDIO_REQUEST_CODE = 3;
     private static boolean immersiveActive = false;
-    private static boolean mustCacheArchive = false;
     private static boolean needToCopyGameInArchive = false;
     private boolean storagePermissionUnnecessary = false;
     private boolean shortEdgesMode = false;
@@ -106,11 +104,9 @@ public class GameActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("GameActivity", "started");
 
-        context = this.getApplicationContext();
-
-        int res = context.checkCallingOrSelfPermission(Manifest.permission.VIBRATE);
+        int res = checkCallingOrSelfPermission(Manifest.permission.VIBRATE);
         if (res == PackageManager.PERMISSION_GRANTED) {
-            vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+            vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         } else {
             Log.d("GameActivity", "Vibration disabled: could not get vibration permission.");
         }
@@ -118,12 +114,12 @@ public class GameActivity extends SDLActivity {
         // These 2 variables must be reset or it will use the existing value.
         gamePath = "";
         storagePermissionUnnecessary = false;
-        embed = context.getResources().getBoolean(R.bool.embed);
+        embed = getResources().getBoolean(R.bool.embed);
 
         handleIntent(this.getIntent());
 
         super.onCreate(savedInstanceState);
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        metrics = getResources().getDisplayMetrics();
 
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
@@ -169,7 +165,7 @@ public class GameActivity extends SDLActivity {
                 try {
                     String filename = "game.love";
                     String[] pathSegments = path.split("/");
-                    if (pathSegments != null && pathSegments.length > 0) {
+                    if (pathSegments.length > 0) {
                         filename = pathSegments[pathSegments.length - 1];
                     }
 
@@ -217,10 +213,10 @@ public class GameActivity extends SDLActivity {
             // so that we can load it from native LÖVE code
             AssetManager assetManager = getAssets();
             InputStream gameStream = assetManager.open("game.love");
+            String destinationFile = this.getCacheDir().getPath() + "/game.love";
 
-            String destination_file = this.getCacheDir().getPath() + "/game.love";
-            if (mustCacheArchive && copyAssetFile(gameStream, destination_file))
-                gamePath = destination_file;
+            if (copyAssetFile(gameStream, destinationFile))
+                gamePath = destinationFile;
             else
                 gamePath = "game.love";
             storagePermissionUnnecessary = true;
@@ -338,29 +334,29 @@ public class GameActivity extends SDLActivity {
      *
      * @return true if successful
      */
-    boolean copyAssetFile(InputStream source_stream, String destinationFileName) {
+    boolean copyAssetFile(InputStream source, String destinationFileName) {
         boolean success = false;
 
-        BufferedOutputStream destination_stream = null;
+        BufferedOutputStream destination = null;
         try {
-            destination_stream = new BufferedOutputStream(new FileOutputStream(destinationFileName, false));
+            destination = new BufferedOutputStream(new FileOutputStream(destinationFileName, false));
         } catch (IOException e) {
             Log.d("GameActivity", "Could not open destination file: " + e.getMessage());
         }
 
         // perform the copying
-        int chunk_read = 0;
+        int chunk_read;
         int bytes_written = 0;
 
-        assert (source_stream != null && destination_stream != null);
+        assert (source != null && destination != null);
 
         try {
             byte[] buf = new byte[1024];
-            chunk_read = source_stream.read(buf);
+            chunk_read = source.read(buf);
             do {
-                destination_stream.write(buf, 0, chunk_read);
+                destination.write(buf, 0, chunk_read);
                 bytes_written += chunk_read;
-                chunk_read = source_stream.read(buf);
+                chunk_read = source.read(buf);
             } while (chunk_read != -1);
         } catch (IOException e) {
             Log.d("GameActivity", "Copying failed:" + e.getMessage());
@@ -368,8 +364,8 @@ public class GameActivity extends SDLActivity {
 
         // close streams
         try {
-            if (source_stream != null) source_stream.close();
-            if (destination_stream != null) destination_stream.close();
+            source.close();
+            destination.close();
             success = true;
         } catch (IOException e) {
             Log.d("GameActivity", "Copying failed: " + e.getMessage());
@@ -449,7 +445,7 @@ public class GameActivity extends SDLActivity {
                 }
                 case RECORD_AUDIO_REQUEST_CODE: {
                     if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                        Log.d("GameActivity", "Mic ermission granted");
+                        Log.d("GameActivity", "Mic permission granted");
                     } else {
                         Log.d("GameActivity", "Did not get mic permission.");
                     }
