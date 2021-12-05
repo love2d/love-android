@@ -6,15 +6,14 @@ android {
     // See https://code.google.com/p/android/issues/detail?id=52962
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
-    compileSdkVersion 30
-    buildToolsVersion '30.0.2'
+    compileSdkVersion 31
+    buildToolsVersion '31.0.0'
     ndkVersion '21.3.6528147'
 
     defaultConfig {
-        compileSdkVersion 30
-        buildToolsVersion "30.0.2"
+        compileSdkVersion 31
+        buildToolsVersion '31.0.0'
         minSdkVersion 16
-        resValue 'bool', 'embed', 'false'
         externalNativeBuild {
             ndkBuild {
                 arguments "-j" + Runtime.runtime.availableProcessors()
@@ -26,7 +25,7 @@ android {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
             debugSymbolLevel 'SYMBOL_TABLE'
         }
-        targetSdkVersion 30
+        targetSdkVersion 31
     }
 
     def retrieveAll3pModules = { ->
