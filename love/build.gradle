@@ -80,7 +80,6 @@ android {
         }
         embed {
             dimension 'mode'
-            resValue 'bool', 'embed', 'true'
         }
     }
     sourceSets {
@@ -89,6 +88,11 @@ android {
                 srcDir 'src/jni/SDL2/android-project/app/src/main/java'
                 srcDir 'src/main/java'
                 srcDirs += retrieveAll3pModules()
+            }
+        }
+        normal {
+            java {
+                srcDirs += 'src/normal/java'
             }
         }
     }
