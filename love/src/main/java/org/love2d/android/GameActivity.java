@@ -200,7 +200,7 @@ public class GameActivity extends SDLActivity {
         } else {
             // No game specified via the intent data or embed build is used.
             // Load game archive only when needed.
-            needToCopyGameInArchive = true;
+            needToCopyGameInArchive = embed;
         }
 
         Log.d("GameActivity", "new gamePath: " + gamePath);
