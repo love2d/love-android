@@ -1037,8 +1037,7 @@ LJFOLDF(simplify_numadd_xneg)
 LJFOLD(SUB any KNUM)
 LJFOLDF(simplify_numsub_k)
 {
-  lua_Number n = knumright;
-  if (n == 0.0)  /* x - (+-0) ==> x */
+  if (ir_knum(fright)->u64 == 0)  /* x - (+0) ==> x */
     return LEFTFOLD;
   return NEXTFOLD;
 }
@@ -2411,6 +2410,17 @@ LJFOLDF(xload_kptr)
 
 LJFOLD(XLOAD any any)
 LJFOLDX(lj_opt_fwd_xload)
+
+/* -- Frame handling ------------------------------------------------------ */
+
+/* Prevent CSE of a REF_BASE operand across IR_RETF. */
+LJFOLD(SUB any BASE)
+LJFOLD(SUB BASE any)
+LJFOLD(EQ any BASE)
+LJFOLDF(fold_base)
+{
+  return lj_opt_cselim(J, J->chain[IR_RETF]);
+}
 
 /* -- Write barriers ------------------------------------------------------ */
 

@@ -1,10 +1,8 @@
 rem Build instruction assume using WSL + Clang for Windows (with MSVC x86+x64 toolset for -m32 switch)
 rem This assume NDK r19 or later. See https://github.com/LuaJIT/LuaJIT/issues/477 for more information.
 
-rem Make sure LuaJIT and the prebuilt is already in your PATH environment variable.
-rem As of commit 384d6d5 in LuaJIT v2.1 repository, lj_ircall.h.patch is no longer needed.
-
-rem If you're confused which one should be added your path:
+rem Make sure LuaJIT (yes, you need LuaJIT interpreter) and the NDK toolchain binaries is already in
+rem your PATH environment variable. If you're confused which part of the NDK should be added your path:
 rem <NDK_ROOT>\toolchains\llvm\prebuilt\windows-x86_64\bin
 
 mkdir android\arm64-v8a
