@@ -6,8 +6,8 @@ android {
     ndkVersion '21.3.6528147'
     defaultConfig {
         applicationId 'org.love2d.android'
-        versionCode 29
-        versionName '11.3a'
+        versionCode 30
+        versionName '11.4'
         minSdkVersion 16
         targetSdkVersion 31
     }
