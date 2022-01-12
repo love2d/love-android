@@ -57,10 +57,11 @@ If you want to put your game inside the APK, you can either:
 1. Put all your games in `app/src/embed/assets` such that your `main.lua` path is `app/src/embed/assets/main.lua`; or
 2. Put your zipped \*.love in `app/src/embed/assets` with name `game.love`
 
-And change the package name, application version string and codes, application display name, and the icons. Afterwards,
+And change the package name, application version string and codes, application display name, and the icons (see
+[Game Packaging Wiki](https://github.com/love2d/love-android/wiki/Game-Packaging). Afterwards,
 run either `gradlew assembleEmbedNoRecordRelease` (or `gradlew assembleEmbedRecordRelease` if your game uses microphone) to
-generate APK which you can install or `gradlew bundleEmbedNoRecordRelease` (or `gradlew bundleEmbedRecordRelease`) which you
-can upload to Play Store.
+generate APK which you can install or `gradlew bundleEmbedNoRecordRelease` (or `gradlew bundleEmbedRecordRelease`) to generate
+AAB which you can upload to Play Store.
 
 Alternatively, you can install Android Studio **2020.3.1** or later. After opening it for the first time, open its SDK Manager
 and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 21.3.6528147. After that, open
@@ -77,6 +78,14 @@ Bugs and/or feature requests should be reported to the issue tracker at:
 
 Changelog:
 ----------
+
+11.4:
+
+* Contains all relevant changes for desktop LÖVE [11.4](https://love2d.org/wiki/11.4).
+* Changed how LOVE looks for game due to Android restrictions.
+* Fixed "pointer too large" and "bad lightuserdata" issue when compiling LOVE with recent Android SDK and running LOVE on Android 11 and later.
+* For Developers: Added experimental support for 3rd-party Lua modules. Please refer to `love/src/jni/lua-modules` for more information.
+* For Packaging: Added experimental fusing method. [See the FAQ for details](https://github.com/love2d/love-android/wiki/FAQ---Frequently-Asked-Questions#whats-experimental-fusing-method).
 
 11.3:
 
