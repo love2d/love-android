@@ -1,33 +1,34 @@
-assets/
-bin/
-gen/
-libs/
-obj/
+# Gradle files
+.gradle/
+build/
 
+# Local configuration file (sdk path, etc)
 local.properties
 
-.*.swp
-.*~
-*~
-*.o
-*.so
-*.a
-*.orig
-*.rej
+# Log/OS Files
+*.log
 
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+output.json
 
-# Downloaded gradle wrapper
-.gradle
-
-# Android Studio project files
-.idea
+# IntelliJ
 *.iml
+.idea/
 
-# Gradle build files
-build
-.externalNativeBuild
-.cxx
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Android Profiling
+*.hprof
 
 # love-android specific
-!app/src/main/assets/
-app/src/main/assets/game.love
+app/src/main/assets/
+app/src/embed/assets/
