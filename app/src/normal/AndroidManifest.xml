@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="org.love2d.android">
 
     <application android:icon="@drawable/love">
         <activity
-            android:name=".MainActivity"
+            android:name="org.love2d.android.MainActivity"
             android:exported="true"
-            android:launchMode="singleTask" >
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Important: Do not change the activity class name! !-->
         <activity
             android:name="org.love2d.android.GameActivity"
             android:exported="false"
             tools:replace="android:exported">
             <intent-filter tools:node="removeAll" />
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

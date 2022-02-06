@@ -90,9 +90,10 @@ public class GameActivity extends SDLActivity {
         }
 
         currentGameInfo = new GameInfo();
+        Intent intent = getIntent();
 
-        handleIntent(getIntent());
         super.onCreate(savedInstanceState);
+        handleIntent(intent);
 
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
@@ -105,7 +106,7 @@ public class GameActivity extends SDLActivity {
 
         if (delayedFd != -1) {
             // This delayed fd is only sent if an embedded game is present.
-            SDLActivity.onNativeDropFile("love2d://fd/" + delayedFd);
+            sendFileDescriptorAsDroppedFile(delayedFd);
             delayedFd = -1;
         }
     }
@@ -302,6 +303,12 @@ public class GameActivity extends SDLActivity {
         return false;
     }
 
+    public void sendFileDescriptorAsDroppedFile(int fd) {
+        if (fd != -1) {
+            SDLActivity.onNativeDropFile("love2d://fd/" + fd);
+        }
+    }
+
     private void handleIntent(Intent intent) {
         Uri game = intent.getData();
         if (game == null) {
@@ -321,9 +328,7 @@ public class GameActivity extends SDLActivity {
         } else {
             // Game is already running. Send it as dropped file.
             int fd = convertToFileDescriptor(game);
-            if (fd != -1) {
-                SDLActivity.onNativeDropFile("love2d://fd/" + fd);
-            }
+            sendFileDescriptorAsDroppedFile(fd);
         }
     }
 

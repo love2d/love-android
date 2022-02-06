@@ -26,6 +26,7 @@
         android:allowBackup="true"
         android:icon="@drawable/love"
         android:label="LÖVE for Android">
+        <!-- You don't have to change the activity class unless you have special needs! !-->
         <activity
             android:name="org.love2d.android.GameActivity"
             android:exported="true"

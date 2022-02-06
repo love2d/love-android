@@ -41,6 +41,12 @@ android {
             java {
                 srcDir 'src/main/cpp/megasource/libs/SDL2/android-project/app/src/main/java'
                 srcDir 'src/main/java'
+                srcDir 'src/main/cpp/love/src/libraries/luahttps/src/android/java'
+            }
+        }
+        normal {
+            java {
+                srcDir 'src/normal/java'
             }
         }
     }
