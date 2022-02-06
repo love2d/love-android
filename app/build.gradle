@@ -4,6 +4,7 @@ plugins {
 
 android {
     compileSdk 31
+    ndkVersion "23.1.7779620"
 
     defaultConfig {
         applicationId "org.love2d.android"
@@ -11,6 +12,11 @@ android {
         versionName "12.0"
         minSdk 21
         targetSdk 31
+        externalNativeBuild {
+            cmake {
+                cppFlags ''
+            }
+        }
     }
 
     buildTypes {
@@ -57,6 +63,17 @@ android {
     }
     buildFeatures {
         viewBinding true
+    }
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            // '+' notation apparently has been supported long time ago
+            // https://issuetracker.google.com/issues/110693527#comment22
+            // We require CMake 3.21 because r23 has important fixes
+            // that's only fixed if CMake 3.21 is used.
+            // https://github.com/android/ndk/issues/463
+            version '3.21.0+'
+        }
     }
 }
 

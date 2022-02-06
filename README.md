@@ -41,8 +41,8 @@ Quick Start:
 Before you start, install JDK 11 or later. If you intend to build from Android Studio, skip this step as
 Android Studio bundles its own JDK 11.
 
-Install Android SDK with SDK API 31 (31.0.0) and Android NDK 23.1.7779620, set the environment variables
-`ANDROID_SDK_ROOT` to your Android SDK location and run.
+Install CMake version 3.21 or later in your system. Install Android SDK with SDK API 31 (31.0.0) and Android NDK 23.1.7779620.
+Set the environment variables `ANDROID_SDK_ROOT` to your Android SDK location and run.
 
 ```
 $ ./gradlew assembleNormalRecord
