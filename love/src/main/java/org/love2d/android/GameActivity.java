@@ -45,6 +45,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Vibrator;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.view.*;
@@ -126,6 +128,12 @@ public class GameActivity extends SDLActivity {
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
             shortEdgesMode = false;
+        }
+
+        try {
+            Os.setenv("LUA_CPATH", "./?.so;" + getCRequirePath(), true);
+        } catch (ErrnoException e) {
+            Log.d("GameActivity", "Could not set LUA_CPATH: " + e.getMessage());
         }
     }
 
