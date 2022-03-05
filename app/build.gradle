@@ -14,7 +14,7 @@ android {
         targetSdk 31
         externalNativeBuild {
             cmake {
-                cppFlags ''
+                targets "love"
             }
         }
     }
