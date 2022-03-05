@@ -375,8 +375,8 @@ public class GameActivity extends SDLActivity {
     private int convertToFileDescriptor(Uri uri) {
         try {
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
-            return pfd.getFd();
-        } catch (FileNotFoundException e) {
+            return pfd.dup().detachFd();
+        } catch (IOException e) {
             Log.d(TAG, "Failed attempt to convert " + uri.toString() + " to file descriptor", e);
         }
 
