@@ -8,14 +8,16 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.AppCompat">
+            android:theme="@style/Theme.AppCompat.DayNight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Important: Do not change the activity class name for GameActivity!! -->
+        <!--
+            Important: GameActivity class name MUST be explicitly written as
+            "org.love2d.android.GameActivity" without any shortcuts.
+        -->
         <activity
             android:name="org.love2d.android.GameActivity"
             android:exported="false"
@@ -29,7 +31,7 @@
             android:name=".AboutActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.AppCompat" />
+            android:theme="@style/Theme.AppCompat.DayNight" />
     </application>
 
 </manifest>
