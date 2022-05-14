@@ -4,5 +4,5 @@
     <string name="disclaimer">This software is provided \'as-is\', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.</string>
     <string name="official_website">Official Website</string>
     <string name="no_games">No Games :(</string>
-    <string name="no_games_info">Looks like there are no LÖVE games found in the games folder. See the &quot;Game Folder&quot; in the options menu for more information.</string>
+    <string name="no_games_info">Looks like there are no LÖVE games found in the games folder. See the \"Game Folder\" in the options menu for more information.</string>
 </resources>

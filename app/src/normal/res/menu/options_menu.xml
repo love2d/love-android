@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/optionItem"
+        android:title="Launch No-Game" />
+    <item
+        android:id="@+id/optionItem2"
+        android:title="Game Folder" />
+    <item
+        android:id="@+id/optionItem3"
+        android:title="About" />
+</menu>
