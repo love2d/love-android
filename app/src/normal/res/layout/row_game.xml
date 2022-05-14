@@ -12,11 +12,11 @@
         android:id="@+id/imageView"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:tint="#000000"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_baseline_insert_drive_file_32" />
+        app:srcCompat="@drawable/ic_baseline_insert_drive_file_32"
+        app:tint="#000000" />
 
     <TextView
         android:id="@+id/textView"
