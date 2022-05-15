@@ -8,4 +8,8 @@
     <string name="launch_nogame">Launch No-Game</string>
     <string name="game_folder">Game Folder</string>
     <string name="about">About</string>
+    <string name="ok">OK</string>
+    <string name="game_folder_location">The game folder is located in your internal storage at Android/data/%1$s/files/games.</string>
+    <string name="game_folder_accessible">The folder should be accessible with your favorite file manager.</string>
+    <string name="game_folder_inaccessible">Unfortunately the folder is only accessible through MTP in PC.</string>
 </resources>

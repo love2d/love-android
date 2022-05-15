@@ -1,8 +1,10 @@
 package org.love2d.android;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -32,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, GameActivity.class);
             startActivity(intent);
             return true;
+        } else if (itemId == R.id.optionItem2) {
+            getGameFolderDialog().show();
+            return true;
         } else if (itemId == R.id.optionItem3) {
             Intent intent = new Intent(this, AboutActivity.class);
             startActivity(intent);
@@ -39,5 +44,22 @@ public class MainActivity extends AppCompatActivity {
         } else {
             return super.onOptionsItemSelected(item);
         }
+    }
+
+    private AlertDialog getGameFolderDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+            .setTitle(getString(R.string.game_folder))
+            .setPositiveButton(R.string.ok, (dialog1, which) -> { });
+        StringBuilder message = new StringBuilder()
+            .append(getString(R.string.game_folder_location, getPackageName()))
+            .append("\n\n");
+
+        if (Build.VERSION.SDK_INT >= 30) {
+            message.append(getString(R.string.game_folder_inaccessible));
+        } else {
+            message.append(getString(R.string.game_folder_accessible));
+        }
+
+        return builder.setMessage(message.toString()).create();
     }
 }
