@@ -25,10 +25,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
         int itemId = item.getItemId();
 
-        if (itemId == R.id.optionItem3) {
+        // Handle item selection
+        if (itemId == R.id.optionItem) {
+            Intent intent = new Intent(this, GameActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (itemId == R.id.optionItem3) {
             Intent intent = new Intent(this, AboutActivity.class);
             startActivity(intent);
             return true;
