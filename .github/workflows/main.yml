@@ -17,7 +17,7 @@ jobs:
         java-version: 11
         cache: gradle
     - name: Build
-      run: bash ./gradlew assembleNormalRecord assembleEmbedRelease bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
+      run: bash ./gradlew assembleNormalRecordDebug assembleNormalRecordRelease bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
     - name: Artifact (Normal debug APK)
       uses: actions/upload-artifact@v2
       with:
