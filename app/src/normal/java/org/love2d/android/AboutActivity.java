@@ -20,6 +20,7 @@ public class AboutActivity extends AppCompatActivity {
         button.setOnClickListener(v -> {
             Uri uri = Uri.parse("https://love2d.org/");
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         });
 
