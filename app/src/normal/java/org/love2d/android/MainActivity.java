@@ -2,6 +2,7 @@ package org.love2d.android;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.content.Intent;
 import android.os.Build;
@@ -16,6 +17,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        SwipeRefreshLayout swipeLayout = findViewById(R.id.swipeRefreshLayout);
+        swipeLayout.setOnRefreshListener(() -> {
+            // TODO: Actually update list of games
+            swipeLayout.setRefreshing(false);
+        });
     }
 
     @Override
