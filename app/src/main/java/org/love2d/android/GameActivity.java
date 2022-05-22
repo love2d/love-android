@@ -97,9 +97,9 @@ public class GameActivity extends SDLActivity {
         }
 
         Intent intent = getIntent();
+        handleIntent(intent);
 
         super.onCreate(savedInstanceState);
-        handleIntent(intent);
 
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
@@ -129,6 +129,7 @@ public class GameActivity extends SDLActivity {
             Log.d(TAG, "Cancelling vibration");
             vibrator.cancel();
         }
+
         super.onDestroy();
     }
 
