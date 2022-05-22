@@ -55,8 +55,9 @@ public class GameActivity extends SDLActivity {
 
     protected Vibrator vibrator;
     protected boolean shortEdgesMode;
-    private GameInfo currentGameInfo;
     private int delayedFd = -1;
+    private String[] args = new String[0];
+    private boolean isFused;
 
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
 
@@ -82,14 +83,19 @@ public class GameActivity extends SDLActivity {
     }
 
     @Override
+    protected String[] getArguments() {
+        return args;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "started");
+        isFused = hasEmbeddedGame();
 
         if (checkCallingOrSelfPermission(Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED) {
             vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         }
 
-        currentGameInfo = new GameInfo();
         Intent intent = getIntent();
 
         super.onCreate(savedInstanceState);
@@ -170,11 +176,6 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
-    public GameInfo getGameInfo() {
-        return currentGameInfo;
-    }
-
-    @Keep
     public void vibrate(double seconds) {
         if (vibrator != null) {
             long duration = (long) (seconds * 1000.);
@@ -188,7 +189,7 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
-    public boolean openURLFromLOVE(String url) {
+    public static boolean openURLFromLOVE(String url) {
         Log.d(TAG, "opening url = " + url);
         return openURL(url) == 0;
     }
@@ -323,7 +324,7 @@ public class GameActivity extends SDLActivity {
         if (mSingleton == null) {
             // Game is not running, consider setting the currentGameInfo here
 
-            if (hasEmbeddedGame()) {
+            if (isFused) {
                 // Send it as dropped file later
                 delayedFd = convertToFileDescriptor(game);
             } else {
@@ -394,20 +395,9 @@ public class GameActivity extends SDLActivity {
 
         if (scheme.equals("content")) {
             // The intent may have more information about the filename
-            currentGameInfo.identity = intent.getStringExtra("name");
-
-            if (currentGameInfo.identity == null) {
-                // Use "lovegame" as fallback
-                // TODO: Use the content URI basename
-                Log.w(TAG, "Using \"lovegame\" as fallback for game identity (Uri " + game + ")");
-                currentGameInfo.identity = "lovegame";
-            }
-
-            currentGameInfo.fd = convertToFileDescriptor(game);
+            args = new String[] {"/love2d://fd/" + convertToFileDescriptor(game)};
         } else if (scheme.equals("file")) {
-            File f = new File(path);
-            currentGameInfo.path = path;
-            currentGameInfo.identity = f.getName();
+            args = new String[] {path};
         }
     }
 }
