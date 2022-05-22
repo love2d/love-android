@@ -136,6 +136,11 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
+    public static DisplayMetrics getDisplayMetrics() {
+        return getDisplayDPI();
+    }
+
+    @Keep
     public boolean hasEmbeddedGame() {
         AssetManager am = getAssets();
         InputStream inputStream;

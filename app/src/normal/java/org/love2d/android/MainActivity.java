@@ -10,6 +10,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.zip.ZipFile;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
 
     private Executor executor = Executors.newSingleThreadExecutor();
 
@@ -95,24 +97,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void scanGames(GameListAdapter adapter, ConstraintLayout noGameText, SwipeRefreshLayout swipeRefreshLayout) {
-        final MainActivity current = this;
-
         executor.execute(() -> {
             File extDir = getExternalFilesDir("games");
 
             if (!extDir.isDirectory()) {
                 if (!extDir.mkdir()) {
                     // Scan failure, abort
-                    if (swipeRefreshLayout != null) {
-                        swipeRefreshLayout.setRefreshing(false);
-                    }
+                    runOnUiThread(() -> {
+                        if (swipeRefreshLayout != null) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
+                    });
 
-                    new AlertDialog.Builder(current)
-                        .setTitle("Scan error")
-                        .setMessage("Scan failure")
-                        .setPositiveButton(R.string.ok, (dialog1, which) -> { })
-                        .create()
-                        .show();
+                    Log.e(TAG, "Directory creation failure.");
                     return;
                 }
             }
