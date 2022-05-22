@@ -6,6 +6,10 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
+    - name: Prepare Environment
+      run: sudo apt-get update && curl -Lo kitware-archive.sh https://apt.kitware.com/kitware-archive.sh && sudo bash ./kitware-archive.sh
+    - name: Install Dependencies
+      run: sudo apt-get install ninja-build cmake
     - name: Checkout
       uses: actions/checkout@v2
       with:
