@@ -104,6 +104,10 @@ public class GameActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
 
+        if (mBrokenLibraries) {
+            return;
+        }
+
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
 
