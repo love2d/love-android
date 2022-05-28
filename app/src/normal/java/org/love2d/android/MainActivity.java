@@ -1,5 +1,7 @@
 package org.love2d.android;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -8,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -26,7 +29,16 @@ import java.util.zip.ZipFile;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
-    private Executor executor = Executors.newSingleThreadExecutor();
+    private final Executor executor = Executors.newSingleThreadExecutor();
+
+    private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
+        new ActivityResultContracts.OpenDocument(),
+        (Uri result) -> {
+            Intent intent = new Intent(this, GameActivity.class);
+            intent.setData(result);
+            startActivity(intent);
+        }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,13 +76,16 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle item selection
         if (itemId == R.id.optionItem) {
+            openFileLauncher.launch(new String[] {"*/*"});
+            return true;
+        } else if (itemId == R.id.optionItem2) {
             Intent intent = new Intent(this, GameActivity.class);
             startActivity(intent);
             return true;
-        } else if (itemId == R.id.optionItem2) {
+        } else if (itemId == R.id.optionItem3) {
             getGameFolderDialog().show();
             return true;
-        } else if (itemId == R.id.optionItem3) {
+        } else if (itemId == R.id.optionItem4) {
             Intent intent = new Intent(this, AboutActivity.class);
             startActivity(intent);
             return true;

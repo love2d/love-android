@@ -5,6 +5,7 @@
     <string name="official_website">Official Website</string>
     <string name="no_games">No Games :(</string>
     <string name="no_games_info">Looks like there are no LÖVE games found in the games folder. See the \"Game Folder\" in the options menu for more information.</string>
+    <string name="open_love_file">Open .love File</string>
     <string name="launch_nogame">Launch No-Game</string>
     <string name="game_folder">Game Folder</string>
     <string name="about">About</string>
