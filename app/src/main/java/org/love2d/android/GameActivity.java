@@ -79,6 +79,7 @@ public class GameActivity extends SDLActivity {
         return new String[] {
             "c++_shared",
             "SDL2",
+            "oboe",
             "openal",
             "luajit",
             "love",

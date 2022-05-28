@@ -15,7 +15,10 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
-                targets "love"
+                // Transitive shared library dependency is not taken into account, this
+                // will cause liboboe.so not get included. love depends on OpenAL that
+                // depends on oboe::oboe. So, add "OpenAL" target.
+                targets "love", "OpenAL"
             }
         }
     }
@@ -25,6 +28,10 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    buildFeatures {
+        prefab true
     }
 
     flavorDimensions 'mode', 'recording'
@@ -76,6 +83,14 @@ android {
             version '3.21.0+'
         }
     }
+    packagingOptions {
+        // Due to inclusion of "OpenAL" target, these files are included too, but this
+        // file is provided by Android as public API. Exclude them!
+        exclude 'lib/armeabi-v7a/libOpenSLES.so'
+        exclude 'lib/arm64-v8a/libOpenSLES.so'
+        exclude 'lib/x86/libOpenSLES.so'
+        exclude 'lib/x86_64/libOpenSLES.so'
+    }
 }
 
 dependencies {
@@ -86,4 +101,5 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.4.2'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'com.google.oboe:oboe:1.6.1'
 }
