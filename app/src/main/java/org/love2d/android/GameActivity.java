@@ -21,6 +21,7 @@
 package org.love2d.android;
 
 import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
 
 import org.libsdl.app.SDLActivity;
 
@@ -52,9 +53,11 @@ import java.util.Map;
 
 public class GameActivity extends SDLActivity {
     private static final String TAG = "GameActivity";
+    public static final int RECORD_AUDIO_REQUEST_CODE = 3;
 
     protected Vibrator vibrator;
     protected boolean shortEdgesMode;
+    protected final int[] recordAudioRequestDummy = new int[1];
     private int delayedFd = -1;
     private String[] args = new String[0];
     private boolean isFused;
@@ -142,9 +145,27 @@ public class GameActivity extends SDLActivity {
         super.onPause();
     }
 
-    @Keep
-    public static DisplayMetrics getDisplayMetrics() {
-        return getDisplayDPI();
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (grantResults.length > 0) {
+            Log.d("GameActivity", "Received a request permission result");
+
+            if (requestCode == RECORD_AUDIO_REQUEST_CODE) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("GameActivity", "Mic permission granted");
+                } else {
+                    Log.d("GameActivity", "Did not get mic permission.");
+                }
+
+                Log.d("GameActivity", "Unlocking LÖVE thread");
+                synchronized (recordAudioRequestDummy) {
+                    recordAudioRequestDummy[0] = grantResults[0];
+                    recordAudioRequestDummy.notify();
+                }
+            } else {
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            }
+        }
     }
 
     @Keep
@@ -190,7 +211,7 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
-    public static boolean openURLFromLOVE(String url) {
+    public boolean openURLFromLOVE(String url) {
         Log.d(TAG, "opening url = " + url);
         return openURL(url) == 0;
     }
@@ -277,6 +298,33 @@ public class GameActivity extends SDLActivity {
         return shortEdgesMode;
     }
 
+    @Keep
+    public boolean hasRecordAudioPermission() {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Keep
+    public void requestRecordAudioPermission() {
+        if (ActivityCompat.checkSelfPermission(this,
+            Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        Log.d("GameActivity", "Requesting mic permission and locking LÖVE thread until we have an answer.");
+        ActivityCompat.requestPermissions(this,
+            new String[]{Manifest.permission.RECORD_AUDIO},
+            RECORD_AUDIO_REQUEST_CODE);
+
+        synchronized (recordAudioRequestDummy) {
+            try {
+                recordAudioRequestDummy.wait();
+            } catch (InterruptedException e) {
+                Log.d("GameActivity", "requesting mic permission", e);
+            }
+        }
+    }
+
     public int getAudioSMP() {
         int smp = 256;
         AudioManager a = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -329,8 +377,8 @@ public class GameActivity extends SDLActivity {
                 // Send it as dropped file later
                 delayedFd = convertToFileDescriptor(game);
             } else {
-                // Process to GameInfo
-                processOpenGame(intent, game);
+                // Process for arguments
+                processOpenGame(game);
             }
         } else {
             // Game is already running. Send it as dropped file.
@@ -390,7 +438,7 @@ public class GameActivity extends SDLActivity {
         return -1;
     }
 
-    private void processOpenGame(Intent intent, Uri game) {
+    private void processOpenGame(Uri game) {
         String scheme = game.getScheme();
         String path = game.getPath();
 
