@@ -43,7 +43,6 @@ import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.WindowManager;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,8 +57,8 @@ public class GameActivity extends SDLActivity {
     protected Vibrator vibrator;
     protected boolean shortEdgesMode;
     protected final int[] recordAudioRequestDummy = new int[1];
-    private int delayedFd = -1;
-    private String[] args = new String[0];
+    private Uri delayedUri = null;
+    private String[] args;
     private boolean isFused;
 
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
@@ -95,13 +94,16 @@ public class GameActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "started");
         isFused = hasEmbeddedGame();
+        args = new String[0];
 
         if (checkCallingOrSelfPermission(Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED) {
             vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         }
 
         Intent intent = getIntent();
-        handleIntent(intent);
+        // Prevent SDL sending filedropped event. Let us do that instead.
+        setIntent(null);
+        handleIntent(intent, true);
 
         super.onCreate(savedInstanceState);
 
@@ -118,17 +120,17 @@ public class GameActivity extends SDLActivity {
             shortEdgesMode = false;
         }
 
-        if (delayedFd != -1) {
+        if (delayedUri != null) {
             // This delayed fd is only sent if an embedded game is present.
-            sendFileDescriptorAsDroppedFile(delayedFd);
-            delayedFd = -1;
+            sendUriAsDroppedFile(delayedUri);
+            delayedUri = null;
         }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        handleIntent(intent);
+        handleIntent(intent, false);
     }
 
     @Override
@@ -330,6 +332,11 @@ public class GameActivity extends SDLActivity {
         }
     }
 
+    @Keep
+    public int convertToFileDescriptor(String uri) {
+        return convertToFileDescriptor(Uri.parse(uri));
+    }
+
     public int getAudioSMP() {
         int smp = 256;
         AudioManager a = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -363,32 +370,28 @@ public class GameActivity extends SDLActivity {
         return false;
     }
 
-    public void sendFileDescriptorAsDroppedFile(int fd) {
-        if (fd != -1) {
-            SDLActivity.onNativeDropFile("love2d://fd/" + fd);
-        }
+    public void sendUriAsDroppedFile(Uri uri) {
+        SDLActivity.onNativeDropFile(uri.toString());
     }
 
-    private void handleIntent(Intent intent) {
+    private void handleIntent(Intent intent, boolean onCreate) {
         Uri game = intent.getData();
         if (game == null) {
             return;
         }
 
-        if (mSingleton == null) {
-            // Game is not running, consider setting the currentGameInfo here
-
+        if (onCreate) {
+            // Game is not running
             if (isFused) {
                 // Send it as dropped file later
-                delayedFd = convertToFileDescriptor(game);
+                delayedUri = game;
             } else {
                 // Process for arguments
                 processOpenGame(game);
             }
         } else {
             // Game is already running. Send it as dropped file.
-            int fd = convertToFileDescriptor(game);
-            sendFileDescriptorAsDroppedFile(fd);
+            sendUriAsDroppedFile(game);
         }
     }
 
@@ -433,14 +436,17 @@ public class GameActivity extends SDLActivity {
     }
 
     private int convertToFileDescriptor(Uri uri) {
+        int fd = -1;
+
         try {
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
-            return pfd.dup().detachFd();
-        } catch (IOException e) {
-            Log.d(TAG, "Failed attempt to convert " + uri.toString() + " to file descriptor", e);
+            fd = pfd.dup().detachFd();
+            pfd.close();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed attempt to convert " + uri.toString() + " to file descriptor", e);
         }
 
-        return -1;
+        return fd;
     }
 
     private void processOpenGame(Uri game) {
@@ -448,9 +454,10 @@ public class GameActivity extends SDLActivity {
         String path = game.getPath();
 
         if (scheme.equals("content")) {
-            // The intent may have more information about the filename
+            // Convert the URI to file descriptor.
             args = new String[] {"/love2d://fd/" + convertToFileDescriptor(game)};
         } else if (scheme.equals("file")) {
+            // Regular file, pass as-is.
             args = new String[] {path};
         }
     }
