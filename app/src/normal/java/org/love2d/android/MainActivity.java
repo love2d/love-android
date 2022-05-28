@@ -34,9 +34,11 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
         new ActivityResultContracts.OpenDocument(),
         (Uri result) -> {
-            Intent intent = new Intent(this, GameActivity.class);
-            intent.setData(result);
-            startActivity(intent);
+            if (result != null) {
+                Intent intent = new Intent(this, GameActivity.class);
+                intent.setData(result);
+                startActivity(intent);
+            }
         }
     );
 
