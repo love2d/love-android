@@ -1,32 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="56dp"
+    android:minHeight="56dp"
+    android:layout_height="wrap_content"
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
-    android:padding="16dp"
     android:focusable="true">
 
     <ImageView
-        android:id="@+id/imageView"
+        android:id="@+id/gameImage"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_baseline_insert_drive_file_32"
-        app:tint="#000000" />
+        android:layout_centerVertical="true"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/ic_baseline_insert_drive_file_32" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/gameName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toEndOf="@id/gameImage"
         android:layout_marginStart="32dp"
-        android:text="TextView"
-        android:textColor="#DE000000"
-        android:textSize="18sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/imageView"
-        app:layout_constraintTop_toTopOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:textColor="@android:color/black"
+        android:textSize="18sp" />
+
+</RelativeLayout>

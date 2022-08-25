@@ -3,81 +3,70 @@ package org.love2d.android;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
 import java.io.File;
+import java.util.ArrayList;
 
-public class GameListAdapter extends RecyclerView.Adapter<GameListAdapter.ViewHolder> {
+public class GameListAdapter extends ArrayAdapter<GameListItem> implements View.OnClickListener {
+    private final Context context;
 
-    private Data[] data = null;
+    public GameListAdapter(ArrayList<GameListItem> data, Context context) {
+        super(context, R.layout.row_game, data);
+        this.context = context;
+    }
 
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_game, parent, false);
-        ViewHolder holder = new ViewHolder(view);
-        view.setOnClickListener(holder);
-
-        return holder;
+    public void setData(ArrayList<GameListItem> data) {
+        clear();
+        if (data == null)
+            return;
+        for (GameListItem item : data)
+            add(item);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        holder.setData(this.data[position]);
+    public void onClick(View v) {
+        ViewHolder item = (ViewHolder) v.getTag();
+        if (item.file == null)
+            return;
+
+        Intent intent = new Intent(context, GameActivity.class);
+        intent.setData(Uri.fromFile(item.file));
+        context.startActivity(intent);
     }
 
     @Override
-    public int getItemCount() {
-        return data != null ? data.length : 0;
+    public View getView(int position, View view, ViewGroup parent) {
+        GameListItem item = getItem(position);
+        ViewHolder holder;
+
+        if (view == null) {
+            holder = new ViewHolder();
+            LayoutInflater inflater = LayoutInflater.from(getContext());
+            view = inflater.inflate(R.layout.row_game, parent, false);
+            holder.name = view.findViewById(R.id.gameName);
+            holder.image = view.findViewById(R.id.gameImage);
+            holder.file = item.file;
+            view.setTag(holder);
+            view.setOnClickListener(this);
+        } else
+            holder = (ViewHolder) view.getTag();
+
+        holder.name.setText(item.name);
+        holder.image.setImageResource(
+                item.dir ? R.drawable.ic_baseline_folder_32 : R.drawable.ic_baseline_insert_drive_file_32);
+        return view;
     }
 
-    public void setData(Data[] data) {
-        this.data = data;
-    }
-
-    static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-
-        private final TextView name;
-        private final ImageView image;
-        private File file;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-
-            name = itemView.findViewById(R.id.textView);
-            image = itemView.findViewById(R.id.imageView);
-        }
-
-        public void setData(Data data) {
-            name.setText(data.path.getName());
-            image.setImageResource(data.directory ? R.drawable.ic_baseline_folder_32 : R.drawable.ic_baseline_insert_drive_file_32);
-            file = data.path;
-        }
-
-        @Override
-        public void onClick(View v) {
-            if (file == null) {
-                return;
-            }
-
-            Context context = v.getContext();
-            Intent intent = new Intent(context, GameActivity.class);
-            intent.setData(Uri.fromFile(file));
-            context.startActivity(intent);
-        }
-    }
-
-    static class Data {
-        // Absolute path of the file.
-        public File path;
-        // Denote if this game is a directory.
-        public boolean directory;
+    private static class ViewHolder {
+        TextView name;
+        ImageView image;
+        File file;
     }
 }

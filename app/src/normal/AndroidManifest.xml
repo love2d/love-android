@@ -3,12 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="org.love2d.android">
 
-    <application android:icon="@drawable/love">
+    <application android:icon="@drawable/love"
+        android:theme="@android:style/Theme.DeviceDefault.Light">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:theme="@style/Theme.AppCompat.DayNight">
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -24,14 +24,14 @@
             tools:replace="android:exported">
             <intent-filter tools:node="removeAll" />
             <intent-filter>
+                <!-- gamepads -->
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
         </activity>
         <activity
             android:name=".AboutActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.AppCompat.DayNight" />
+            android:parentActivityName=".MainActivity" />
         <provider
             android:name="org.love2d.android.LoveDocumentsProvider"
             android:authorities="${applicationId}.documents"

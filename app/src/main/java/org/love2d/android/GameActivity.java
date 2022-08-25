@@ -20,11 +20,6 @@
 
 package org.love2d.android;
 
-import androidx.annotation.Keep;
-import androidx.core.app.ActivityCompat;
-
-import org.libsdl.app.SDLActivity;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
@@ -34,6 +29,7 @@ import android.content.res.AssetManager;
 import android.graphics.Rect;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.VibrationEffect;
@@ -43,6 +39,11 @@ import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.WindowManager;
 
+import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
+
+import org.libsdl.app.SDLActivity;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,12 +52,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameActivity extends SDLActivity {
-    private static final String TAG = "GameActivity";
     public static final int RECORD_AUDIO_REQUEST_CODE = 3;
-
+    private static final String TAG = "GameActivity";
+    protected final int[] recordAudioRequestDummy = new int[1];
     protected Vibrator vibrator;
     protected boolean shortEdgesMode;
-    protected final int[] recordAudioRequestDummy = new int[1];
     private Uri delayedUri = null;
     private String[] args;
     private boolean isFused;
@@ -76,12 +76,12 @@ public class GameActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
         return new String[] {
-            "c++_shared",
-            "SDL2",
-            "oboe",
-            "openal",
-            "luajit",
-            "love",
+                "c++_shared",
+                "SDL2",
+                "oboe",
+                "openal",
+                "luajit",
+                "love" // must be last
         };
     }
 
@@ -96,9 +96,9 @@ public class GameActivity extends SDLActivity {
         isFused = hasEmbeddedGame();
         args = new String[0];
 
-        if (checkCallingOrSelfPermission(Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED) {
+        if (checkCallingOrSelfPermission(
+                Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED)
             vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        }
 
         Intent intent = getIntent();
         // Prevent SDL sending filedropped event. Let us do that instead.
@@ -107,9 +107,8 @@ public class GameActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
 
-        if (mBrokenLibraries) {
+        if (mBrokenLibraries)
             return;
-        }
 
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
@@ -158,20 +157,18 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Received a request permission result");
 
             if (requestCode == RECORD_AUDIO_REQUEST_CODE) {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
                     Log.d("GameActivity", "Mic permission granted");
-                } else {
+                else
                     Log.d("GameActivity", "Did not get mic permission.");
-                }
 
                 Log.d("GameActivity", "Unlocking LÖVE thread");
                 synchronized (recordAudioRequestDummy) {
                     recordAudioRequestDummy[0] = grantResults[0];
                     recordAudioRequestDummy.notify();
                 }
-            } else {
+            } else
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-            }
         }
     }
 
@@ -209,11 +206,11 @@ public class GameActivity extends SDLActivity {
         if (vibrator != null) {
             long duration = (long) (seconds * 1000.);
             if (android.os.Build.VERSION.SDK_INT >= 26) {
-                VibrationEffect ve = VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE);
+                VibrationEffect ve = VibrationEffect.createOneShot(duration,
+                        VibrationEffect.DEFAULT_AMPLITUDE);
                 vibrator.vibrate(ve);
-            } else {
+            } else
                 vibrator.vibrate(duration);
-            }
         }
     }
 
@@ -235,9 +232,8 @@ public class GameActivity extends SDLActivity {
         HashMap<String, Boolean> map = buildFileTree(getAssets(), "", new HashMap<>());
         ArrayList<String> result = new ArrayList<>();
 
-        for (Map.Entry<String, Boolean> data: map.entrySet()) {
+        for (Map.Entry<String, Boolean> data : map.entrySet())
             result.add((data.getValue() ? "d" : "f") + data.getKey());
-        }
 
         String[] r = new String[result.size()];
         result.toArray(r);
@@ -255,16 +251,15 @@ public class GameActivity extends SDLActivity {
         Rect rect = null;
 
         if (android.os.Build.VERSION.SDK_INT >= 28) {
-            DisplayCutout cutout = getWindow().getDecorView().getRootWindowInsets().getDisplayCutout();
+            DisplayCutout cutout = getWindow()
+                    .getDecorView()
+                    .getRootWindowInsets()
+                    .getDisplayCutout();
 
             if (cutout != null) {
                 rect = new Rect();
-                rect.set(
-                    cutout.getSafeInsetLeft(),
-                    cutout.getSafeInsetTop(),
-                    cutout.getSafeInsetRight(),
-                    cutout.getSafeInsetBottom()
-                );
+                rect.set(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
+                        cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
             }
         }
 
@@ -275,9 +270,9 @@ public class GameActivity extends SDLActivity {
     public String getCRequirePath() {
         ApplicationInfo applicationInfo = getApplicationInfo();
 
-        if (isNativeLibsExtracted()) {
+        if (isNativeLibsExtracted() || Build.VERSION.SDK_INT < 21)
             return applicationInfo.nativeLibraryDir + "/?.so";
-        } else {
+        else {
             // The native libs are inside the APK and can be loaded directly.
             // FIXME: What about split APKs?
             String abi = android.os.Build.SUPPORTED_ABIS[0];
@@ -286,42 +281,41 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
+    public boolean getImmersiveMode() {
+        return shortEdgesMode;
+    }
+
+    @Keep
     public void setImmersiveMode(boolean enable) {
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             WindowManager.LayoutParams attr = getWindow().getAttributes();
 
-            if (enable) {
+            if (enable)
                 attr.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            } else {
+            else
                 attr.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
-            }
         }
 
         shortEdgesMode = enable;
     }
 
     @Keep
-    public boolean getImmersiveMode() {
-        return shortEdgesMode;
-    }
-
-    @Keep
     public boolean hasRecordAudioPermission() {
-        return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        return ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     @Keep
     public void requestRecordAudioPermission() {
         if (ActivityCompat.checkSelfPermission(this,
-            Manifest.permission.RECORD_AUDIO)
-            == PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        Log.d("GameActivity", "Requesting mic permission and locking LÖVE thread until we have an answer.");
-        ActivityCompat.requestPermissions(this,
-            new String[]{Manifest.permission.RECORD_AUDIO},
-            RECORD_AUDIO_REQUEST_CODE);
+        Log.d("GameActivity",
+                "Requesting mic permission and locking LÖVE thread until we have an answer.");
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO},
+                RECORD_AUDIO_REQUEST_CODE);
 
         synchronized (recordAudioRequestDummy) {
             try {
@@ -376,9 +370,8 @@ public class GameActivity extends SDLActivity {
 
     private void handleIntent(Intent intent, boolean onCreate) {
         Uri game = intent.getData();
-        if (game == null) {
+        if (game == null)
             return;
-        }
 
         if (onCreate) {
             // Game is not running
@@ -419,15 +412,12 @@ public class GameActivity extends SDLActivity {
             map.put(dir, true);
 
             // This Object comparison is intentional.
-            if (strippedDir != dir) {
+            if (!strippedDir.equals(dir))
                 map.put(strippedDir, true);
-            }
 
-            if (list != null) {
-                for (String path: list) {
+            if (list != null)
+                for (String path : list)
                     buildFileTree(assetManager, dir + path + "/", map);
-                }
-            }
         } catch (IOException e) {
             Log.e(TAG, dir, e);
         }
@@ -440,7 +430,9 @@ public class GameActivity extends SDLActivity {
 
         try {
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
-            fd = pfd.dup().detachFd();
+            fd = pfd
+                    .dup()
+                    .detachFd();
             pfd.close();
         } catch (Exception e) {
             Log.e(TAG, "Failed attempt to convert " + uri.toString() + " to file descriptor", e);
@@ -455,10 +447,10 @@ public class GameActivity extends SDLActivity {
 
         if (scheme.equals("content")) {
             // Convert the URI to file descriptor.
-            args = new String[] {"/love2d://fd/" + convertToFileDescriptor(game)};
+            args = new String[]{"/love2d://fd/" + convertToFileDescriptor(game)};
         } else if (scheme.equals("file")) {
             // Regular file, pass as-is.
-            args = new String[] {path};
+            args = new String[]{path};
         }
     }
 }

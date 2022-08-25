@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="version_info">Версия %1$s</string>
+    <string name="copyright">Copyright © 2006–2022 Команда разработчиков LÖVE</string>
+    <string name="disclaimer">Это программное обеспечение предлагается \'как есть\', без каких-либо явных либо подразумеваемых гарантий. Ни при каких обстоятельствах авторы не несут ответственности за любой ущерб, возникший в результате использования этого программного обеспечения.</string>
+    <string name="official_website">Официальный сайт</string>
+    <string name="no_games">Нет игр :(</string>
+    <string name="no_games_info">Похоже, что мы не нашли папку с играми. Посмотрите \"Папка с играми\" в меню для подробностей.</string>
+    <string name="open_love_file">Открыть файл .love</string>
+    <string name="launch_nogame">Запустить Не-Игру</string>
+    <string name="game_folder">Папка с играми</string>
+    <string name="about">О движке</string>
+    <string name="ok">ОК</string>
+    <string name="game_folder_location">Папка с играми расположена во внутреннем хранилище в Android/data/%1$s/files/games.</string>
+    <string name="game_folder_accessible">Эта папка должна быть доступна вашим любимым файловым менеджером.</string>
+    <string name="game_folder_inaccessible">К сожалению, эта папка доступна только через MTP в ПК.</string>
+</resources>
