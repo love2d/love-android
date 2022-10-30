@@ -41,7 +41,7 @@ Quick Start:
 Before you start, install JDK 11 or later. If you intend to build from Android Studio, skip this step as
 Android Studio bundles its own JDK 11.
 
-Install Android SDK with SDK API 31 (31.0.0) and Android NDK 21.3.6528147, set the environment variables
+Install Android SDK with SDK API 33 (33.0.0) and Android NDK 23.2.8568313, set the environment variables
 `ANDROID_SDK_ROOT` to your Android SDK location and run.
 
 ```
@@ -63,8 +63,8 @@ run either `gradlew assembleEmbedNoRecordRelease` (or `gradlew assembleEmbedReco
 generate APK which you can install or `gradlew bundleEmbedNoRecordRelease` (or `gradlew bundleEmbedRecordRelease`) to generate
 AAB which you can upload to Play Store.
 
-Alternatively, you can install Android Studio **2020.3.1** or later. After opening it for the first time, open its SDK Manager
-and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 21.3.6528147. After that, open
+Alternatively, you can install Android Studio **2021.3.1** or later. After opening it for the first time, open its SDK Manager
+and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 23.2.8568313. After that, open
 the repository root.
 
 Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google render that method obsolete.
@@ -75,6 +75,8 @@ Bugs:
 Bugs and/or feature requests should be reported to the issue tracker at:
 * https://github.com/love2d/love-android/issues - LÖVE-Android-specific issues
 * https://github.com/love2d/love/issues - for LÖVE in general
+
+Note: If in doubt, fill an issue report to https://github.com/love2d/love/issues. We'll transfer the issue to this repository as needed.
 
 Changelog:
 ----------
