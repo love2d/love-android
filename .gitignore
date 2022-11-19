@@ -3,6 +3,7 @@ bin/
 gen/
 libs/
 obj/
+app/embedNoRecord
 
 local.properties
 
@@ -14,6 +15,7 @@ local.properties
 *.a
 *.orig
 *.rej
+*.hprof
 
 
 # Downloaded gradle wrapper

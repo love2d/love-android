@@ -1,4 +1,0 @@
-Add your game.love in this folder then
-$ ./gradlew bundleEmbed
-or
-$ ./gradlew assembleEmbed

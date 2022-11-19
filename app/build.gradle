@@ -5,9 +5,9 @@ android {
     buildToolsVersion '33.0.0'
     ndkVersion '23.2.8568313'
     defaultConfig {
-        applicationId 'org.love2d.android'
-        versionCode 30
-        versionName '11.4'
+        applicationId 'com.formularsumo.starwarsforcecollectionremake'
+        versionCode 59
+        versionName '0.12-prerelease'
         minSdkVersion 16
         targetSdk 33
     }
