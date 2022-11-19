@@ -5,7 +5,7 @@ android {
     buildToolsVersion '33.0.0'
     ndkVersion '23.2.8568313'
     defaultConfig {
-        applicationId 'com.formularsumo.starwarsforcecollectionremake'
+        applicationId 'com.formularsumo.starwarsforcecollectionremake.embed'
         versionCode 59
         versionName '0.12-prerelease'
         minSdkVersion 16
