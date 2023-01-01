@@ -1,6 +1,6 @@
 /* API declaration export attribute */
-#define AL_API  __attribute__((visibility("protected")))
-#define ALC_API __attribute__((visibility("protected")))
+#define AL_API  __attribute__((visibility("default")))
+#define ALC_API __attribute__((visibility("default")))
 
 /* Define a restrict macro for non-aliased pointers */
 #define RESTRICT __restrict

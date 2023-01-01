@@ -12,8 +12,8 @@ LOCAL_ARM_NEON := true
 #
 # Flags
 #
-LOCAL_CFLAGS := -std=c11 -DAL_ALEXT_PROTOTYPES -DHAVE_OBOE -DHAVE_OPENSL -DRESTRICT=__restrict
-LOCAL_CPPFLAGS := -std=c++14
+LOCAL_CFLAGS := -std=c11 -DAL_ALEXT_PROTOTYPES -DHAVE_OBOE -DHAVE_OPENSL -fvisibility=hidden
+LOCAL_CPPFLAGS := -std=c++14 -fvisibility-inlines-hidden
 LOCAL_CPP_FEATURES := exceptions
 
 #
