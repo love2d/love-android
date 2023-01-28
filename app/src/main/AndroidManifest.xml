@@ -26,7 +26,8 @@
       android:allowBackup="true"
       android:icon="@drawable/love"
       android:label="LÖVE for Android"
-      android:usesCleartextTraffic="true" >
+      android:usesCleartextTraffic="true"
+      android:requestLegacyExternalStorage="true" >
     <activity
         android:name="org.love2d.android.GameActivity"
         android:exported="true"
