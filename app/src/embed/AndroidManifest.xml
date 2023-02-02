@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+  package="org.love2d.android.executable"
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="18" tools:replace="android:maxSdkVersion" />
+
+  <application
+      android:allowBackup="true"
+      android:icon="@drawable/love"
+      android:label="${NAME}"
+      android:usesCleartextTraffic="true"
+      android:hardwareAccelerated="true"
+      tools:node="replace" >
+      <activity
+        android:name="${ACTIVITY_NAME}"
+        android:exported="true"
+        android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        android:label="${NAME}"
+        android:launchMode="singleTask"
+        android:screenOrientation="${ORIENTATION}"
+        android:resizeableActivity="false"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        <intent-filter>
+          <action android:name="android.intent.action.MAIN" />
+          <category android:name="android.intent.category.LAUNCHER" />
+          <category android:name="tv.ouya.intent.category.GAME" />
+        </intent-filter>
+        <intent-filter>
+          <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+        </intent-filter>
+      </activity>
+
+      <meta-data
+        android:name="com.google.android.gms.version"
+        android:value="@integer/google_play_services_version" />
+
+      <meta-data
+        android:name="com.google.android.gms.ads.APPLICATION_ID"
+        android:value="${APPLICATION_ID}" />
+    </application>
+</manifest>

@@ -5,11 +5,17 @@ android {
     buildToolsVersion '33.0.0'
     ndkVersion '23.2.8568313'
     defaultConfig {
-        applicationId 'org.love2d.android'
-        versionCode 30
-        versionName '11.4'
+        applicationId project.properties["app.application_id"]
+        versionCode project.properties["app.version_code"].toInteger()
+        versionName project.properties["app.version_name"]
         minSdkVersion 16
         targetSdk 33
+
+        manifestPlaceholders = [
+            NAME:project.properties["app.name"],
+            ACTIVITY_NAME:project.properties["app.activity_name"],
+            ORIENTATION:project.properties["app.orientation"],
+        ]
     }
     buildTypes {
         release {
