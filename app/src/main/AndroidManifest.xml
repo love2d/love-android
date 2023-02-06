@@ -25,15 +25,15 @@
   <application
       android:allowBackup="true"
       android:icon="@drawable/love"
-      android:label="LÖVE for Android"
+      android:label="${NAME}"
       android:usesCleartextTraffic="true" >
     <activity
-        android:name="org.love2d.android.GameActivity"
+        android:name="${ACTIVITY_NAME}"
         android:exported="true"
         android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
-        android:label="LÖVE for Android"
+        android:label="${NAME}"
         android:launchMode="singleTask"
-        android:screenOrientation="landscape"
+        android:screenOrientation="${ORIENTATION}"
         android:resizeableActivity="false"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
       <intent-filter>
