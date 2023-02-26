@@ -15,10 +15,10 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
-                // Transitive shared library dependency is not taken into account, this
-                // will cause liboboe.so not get included. love depends on OpenAL that
-                // depends on oboe::oboe. So, add "OpenAL" target.
-                targets "love_android"
+                // Transitive shared library dependency across AAR is not taken into account,
+                // this result in liboboe.so not get included into the final APK. love depends
+                // on OpenAL that depends on oboe::oboe. So, add "OpenAL" target.
+                targets "love_android", "OpenAL"
             }
         }
     }
@@ -136,5 +136,5 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.5.3'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation 'com.google.oboe:oboe:1.6.1'
+    implementation 'com.google.oboe:oboe:1.7.0'
 }
