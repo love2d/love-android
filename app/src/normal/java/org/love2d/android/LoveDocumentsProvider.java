@@ -16,7 +16,7 @@
 
 /*
 * Modified for use with LOVE by the LOVE Development Team
-* Copyright (C) 2022 LOVE Development Team
+* Copyright (C) 2023 LOVE Development Team
  */
 
 package org.love2d.android;
