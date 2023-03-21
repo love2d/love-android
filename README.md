@@ -41,8 +41,8 @@ Quick Start:
 Before you start, install JDK 11 or later. If you intend to build from Android Studio, skip this step as
 Android Studio bundles its own JDK 11.
 
-Install CMake version 3.21 or later in your system. Install Android SDK with SDK API 31 (31.0.0) and Android NDK 23.1.7779620.
-Set the environment variables `ANDROID_SDK_ROOT` to your Android SDK location and run.
+Install CMake version 3.21 or later in your system. Install Android SDK with SDK API 33 (33.0.0) and Android NDK 25.2.9519653.
+Set the environment variables `ANDROID_SDK_ROOT` to your Android SDK location if necessary and run.
 
 ```
 $ ./gradlew assembleNormalRecord
@@ -63,11 +63,11 @@ run either `gradlew assembleEmbedNoRecordRelease` (or `gradlew assembleEmbedReco
 generate APK which you can install or `gradlew bundleEmbedNoRecordRelease` (or `gradlew bundleEmbedRecordRelease`) to generate
 AAB which you can upload to Play Store.
 
-Alternatively, you can install Android Studio **2021.1.1** or later. After opening it for the first time, open its SDK Manager
-and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 23.1.7779620. After that, open
+Alternatively, you can install Android Studio **2022.1.1** or later. After opening it for the first time, open its SDK Manager
+and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 25.2.9519653. After that, open
 the repository root.
 
-Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google render that method obsolete.
+Notice: Previously, the embed + APKTool method is preferred, but recent announcements by Google and recent changes in Android render that method obsolete.
 
 Bugs:
 -----
