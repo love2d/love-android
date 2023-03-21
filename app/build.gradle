@@ -3,8 +3,9 @@ plugins {
 }
 
 android {
+    namespace "org.love2d.android"
     compileSdk 33
-    ndkVersion "25.1.8937393"
+    ndkVersion "25.2.9519653"
 
     defaultConfig {
         applicationId "org.love2d.android"
@@ -15,10 +16,11 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
-                // Transitive shared library dependency across AAR is not taken into account,
-                // this result in liboboe.so not get included into the final APK. love depends
-                // on OpenAL that depends on oboe::oboe. So, add "OpenAL" target.
-                targets "love_android", "OpenAL"
+                // For unknown reason, transitive shared library is not taken into account, this
+                // result in liboboe.so and libluajit.so not get included into the final APK. "love"
+                // target depends on LuaJIT, and OpenAL that depends on oboe::oboe. So, add "OpenAL"
+                // and "love" target.
+                targets "love_android", "OpenAL", "love"
             }
         }
     }
