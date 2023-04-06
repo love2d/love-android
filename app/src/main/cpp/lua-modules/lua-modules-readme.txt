@@ -19,3 +19,12 @@ Each folder must contains:
 * If your module interacts with Java-side, a file java.txt must contain where it should look Java source files.
   Example, if you have src/java/your/package/name/MyFile.java, then you need to write "src/java" in java.txt.
   If this file is absent, then your Java-side code will not be compiled along.
+
+Note: There's bug in Android CMake support which prevents inclusion of imported *.so.
+      More information about it here: https://issuetracker.google.com/issues/274493986
+      In short:
+      * If your library is simply an imported target (or prebuilt in ndk-build terms), convert it to standard target.
+        Otherwise the associated *.so won't be bundled into the APK!
+      * If your library depends on imported/prebuilt target, you must add your CMake target to the `app/build.gradle`
+        as part of the targets that need to be compiled. Add your CMake target at
+        `android.defaultConfig.externalNativeBuild.cmake.targets` property.
