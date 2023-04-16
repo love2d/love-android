@@ -3,6 +3,7 @@ import java.nio.charset.StandardCharsets
 apply plugin: 'com.android.application'
 
 android {
+    namespace "org.love2d.android.executable"
     compileSdk 33
     buildToolsVersion '33.0.0'
     ndkVersion '23.2.8568313'
@@ -58,7 +59,7 @@ android {
             dimension 'recording'
         }
     }
-    lintOptions {
+    lint {
         abortOnError false
     }
 }

@@ -9,6 +9,7 @@ android {
     compileSdkVersion 33
     buildToolsVersion '33.0.0'
     ndkVersion '23.2.8568313'
+    namespace "org.love2d.android"
 
     defaultConfig {
         compileSdkVersion 33
@@ -100,12 +101,13 @@ android {
             path 'src/jni/Android.mk'
         }
     }
-    lintOptions {
-        abortOnError false
-    }
     packagingOptions {
-        exclude 'lib/arm64-v8a/libSDL2.so'
-        exclude 'lib/armeabi-v7a/libSDL2.so'
+        jniLibs {
+            excludes += ['lib/arm64-v8a/libSDL2.so', 'lib/armeabi-v7a/libSDL2.so']
+        }
+    }
+    lint {
+        abortOnError false
     }
 }
 
