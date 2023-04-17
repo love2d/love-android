@@ -67,6 +67,6 @@ android {
 dependencies {
     api 'androidx.multidex:multidex:2.0.1'
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.5.1'
+    api 'androidx.appcompat:appcompat:1.6.1'
     api project(':love')
 }
