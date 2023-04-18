@@ -608,13 +608,12 @@ public class GameActivity extends SDLActivity {
 
     public boolean isNativeLibsExtracted() {
         ApplicationInfo appInfo = getApplicationInfo();
-        boolean nativeLibsExtracted = true;
 
         if (android.os.Build.VERSION.SDK_INT >= 23) {
-            nativeLibsExtracted = (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
+            return (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
         }
 
-        return nativeLibsExtracted;
+        return true;
     }
 
     @Keep
