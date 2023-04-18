@@ -28,15 +28,60 @@
  */
 
 #include "../../SDL_internal.h"
-#include "SDL_thread.h"
+#include "../../thread/SDL_systhread.h"
+#include "SDL_hints.h"
 #include "SDL_mutex.h"
+#include "SDL_thread.h"
 
-#if defined(HAVE__WCSDUP) && !defined(HAVE_WCSDUP)
-#define wcsdup _wcsdup
+#ifdef realloc
+#undef realloc
 #endif
+#define realloc	SDL_realloc
+#ifdef snprintf
+#undef snprintf
+#endif
+#define snprintf SDL_snprintf
+#ifdef strdup
+#undef strdup
+#endif
+#define strdup  SDL_strdup
+#ifdef strncpy
+#undef strncpy
+#endif
+#define strncpy SDL_strlcpy
+#ifdef tolower
+#undef tolower
+#endif
+#define tolower SDL_tolower
+#ifdef wcsncpy
+#undef wcsncpy
+#endif
+#define wcsncpy SDL_wcslcpy
+
+#ifndef HAVE_WCSDUP
+#ifdef HAVE__WCSDUP
+#define wcsdup _wcsdup
+#else
+#define wcsdup _dupwcs
+static wchar_t *_dupwcs(const wchar_t *src)
+{
+    wchar_t *dst = NULL;
+    if (src) {
+        size_t len = SDL_wcslen(src) + 1;
+        len *= sizeof(wchar_t);
+        dst = (wchar_t *) malloc(len);
+        if (dst) memcpy(dst, src, len);
+    }
+    return dst;
+}
+#endif
+#endif /* HAVE_WCSDUP */
 
 #include <libusb.h>
+#ifndef _WIN32
+#define HAVE_SETLOCALE
 #include <locale.h> /* setlocale */
+#endif
 
 #include "../hidapi/hidapi.h"
 
@@ -59,12 +104,8 @@ typedef struct _SDL_ThreadBarrier
 
 static int SDL_CreateThreadBarrier(SDL_ThreadBarrier *barrier, Uint32 count)
 {
-	if (barrier == NULL) {
-		return SDL_SetError("barrier must be non-NULL");
-	}
-	if (count == 0) {
-		return SDL_SetError("count must be > 0");
-	}
+	SDL_assert(barrier != NULL);
+	SDL_assert(count != 0);
 
 	barrier->mutex = SDL_CreateMutex();
 	if (barrier->mutex == NULL) {
@@ -161,6 +202,10 @@ struct hid_device_ {
 	int shutdown_thread;
 	int transfer_loop_finished;
 	struct libusb_transfer *transfer;
+
+	/* Quirks */
+	int skip_output_report_id;
+	int no_output_reports_on_intr_ep;
 
 	/* List of received input reports. */
 	struct input_report *input_reports;
@@ -277,7 +322,7 @@ static int get_usage(uint8_t *report_descriptor, size_t size,
 				/* Can't ever happen since size_code is & 0x3 */
 				data_len = 0;
 				break;
-			};
+			}
 			key_size = 1;
 		}
 
@@ -373,12 +418,16 @@ static int is_language_supported(libusb_device_handle *dev, uint16_t lang)
 /* This function returns a newly allocated wide string containing the USB
    device string numbered by the index. The returned string must be freed
    by using free(). */
+#if defined(__OS2__) /* don't use iconv on OS/2: no support for wchar_t. */
+#define NO_ICONV
+#endif
 static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 {
 	char buf[512];
 	int len;
 	wchar_t *str = NULL;
 
+#if !defined(NO_ICONV)
 	wchar_t wbuf[256];
 	SDL_iconv_t ic;
 	size_t inbytes;
@@ -386,6 +435,9 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 	size_t res;
 	const char *inptr;
 	char *outptr;
+#else
+	int i;
+#endif
 
 	/* Determine which language to use. */
 	uint16_t lang;
@@ -402,6 +454,23 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 	if (len < 0)
 		return NULL;
 
+#if defined(NO_ICONV) /* original hidapi code for NO_ICONV : */
+
+	/* Bionic does not have wchar_t iconv support, so it
+	   has to be done manually.  The following code will only work for
+	   code points that can be represented as a single UTF-16 character,
+	   and will incorrectly convert any code points which require more
+	   than one UTF-16 character.
+
+	   Skip over the first character (2-bytes).  */
+	len -= 2;
+	str = (wchar_t*) malloc((len / 2 + 1) * sizeof(wchar_t));
+	for (i = 0; i < len / 2; i++) {
+		str[i] = buf[i * 2 + 2] | (buf[i * 2 + 3] << 8);
+	}
+	str[len / 2] = 0x00000000;
+
+#else
 	/* buf does not need to be explicitly NULL-terminated because
 	   it is only passed into iconv() which does not need it. */
 
@@ -434,6 +503,7 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 
 err:
 	SDL_iconv_close(ic);
+#endif
 
 	return str;
 }
@@ -493,6 +563,22 @@ static struct usb_string_cache_entry *usb_string_cache_insert()
 	return new_entry;
 }
 
+static int usb_string_can_cache(uint16_t vid, uint16_t pid)
+{
+	if (!vid || !pid) {
+		/* We can't cache these, they aren't unique */
+		return 0;
+	}
+
+	if (vid == 0x0f0d && pid == 0x00dc) {
+		/* HORI reuses this VID/PID for many different products */
+		return 0;
+	}
+
+	/* We can cache these strings */
+	return 1;
+}
+
 static const struct usb_string_cache_entry *usb_string_cache_find(struct libusb_device_descriptor *desc, struct libusb_device_handle *handle)
 {
 	struct usb_string_cache_entry *entry = NULL;
@@ -543,16 +629,18 @@ static char *make_path(libusb_device *dev, int interface_number)
 int HID_API_EXPORT hid_init(void)
 {
 	if (!usb_context) {
-		const char *locale;
-
 		/* Init Libusb */
 		if (libusb_init(&usb_context))
 			return -1;
 
+#ifdef HAVE_SETLOCALE
 		/* Set the locale if it's not set. */
-		locale = setlocale(LC_CTYPE, NULL);
-		if (!locale)
-			setlocale(LC_CTYPE, "");
+		{
+			const char *locale = setlocale(LC_CTYPE, NULL);
+			if (!locale)
+				setlocale(LC_CTYPE, "");
+		}
+#endif
 	}
 
 	return 0;
@@ -599,6 +687,7 @@ static int is_xbox360(unsigned short vendor_id, const struct libusb_interface_de
 		0x1bad, /* Harmonix */
 		0x20d6, /* PowerA */
 		0x24c6, /* PowerA */
+		0x2c22, /* Qanba */
 	};
 
 	if (intf_desc->bInterfaceClass == LIBUSB_CLASS_VENDOR_SPEC &&
@@ -627,6 +716,7 @@ static int is_xboxone(unsigned short vendor_id, const struct libusb_interface_de
 		0x1532, /* Razer Wildcat */
 		0x20d6, /* PowerA */
 		0x24c6, /* PowerA */
+		0x2dc8, /* 8BitDo */
 		0x2e24, /* Hyperkin */
 	};
 
@@ -646,6 +736,8 @@ static int is_xboxone(unsigned short vendor_id, const struct libusb_interface_de
 
 static int should_enumerate_interface(unsigned short vendor_id, const struct libusb_interface_descriptor *intf_desc)
 {
+	//printf("Checking interface 0x%x %d/%d/%d/%d\n", vendor_id, intf_desc->bInterfaceNumber, intf_desc->bInterfaceClass, intf_desc->bInterfaceSubClass, intf_desc->bInterfaceProtocol);
+
 	if (intf_desc->bInterfaceClass == LIBUSB_CLASS_HID)
 		return 1;
 
@@ -670,6 +762,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 
 	struct hid_device_info *root = NULL; /* return object */
 	struct hid_device_info *cur_dev = NULL;
+	const char *hint = SDL_GetHint(SDL_HINT_HIDAPI_IGNORE_DEVICES);
 
 	if(hid_init() < 0)
 		return NULL;
@@ -687,10 +780,21 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		unsigned short dev_vid = desc.idVendor;
 		unsigned short dev_pid = desc.idProduct;
 
+		/* See if there are any devices we should skip in enumeration */
+		if (hint) {
+			char vendor_match[16], product_match[16];
+			SDL_snprintf(vendor_match, sizeof(vendor_match), "0x%.4x/0x0000", dev_vid);
+			SDL_snprintf(product_match, sizeof(product_match), "0x%.4x/0x%.4x", dev_vid, dev_pid);
+			if (SDL_strcasestr(hint, vendor_match) || SDL_strcasestr(hint, product_match)) {
+				continue;
+			}
+		}
+
 		res = libusb_get_active_config_descriptor(dev, &conf_desc);
 		if (res < 0)
 			libusb_get_config_descriptor(dev, 0, &conf_desc);
 		if (conf_desc) {
+
 			for (j = 0; j < conf_desc->bNumInterfaces; j++) {
 				const struct libusb_interface *intf = &conf_desc->interface[j];
 				for (k = 0; k < intf->num_altsetting; k++) {
@@ -728,7 +832,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 										get_usb_string(handle, desc.iSerialNumber);
 
 								/* Manufacturer and Product strings */
-								if (dev_vid && dev_pid) {
+								if (usb_string_can_cache(dev_vid, dev_pid)) {
 									string_cache = usb_string_cache_find(&desc, handle);
 									if (string_cache) {
 										if (string_cache->vendor) {
@@ -958,8 +1062,9 @@ static void LIBUSB_CALL read_callback(struct libusb_transfer *transfer)
 }
 
 
-static int read_thread(void *param)
+static int SDLCALL read_thread(void *param)
 {
+	int res;
 	hid_device *dev = (hid_device *)param;
 	uint8_t *buf;
 	const size_t length = dev->input_ep_max_packet_size;
@@ -978,14 +1083,18 @@ static int read_thread(void *param)
 
 	/* Make the first submission. Further submissions are made
 	   from inside read_callback() */
-	libusb_submit_transfer(dev->transfer);
+	res = libusb_submit_transfer(dev->transfer);
+	if(res < 0) {
+                LOG("libusb_submit_transfer failed: %d %s. Stopping read_thread from running\n", res, libusb_error_name(res));
+                dev->shutdown_thread = 1;
+                dev->transfer_loop_finished = 1;
+	}
 
 	/* Notify the main thread that the read thread is up and running. */
 	SDL_WaitThreadBarrier(&dev->barrier);
 
 	/* Handle all the events. */
 	while (!dev->shutdown_thread) {
-		int res;
 		res = libusb_handle_events(usb_context);
 		if (res < 0) {
 			/* There was an error. */
@@ -1027,6 +1136,20 @@ static int read_thread(void *param)
 	   they can not be cleaned up here. */
 
 	return 0;
+}
+
+static void init_xbox360(libusb_device_handle *device_handle, unsigned short idVendor, unsigned short idProduct, struct libusb_config_descriptor *conf_desc)
+{
+	if ((idVendor == 0x05ac && idProduct == 0x055b) /* Gamesir-G3w */ ||
+	    idVendor == 0x0f0d /* Hori Xbox controllers */) {
+		unsigned char data[20];
+
+		/* The HORIPAD FPS for Nintendo Switch requires this to enable input reports.
+		   This VID/PID is also shared with other HORI controllers, but they all seem
+		   to be fine with this as well.
+		 */
+		libusb_control_transfer(device_handle, 0xC1, 0x01, 0x100, 0x0, data, sizeof(data), 100);
+	}
 }
 
 static void init_xboxone(libusb_device_handle *device_handle, unsigned short idVendor, unsigned short idProduct, struct libusb_config_descriptor *conf_desc)
@@ -1071,6 +1194,19 @@ static void init_xboxone(libusb_device_handle *device_handle, unsigned short idV
 				}
 			}
 		}
+	}
+}
+
+static void calculate_device_quirks(hid_device *dev, unsigned short idVendor, unsigned short idProduct)
+{
+	static const int VENDOR_SONY = 0x054c;
+	static const int PRODUCT_PS3_CONTROLLER = 0x0268;
+	static const int PRODUCT_NAVIGATION_CONTROLLER = 0x042f;
+
+	if (idVendor == VENDOR_SONY &&
+	    (idProduct == PRODUCT_PS3_CONTROLLER || idProduct == PRODUCT_NAVIGATION_CONTROLLER)) {
+		dev->skip_output_report_id = 1;
+		dev->no_output_reports_on_intr_ep = 1;
 	}
 }
 
@@ -1148,6 +1284,11 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 							break;
 						}
 
+						/* Initialize XBox 360 controllers */
+						if (is_xbox360(desc.idVendor, intf_desc)) {
+							init_xbox360(dev->device_handle, desc.idVendor, desc.idProduct, conf_desc);
+						}
+
 						/* Initialize XBox One controllers */
 						if (is_xboxone(desc.idVendor, intf_desc)) {
 							init_xboxone(dev->device_handle, desc.idVendor, desc.idProduct, conf_desc);
@@ -1194,7 +1335,9 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 							}
 						}
 
-						dev->thread = SDL_CreateThread(read_thread, NULL, dev);
+						calculate_device_quirks(dev, desc.idVendor, desc.idProduct);
+
+						dev->thread = SDL_CreateThreadInternal(read_thread, "libusb", 0, dev);
 
 						/* Wait here for the read thread to be initialized. */
 						SDL_WaitThreadBarrier(&dev->barrier);
@@ -1226,11 +1369,11 @@ int HID_API_EXPORT hid_write(hid_device *dev, const unsigned char *data, size_t 
 {
 	int res;
 
-	if (dev->output_endpoint <= 0) {
+	if (dev->output_endpoint <= 0 || dev->no_output_reports_on_intr_ep) {
 		int report_number = data[0];
 		int skipped_report_id = 0;
 
-		if (report_number == 0x0) {
+		if (report_number == 0x0 || dev->skip_output_report_id) {
 			data++;
 			length--;
 			skipped_report_id = 1;
@@ -1461,6 +1604,7 @@ void HID_API_EXPORT hid_close(hid_device *dev)
 
 	/* Clean up the Transfer objects allocated in read_thread(). */
 	free(dev->transfer->buffer);
+	dev->transfer->buffer = NULL;
 	libusb_free_transfer(dev->transfer);
 
 	/* release the interface */
@@ -1672,13 +1816,15 @@ static struct lang_map_entry lang_map[] = {
 
 uint16_t get_usb_code_for_current_locale(void)
 {
-	char *locale;
+	char *locale = NULL;
 	char search_string[64];
 	char *ptr;
 	struct lang_map_entry *lang;
 
 	/* Get the current locale. */
+#ifdef HAVE_SETLOCALE
 	locale = setlocale(0, NULL);
+#endif
 	if (!locale)
 		return 0x0;
 

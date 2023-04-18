@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -117,7 +117,7 @@ WINRT_DeleteDevice(SDL_VideoDevice * device)
 }
 
 static SDL_VideoDevice *
-WINRT_CreateDevice(int devindex)
+WINRT_CreateDevice(void)
 {
     SDL_VideoDevice *device;
     SDL_VideoData *data;
@@ -154,6 +154,8 @@ WINRT_CreateDevice(int devindex)
     device->ShowScreenKeyboard = WINRT_ShowScreenKeyboard;
     device->HideScreenKeyboard = WINRT_HideScreenKeyboard;
     device->IsScreenKeyboardShown = WINRT_IsScreenKeyboardShown;
+
+    WINTRT_InitialiseInputPaneEvents(device);
 #endif
 
 #ifdef SDL_VIDEO_OPENGL_EGL
@@ -478,8 +480,7 @@ WINRT_InitModes(_THIS)
 
     hr = CreateDXGIFactory1(SDL_IID_IDXGIFactory2, (void **)&dxgiFactory2);
     if (FAILED(hr)) {
-        WIN_SetErrorFromHRESULT(__FUNCTION__ ", CreateDXGIFactory1() failed", hr);
-        return -1;
+        return WIN_SetErrorFromHRESULT(__FUNCTION__ ", CreateDXGIFactory1() failed", hr);
     }
 
     for (int adapterIndex = 0; ; ++adapterIndex) {
@@ -525,7 +526,7 @@ WINRT_DetectWindowFlags(SDL_Window * window)
 
 #if SDL_WINRT_USE_APPLICATIONVIEW
     if (data->appView) {
-        is_fullscreen = data->appView->IsFullScreen;
+        is_fullscreen = data->appView->IsFullScreenMode;
     }
 #elif (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP) || (NTDDI_VERSION == NTDDI_WIN8)
     is_fullscreen = true;
@@ -630,14 +631,12 @@ WINRT_CreateWindow(_THIS, SDL_Window * window)
     // Make sure that only one window gets created, at least until multimonitor
     // support is added.
     if (WINRT_GlobalSDLWindow != NULL) {
-        SDL_SetError("WinRT only supports one window");
-        return -1;
+        return SDL_SetError("WinRT only supports one window");
     }
 
     SDL_WindowData *data = new SDL_WindowData;  /* use 'new' here as SDL_WindowData may use WinRT/C++ types */
     if (!data) {
-        SDL_OutOfMemory();
-        return -1;
+        return SDL_OutOfMemory();
     }
     window->driverdata = data;
     data->sdlWindow = window;
@@ -673,9 +672,8 @@ WINRT_CreateWindow(_THIS, SDL_Window * window)
          * be passed into eglCreateWindowSurface.
          */
         if (SDL_EGL_ChooseConfig(_this) != 0) {
-            char buf[512];
-            SDL_snprintf(buf, sizeof(buf), "SDL_EGL_ChooseConfig failed: %s", SDL_GetError());
-            return SDL_SetError("%s", buf);
+            /* SDL_EGL_ChooseConfig failed, SDL_GetError() should have info */
+            return -1; 
         }
 
         if (video_data->winrtEglWindow) {   /* ... is the 'old' version of ANGLE/WinRT being used? */
@@ -838,8 +836,8 @@ WINRT_GetWindowWMInfo(_THIS, SDL_Window * window, SDL_SysWMinfo * info)
         info->info.winrt.window = reinterpret_cast<IInspectable *>(data->coreWindow.Get());
         return SDL_TRUE;
     } else {
-        SDL_SetError("Application not compiled with SDL %d.%d",
-                     SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
+        SDL_SetError("Application not compiled with SDL %d",
+                     SDL_MAJOR_VERSION);
         return SDL_FALSE;
     }
     return SDL_FALSE;

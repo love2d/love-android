@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -184,6 +184,7 @@ static int OS2_JoystickInit(void)
 		joyPortClose(&hJoyPort);
 		return SDL_SetError("Could not read joystick port.");
 	}
+	maxdevs = 0;
 	if (stGameParms.useA != 0) maxdevs++;
 	if (stGameParms.useB != 0) maxdevs++;
 	if (maxdevs > MAX_JOYSTICKS) maxdevs = MAX_JOYSTICKS;
@@ -376,13 +377,15 @@ static void OS2_JoystickDetect(void)
 {
 }
 
-/***********************************************************/
-/* Function to get the device-dependent name of a joystick */
-/***********************************************************/
 static const char *OS2_JoystickGetDeviceName(int device_index)
 {
 	/* No need to verify if device exists, already done in upper layer */
 	return SYS_JoyData[device_index].szDeviceName;
+}
+
+static const char *OS2_JoystickGetDevicePath(int device_index)
+{
+	return NULL;
 }
 
 static int OS2_JoystickGetDevicePlayerIndex(int device_index)
@@ -396,12 +399,9 @@ static void OS2_JoystickSetDevicePlayerIndex(int device_index, int player_index)
 
 static SDL_JoystickGUID OS2_JoystickGetDeviceGUID(int device_index)
 {
-	SDL_JoystickGUID guid;
-	/* the GUID is just the first 16 chars of the name for now */
-	const char *name = OS2_JoystickGetDeviceName(device_index);
-	SDL_zero(guid);
-	SDL_memcpy(&guid, name, SDL_min(sizeof(guid), SDL_strlen(name)));
-	return guid;
+    /* the GUID is just the name for now */
+    const char *name = OS2_JoystickGetDeviceName(device_index);
+    return SDL_CreateJoystickGUIDForName(name);
 }
 
 static SDL_JoystickID OS2_JoystickGetDeviceInstanceID(int device_index)
@@ -708,10 +708,18 @@ static int joyGetEnv(struct _joycfg * joydata)
 	while (*joyenv == ' ' && *joyenv != 0) joyenv++; /* jump spaces... */
 
 	/* If the string name starts with '... get if fully */
-	if (*joyenv == '\'') joyenv += joyGetData(++joyenv,joydata->name,'\'',sizeof(joydata->name));
+	if (*joyenv == '\'') {
+		joyenv++;
+		joyenv += joyGetData(joyenv,joydata->name,'\'',sizeof(joydata->name));
+	}
 	/* If not, get it until the next space */
-	else if (*joyenv == '\"') joyenv += joyGetData(++joyenv,joydata->name,'\"',sizeof(joydata->name));
-	else joyenv += joyGetData(joyenv,joydata->name,' ',sizeof(joydata->name));
+	else if (*joyenv == '\"') {
+		joyenv++;
+		joyenv += joyGetData(joyenv,joydata->name,'\"',sizeof(joydata->name));
+	}
+	else {
+		joyenv += joyGetData(joyenv,joydata->name, ' ',sizeof(joydata->name));
+	}
 
 	/* Now get the number of axes */
 	while (*joyenv == ' ' && *joyenv != 0) joyenv++; /* jump spaces... */
@@ -770,6 +778,7 @@ SDL_JoystickDriver SDL_OS2_JoystickDriver =
 	OS2_NumJoysticks,
 	OS2_JoystickDetect,
 	OS2_JoystickGetDeviceName,
+	OS2_JoystickGetDevicePath,
 	OS2_JoystickGetDevicePlayerIndex,
 	OS2_JoystickSetDevicePlayerIndex,
 	OS2_JoystickGetDeviceGUID,

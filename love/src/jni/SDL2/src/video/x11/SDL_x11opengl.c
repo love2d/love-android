@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
   Copyright (C) 2021 NVIDIA Corporation
 
   This software is provided 'as-is', without any express or implied
@@ -115,6 +115,16 @@ typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC) (Display * dpy,
 #define GLX_ARB_framebuffer_sRGB
 #ifndef GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB
 #define GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB                0x20B2
+#endif
+#endif
+
+#ifndef GLX_ARB_fbconfig_float
+#define GLX_ARB_fbconfig_float
+#ifndef GLX_RGBA_FLOAT_TYPE_ARB
+#define GLX_RGBA_FLOAT_TYPE_ARB                         0x20B9
+#endif
+#ifndef GLX_RGBA_FLOAT_BIT_ARB
+#define GLX_RGBA_FLOAT_BIT_ARB                         0x00000004
 #endif
 #endif
 
@@ -247,11 +257,6 @@ X11_GL_LoadLibrary(_THIS, const char *path)
         X11_GL_UseEGL(_this) ) {
 #if SDL_VIDEO_OPENGL_EGL
         X11_GL_UnloadLibrary(_this);
-        /* Better avoid conflicts! */
-        if (_this->gl_config.dll_handle != NULL ) {
-            GL_UnloadObject(_this->gl_config.dll_handle);
-            _this->gl_config.dll_handle = NULL;
-        }
         _this->GL_LoadLibrary = X11_GLES_LoadLibrary;
         _this->GL_GetProcAddress = X11_GLES_GetProcAddress;
         _this->GL_UnloadLibrary = X11_GLES_UnloadLibrary;
@@ -497,7 +502,11 @@ X11_GL_GetAttributes(_THIS, Display * display, int screen, int * attribs, int si
     /* Setup our GLX attributes according to the gl_config. */
     if( for_FBConfig ) {
         attribs[i++] = GLX_RENDER_TYPE;
-        attribs[i++] = GLX_RGBA_BIT;
+        if (_this->gl_config.floatbuffers) {
+            attribs[i++] = GLX_RGBA_FLOAT_BIT_ARB;
+        } else {
+            attribs[i++] = GLX_RGBA_BIT;
+        }
     } else {
         attribs[i++] = GLX_RGBA;
     }
@@ -563,6 +572,10 @@ X11_GL_GetAttributes(_THIS, Display * display, int screen, int * attribs, int si
     if (_this->gl_config.multisamplesamples) {
         attribs[i++] = GLX_SAMPLES_ARB;
         attribs[i++] = _this->gl_config.multisamplesamples;
+    }
+
+    if (_this->gl_config.floatbuffers) {
+        attribs[i++] = GLX_RGBA_FLOAT_TYPE_ARB;
     }
 
     if (_this->gl_config.framebuffer_srgb_capable) {
