@@ -1,6 +1,6 @@
 /*
 ** LuaJIT VM tags, values and objects.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -413,7 +413,7 @@ typedef struct GCproto {
 #define PROTO_UV_IMMUTABLE	0x4000	/* Immutable upvalue. */
 
 #define proto_kgc(pt, idx) \
-  check_exp((uintptr_t)(intptr_t)(idx) >= (uintptr_t)-(intptr_t)(pt)->sizekgc, \
+  check_exp((uintptr_t)(intptr_t)(idx) >= ~(uintptr_t)(pt)->sizekgc+1u, \
 	    gcref(mref((pt)->k, GCRef)[(idx)]))
 #define proto_knumtv(pt, idx) \
   check_exp((uintptr_t)(idx) < (pt)->sizekn, &mref((pt)->k, TValue)[(idx)])
@@ -511,7 +511,7 @@ typedef struct GCtab {
 } GCtab;
 
 #define sizetabcolo(n)	((n)*sizeof(TValue) + sizeof(GCtab))
-#define tabref(r)	(&gcref((r))->tab)
+#define tabref(r)	((GCtab *)gcref((r)))
 #define noderef(r)	(mref((r), Node))
 #define nextnode(n)	(mref((n)->next, Node))
 #if LJ_GC64
@@ -845,6 +845,7 @@ static LJ_AINLINE void *lightudV(global_State *g, cTValue *o)
   uint64_t seg = lightudseg(u);
   uint32_t *segmap = mref(g->gc.lightudseg, uint32_t);
   lj_assertG(tvislightud(o), "lightuserdata expected");
+  if (seg == (1 << LJ_LIGHTUD_BITS_SEG)-1) return NULL;
   lj_assertG(seg <= g->gc.lightudnum, "bad lightuserdata segment %d", seg);
   return (void *)(((uint64_t)segmap[seg] << 32) | lightudlo(u));
 }

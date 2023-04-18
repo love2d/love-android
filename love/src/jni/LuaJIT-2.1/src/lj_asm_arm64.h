@@ -1,6 +1,6 @@
 /*
 ** ARM64 IR assembler (SSA IR -> machine code).
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Contributed by Djordje Kovacevic and Stefan Pejic from RT-RK.com.
 ** Sponsored by Cisco Systems, Inc.
@@ -337,7 +337,8 @@ static int asm_fusemadd(ASMState *as, IRIns *ir, A64Ins ai, A64Ins air)
 {
   IRRef lref = ir->op1, rref = ir->op2;
   IRIns *irm;
-  if (lref != rref &&
+  if ((as->flags & JIT_F_OPT_FMA) &&
+      lref != rref &&
       ((mayfuse(as, lref) && (irm = IR(lref), irm->o == IR_MUL) &&
        ra_noreg(irm->r)) ||
        (mayfuse(as, rref) && (irm = IR(rref), irm->o == IR_MUL) &&
@@ -1201,7 +1202,7 @@ dotypecheck:
       tmp = ra_scratch(as, allow);
       rset_clear(allow, tmp);
     }
-    if (irt_isnum(t) && !(ir->op2 & IRSLOAD_CONVERT))
+    if (ra_hasreg(dest) && tmp != dest)
       emit_dn(as, A64I_FMOV_D_R, (dest & 31), tmp);
     /* Need type check, even if the load result is unused. */
     asm_guardcc(as, irt_isnum(t) ? CC_LS : CC_NE);
@@ -1209,7 +1210,7 @@ dotypecheck:
       lj_assertA(irt_isinteger(t) || irt_isnum(t),
 		 "bad SLOAD type %d", irt_type(t));
       emit_nm(as, A64I_CMPx | A64F_SH(A64SH_LSR, 32),
-	      ra_allock(as, LJ_TISNUM << 15, allow), tmp);
+	      ra_allock(as, (ir->op2 & IRSLOAD_KEYINDEX) ? LJ_KEYINDEX : (LJ_TISNUM << 15), allow), tmp);
     } else if (irt_isnil(t)) {
       emit_n(as, (A64I_CMNx^A64I_K12) | A64F_U12(1), tmp);
     } else if (irt_ispri(t)) {

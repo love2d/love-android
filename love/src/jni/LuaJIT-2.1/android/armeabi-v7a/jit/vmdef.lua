@@ -76,7 +76,6 @@ ircall = {
 "sqrt",
 "log",
 "lj_vm_log2",
-"lj_vm_powi",
 "pow",
 "atan2",
 "ldexp",

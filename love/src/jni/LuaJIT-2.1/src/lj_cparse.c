@@ -1,6 +1,6 @@
 /*
 ** C declaration parser.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #include "lj_obj.h"
@@ -468,7 +468,7 @@ static void cp_expr_sizeof(CPState *cp, CPValue *k, int wantsz)
   } else {
     cp_expr_unary(cp, k);
   }
-  info = lj_ctype_info(cp->cts, k->id, &sz);
+  info = lj_ctype_info_raw(cp->cts, k->id, &sz);
   if (wantsz) {
     if (sz != CTSIZE_INVALID)
       k->u32 = sz;
@@ -488,7 +488,7 @@ static void cp_expr_prefix(CPState *cp, CPValue *k)
   } else if (cp_opt(cp, '+')) {
     cp_expr_unary(cp, k);  /* Nothing to do (well, integer promotion). */
   } else if (cp_opt(cp, '-')) {
-    cp_expr_unary(cp, k); k->i32 = -k->i32;
+    cp_expr_unary(cp, k); k->i32 = (int32_t)(~(uint32_t)k->i32+1);
   } else if (cp_opt(cp, '~')) {
     cp_expr_unary(cp, k); k->i32 = ~k->i32;
   } else if (cp_opt(cp, '!')) {

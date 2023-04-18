@@ -1,6 +1,6 @@
 /*
 ** ARM IR assembler (SSA IR -> machine code).
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 */
 
 /* -- Register allocator extensions --------------------------------------- */
@@ -313,7 +313,11 @@ static void asm_fusexref(ASMState *as, ARMIns ai, Reg rd, IRRef ref,
 }
 
 #if !LJ_SOFTFP
-/* Fuse to multiply-add/sub instruction. */
+/*
+** Fuse to multiply-add/sub instruction.
+** VMLA rounds twice (UMA, not FMA) -- no need to check for JIT_F_OPT_FMA.
+** VFMA needs VFPv4, which is uncommon on the remaining ARM32 targets.
+*/
 static int asm_fusemadd(ASMState *as, IRIns *ir, ARMIns ai, ARMIns air)
 {
   IRRef lref = ir->op1, rref = ir->op2;
@@ -1250,7 +1254,12 @@ dotypecheck:
       }
     }
     asm_guardcc(as, t == IRT_NUM ? CC_HS : CC_NE);
-    emit_n(as, ARMI_CMN|ARMI_K12|-irt_toitype_(t), type);
+    if ((ir->op2 & IRSLOAD_KEYINDEX)) {
+      emit_n(as, ARMI_CMN|ARMI_K12|1, type);
+      emit_dn(as, ARMI_EOR^emit_isk12(ARMI_EOR, ~LJ_KEYINDEX), type, type);
+    } else {
+      emit_n(as, ARMI_CMN|ARMI_K12|-irt_toitype_(t), type);
+    }
   }
   if (ra_hasreg(dest)) {
 #if !LJ_SOFTFP

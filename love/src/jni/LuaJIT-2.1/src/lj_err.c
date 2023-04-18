@@ -1,6 +1,6 @@
 /*
 ** Error handling.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #define lj_err_c
@@ -329,12 +329,12 @@ static void err_unwind_win_jit(global_State *g, int errcode)
   memset(&hist, 0, sizeof(hist));
   RtlCaptureContext(&ctx);
   while (1) {
-    uintptr_t frame, base, addr = ctx.CONTEXT_REG_PC;
+    DWORD64 frame, base, addr = ctx.CONTEXT_REG_PC;
     void *hdata;
     PRUNTIME_FUNCTION func = RtlLookupFunctionEntry(addr, &base, &hist);
     if (!func) {  /* Found frame without .pdata: must be JIT-compiled code. */
       ExitNo exitno;
-      uintptr_t stub = lj_trace_unwind(G2J(g), addr - sizeof(MCode), &exitno);
+      uintptr_t stub = lj_trace_unwind(G2J(g), (uintptr_t)(addr - sizeof(MCode)), &exitno);
       if (stub) {  /* Jump to side exit to unwind the trace. */
 	ctx.CONTEXT_REG_PC = stub;
 	G2J(g)->exitcode = errcode;
@@ -480,8 +480,11 @@ extern const void *_Unwind_Find_FDE(void *pc, struct dwarf_eh_bases *bases);
 /* Verify that external error handling actually has a chance to work. */
 void lj_err_verify(void)
 {
+#if !LJ_TARGET_OSX
+  /* Check disabled on MacOS due to brilliant software engineering at Apple. */
   struct dwarf_eh_bases ehb;
   lj_assertX(_Unwind_Find_FDE((void *)lj_err_throw, &ehb), "broken build: external frame unwinding enabled, but missing -funwind-tables");
+#endif
   /* Check disabled, because of broken Fedora/ARM64. See #722.
   lj_assertX(_Unwind_Find_FDE((void *)_Unwind_RaiseException, &ehb), "broken build: external frame unwinding enabled, but system libraries have no unwind tables");
   */
@@ -774,6 +777,7 @@ LJ_NOINLINE void lj_err_mem(lua_State *L)
 {
   if (L->status == LUA_ERRERR+1)  /* Don't touch the stack during lua_open. */
     lj_vm_unwind_c(L->cframe, LUA_ERRMEM);
+  if (curr_funcisL(L)) L->top = curr_topL(L);
   setstrV(L, L->top++, lj_err_str(L, LJ_ERR_ERRMEM));
   lj_err_throw(L, LUA_ERRMEM);
 }

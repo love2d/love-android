@@ -1,6 +1,6 @@
 /*
 ** PPC IR assembler (SSA IR -> machine code).
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 */
 
 /* -- Register allocator extensions --------------------------------------- */
@@ -235,7 +235,8 @@ static int asm_fusemadd(ASMState *as, IRIns *ir, PPCIns pi, PPCIns pir)
 {
   IRRef lref = ir->op1, rref = ir->op2;
   IRIns *irm;
-  if (lref != rref &&
+  if ((as->flags & JIT_F_OPT_FMA) &&
+      lref != rref &&
       ((mayfuse(as, lref) && (irm = IR(lref), irm->o == IR_MUL) &&
 	ra_noreg(irm->r)) ||
        (mayfuse(as, rref) && (irm = IR(rref), irm->o == IR_MUL) &&
@@ -1169,7 +1170,12 @@ dotypecheck:
   } else {
     if ((ir->op2 & IRSLOAD_TYPECHECK)) {
       asm_guardcc(as, CC_NE);
-      emit_ai(as, PPCI_CMPWI, RID_TMP, irt_toitype(t));
+      if ((ir->op2 & IRSLOAD_KEYINDEX)) {
+	emit_ai(as, PPCI_CMPWI, RID_TMP, (LJ_KEYINDEX & 0xffff));
+	emit_asi(as, PPCI_XORIS, RID_TMP, RID_TMP, (LJ_KEYINDEX >> 16));
+      } else {
+	emit_ai(as, PPCI_CMPWI, RID_TMP, irt_toitype(t));
+      }
       type = RID_TMP;
     }
     if (ra_hasreg(dest)) emit_tai(as, PPCI_LWZ, dest, base, ofs);

@@ -1,6 +1,6 @@
 /*
 ** Fast function call recorder.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #define lj_ffrecord_c
@@ -638,8 +638,8 @@ static void LJ_FASTCALL recff_math_call(jit_State *J, RecordFFData *rd)
 
 static void LJ_FASTCALL recff_math_pow(jit_State *J, RecordFFData *rd)
 {
-  J->base[0] = lj_opt_narrow_pow(J, J->base[0], J->base[1],
-				 &rd->argv[0], &rd->argv[1]);
+  J->base[0] = lj_opt_narrow_arith(J, J->base[0], J->base[1],
+				   &rd->argv[0], &rd->argv[1], IR_POW);
   UNUSED(rd);
 }
 
@@ -1117,7 +1117,7 @@ static LJ_AINLINE TRef recff_sbufx_len(jit_State *J, TRef trr, TRef trw)
 }
 
 /* Emit typecheck for string buffer. */
-static TRef recff_sbufx_check(jit_State *J, RecordFFData *rd, int arg)
+static TRef recff_sbufx_check(jit_State *J, RecordFFData *rd, ptrdiff_t arg)
 {
   TRef trtype, ud = J->base[arg];
   if (!tvisbuf(&rd->argv[arg])) lj_trace_err(J, LJ_TRERR_BADTYPE);
@@ -1135,7 +1135,7 @@ static TRef recff_sbufx_write(jit_State *J, TRef ud)
 }
 
 /* Check for integer in range for the buffer API. */
-static TRef recff_sbufx_checkint(jit_State *J, RecordFFData *rd, int arg)
+static TRef recff_sbufx_checkint(jit_State *J, RecordFFData *rd, ptrdiff_t arg)
 {
   TRef tr = J->base[arg];
   TRef trlim = lj_ir_kint(J, LJ_MAX_BUF);
@@ -1223,6 +1223,12 @@ static void LJ_FASTCALL recff_buffer_method_put(jit_State *J, RecordFFData *rd)
   ptrdiff_t arg;
   if (!J->base[1]) return;
   for (arg = 1; (tr = J->base[arg]); arg++) {
+    if (tref_isudata(tr)) {
+      TRef ud2 = recff_sbufx_check(J, rd, arg);
+      emitir(IRTG(IR_NE, IRT_PGC), ud, ud2);
+    }
+  }
+  for (arg = 1; (tr = J->base[arg]); arg++) {
     if (tref_isstr(tr)) {
       trbuf = emitir(IRTG(IR_BUFPUT, IRT_PGC), trbuf, tr);
     } else if (tref_isnumber(tr)) {
@@ -1230,11 +1236,9 @@ static void LJ_FASTCALL recff_buffer_method_put(jit_State *J, RecordFFData *rd)
 		     emitir(IRT(IR_TOSTR, IRT_STR), tr,
 			    tref_isnum(tr) ? IRTOSTR_NUM : IRTOSTR_INT));
     } else if (tref_isudata(tr)) {
-      TRef ud2 = recff_sbufx_check(J, rd, arg);
-      TRef trr = recff_sbufx_get_ptr(J, ud2, IRFL_SBUF_R);
-      TRef trw = recff_sbufx_get_ptr(J, ud2, IRFL_SBUF_W);
+      TRef trr = recff_sbufx_get_ptr(J, tr, IRFL_SBUF_R);
+      TRef trw = recff_sbufx_get_ptr(J, tr, IRFL_SBUF_W);
       TRef len = recff_sbufx_len(J, trr, trw);
-      emitir(IRTG(IR_NE, IRT_PGC), ud, ud2);
       trbuf = lj_ir_call(J, IRCALL_lj_buf_putmem, trbuf, trr, len);
     } else {
       recff_nyiu(J, rd);
@@ -1259,14 +1263,18 @@ static void LJ_FASTCALL recff_buffer_method_get(jit_State *J, RecordFFData *rd)
   ptrdiff_t arg;
   if (!J->base[1]) { J->base[1] = TREF_NIL; J->base[2] = 0; }
   for (arg = 0; (tr = J->base[arg+1]); arg++) {
+    if (!tref_isnil(tr)) {
+      J->base[arg+1] = recff_sbufx_checkint(J, rd, arg+1);
+    }
+  }
+  for (arg = 0; (tr = J->base[arg+1]); arg++) {
     TRef len = recff_sbufx_len(J, trr, trw);
     if (tref_isnil(tr)) {
       J->base[arg] = emitir(IRT(IR_XSNEW, IRT_STR), trr, len);
       trr = trw;
     } else {
-      TRef trn = recff_sbufx_checkint(J, rd, arg+1);
       TRef tru;
-      len = emitir(IRTI(IR_MIN), len, trn);
+      len = emitir(IRTI(IR_MIN), len, tr);
       tru = emitir(IRT(IR_ADD, IRT_PTR), trr, len);
       J->base[arg] = emitir(IRT(IR_XSNEW, IRT_STR), trr, len);
       trr = tru;  /* Doing the ADD before the SNEW generates better code. */
