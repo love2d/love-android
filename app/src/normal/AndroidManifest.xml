@@ -52,5 +52,17 @@
             android:pathPattern=".*\\.love" />
       </intent-filter>
     </activity>
+    <activity
+        android:name="org.love2d.android.SelectorActivity"
+        android:label="LÖVE Loader"
+        android:exported="true"
+        android:enabled="@bool/selector_active"
+        android:theme="@style/Theme.AppCompat.NoActionBar" >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+        <category android:name="tv.ouya.intent.category.GAME" />
+      </intent-filter>
+    </activity>
   </application>
 </manifest>
