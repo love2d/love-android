@@ -6,15 +6,13 @@ android {
     // See https://code.google.com/p/android/issues/detail?id=52962
     // and http://stackoverflow.com/questions/27277433/why-does-gradle-build-my-module-in-release-mode-when-the-app-is-in-debug
     // defaultPublishConfig "debug"
-    compileSdkVersion 33
-    buildToolsVersion '33.0.0'
-    ndkVersion '23.2.8568313'
     namespace "org.love2d.android"
+    ndkVersion '25.2.9519653'
 
     defaultConfig {
-        compileSdkVersion 33
-        buildToolsVersion '33.0.0'
-        minSdkVersion 16
+        minSdk 16
+        compileSdk 34
+        targetSdk 34
         externalNativeBuild {
             ndkBuild {
                 arguments "-j" + Runtime.runtime.availableProcessors()
@@ -23,10 +21,10 @@ android {
         ndk {
             // Specifies the ABI configurations of your native
             // libraries Gradle should build and package with your APK.
+            // noinspection ChromeOsAbiSupport
             abiFilters 'armeabi-v7a', 'arm64-v8a'
             debugSymbolLevel 'SYMBOL_TABLE'
         }
-        targetSdkVersion 33
     }
 
     def retrieveAll3pModules = { ->
@@ -35,6 +33,7 @@ android {
         fileTree("src/jni/lua-modules").visit { FileVisitDetails details ->
             if (details.isDirectory()) {
                 if (file(details.file.path + "/Android.mk").exists()) {
+                    def logger = project.getLogger()
                     logger.lifecycle("3rd-party module: " + details.file.path)
 
                     def javainfo = file(details.file.path + "/java.txt")
@@ -42,7 +41,7 @@ android {
                         def fstream = new FileInputStream(javainfo)
                         def infile = new BufferedReader(new InputStreamReader(fstream))
                         def javapath = infile.readLine().replace("\\", "/")
-                        def mpath = null
+                        def mpath = ""
 
                         if (javapath[0] != '/') {
                             mpath = details.file.path + "/" + javapath
@@ -69,11 +68,12 @@ android {
         }
         debug {
             ndk {
+                // noinspection ChromeOsAbiSupport
                 abiFilters += 'x86_64'
             }
         }
     }
-    flavorDimensions 'mode'
+    flavorDimensions = ['mode']
     productFlavors {
         normal {
             dimension 'mode'
@@ -103,7 +103,12 @@ android {
     }
     packagingOptions {
         jniLibs {
-            excludes += ['lib/arm64-v8a/libSDL2.so', 'lib/armeabi-v7a/libSDL2.so']
+            excludes += [
+                'lib/arm64-v8a/libSDL2.so',
+                'lib/armeabi-v7a/libSDL2.so',
+                'lib/x86_64/libSDL2.so',
+                'lib/x86/libSDL2.so'
+            ]
         }
     }
     lint {

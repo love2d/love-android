@@ -4,15 +4,15 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "org.love2d.android.executable"
-    compileSdk 33
-    buildToolsVersion '33.0.0'
-    ndkVersion '23.2.8568313'
+    ndkVersion '25.2.9519653'
+
     defaultConfig {
         applicationId project.properties["app.application_id"]
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
-        minSdkVersion 16
-        targetSdk 33
+        minSdk 16
+        compileSdk 34
+        targetSdk 34
         
         def getAppName = {
             def nameArray = project.properties["app.name_byte_array"]
@@ -44,7 +44,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    flavorDimensions 'mode', 'recording'
+    flavorDimensions = ['mode', 'recording']
     productFlavors {
         normal {
             dimension 'mode'
