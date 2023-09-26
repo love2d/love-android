@@ -143,10 +143,9 @@
 #endif
 
 /* Enable various audio drivers */
-/* love2d-mod: Audio is handled by OpenAL */
-#define SDL_AUDIO_DRIVER_ANDROID    0
-#define SDL_AUDIO_DRIVER_OPENSLES   0
-#define SDL_AUDIO_DRIVER_AAUDIO     0
+#define SDL_AUDIO_DRIVER_ANDROID    1
+#define SDL_AUDIO_DRIVER_OPENSLES   1
+#define SDL_AUDIO_DRIVER_AAUDIO     1
 #define SDL_AUDIO_DRIVER_DUMMY  1
 
 /* Enable various input drivers */
