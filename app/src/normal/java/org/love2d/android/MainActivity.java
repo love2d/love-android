@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -133,70 +134,73 @@ public class MainActivity extends AppCompatActivity {
         return builder.setMessage(message.toString()).create();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void scanGames(GameListAdapter adapter, ConstraintLayout noGameText, SwipeRefreshLayout swipeRefreshLayout) {
         executor.execute(() -> {
             File extDir = getExternalFilesDir("games");
 
-            if (!extDir.isDirectory()) {
-                if (!extDir.mkdir()) {
-                    // Scan failure, abort
-                    runOnUiThread(() -> {
-                        if (swipeRefreshLayout != null) {
-                            swipeRefreshLayout.setRefreshing(false);
-                        }
-                    });
+            if (extDir != null) {
+                if (!extDir.isDirectory()) {
+                    if (!extDir.mkdir()) {
+                        // Scan failure, abort
+                        runOnUiThread(() -> {
+                            if (swipeRefreshLayout != null) {
+                                swipeRefreshLayout.setRefreshing(false);
+                            }
+                        });
 
-                    Log.e(TAG, "Directory creation failure.");
-                    return;
+                        Log.e(TAG, "Directory creation failure.");
+                        return;
+                    }
                 }
-            }
 
-            ArrayList<GameListAdapter.Data> validGames = new ArrayList<>();
-            File[] files = extDir.listFiles();
+                ArrayList<GameListAdapter.Data> validGames = new ArrayList<>();
+                File[] files = extDir.listFiles();
 
-            if (files != null) {
-                for (File file: files) {
-                    GameListAdapter.Data gameData = null;
+                if (files != null) {
+                    for (File file : files) {
+                        GameListAdapter.Data gameData = null;
 
-                    if (file.isDirectory()) {
-                        if (isValidGamedir(file)) {
-                            gameData = new GameListAdapter.Data();
-                            gameData.path = file;
-                            gameData.directory = true;
+                        if (file.isDirectory()) {
+                            if (isValidGamedir(file)) {
+                                gameData = new GameListAdapter.Data();
+                                gameData.path = file;
+                                gameData.directory = true;
+                            }
+                        } else {
+                            if (isValidLovegame(file)) {
+                                gameData = new GameListAdapter.Data();
+                                gameData.path = file;
+                                gameData.directory = false;
+                            }
                         }
+
+                        if (gameData != null) {
+                            validGames.add(gameData);
+                        }
+                    }
+                }
+
+                boolean empty = validGames.isEmpty();
+
+                runOnUiThread(() -> {
+                    if (empty) {
+                        adapter.setData(null);
                     } else {
-                        if (isValidLovegame(file)) {
-                            gameData = new GameListAdapter.Data();
-                            gameData.path = file;
-                            gameData.directory = false;
-                        }
+                        GameListAdapter.Data[] gameDatas = new GameListAdapter.Data[validGames.size()];
+                        validGames.toArray(gameDatas);
+                        adapter.setData(gameDatas);
                     }
 
-                    if (gameData != null) {
-                        validGames.add(gameData);
+                    adapter.notifyDataSetChanged();
+
+                    if (swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
                     }
-                }
+
+                    noGameText.setVisibility(empty ? View.VISIBLE : View.INVISIBLE);
+                });
             }
-
-            boolean empty = validGames.isEmpty();
-
-            runOnUiThread(() -> {
-                if (empty) {
-                    adapter.setData(null);
-                } else {
-                    GameListAdapter.Data[] gameDatas = new GameListAdapter.Data[validGames.size()];
-                    validGames.toArray(gameDatas);
-                    adapter.setData(gameDatas);
-                }
-
-                adapter.notifyDataSetChanged();
-
-                if (swipeRefreshLayout != null) {
-                    swipeRefreshLayout.setRefreshing(false);
-                }
-
-                noGameText.setVisibility(empty ? View.VISIBLE : View.INVISIBLE);
-            });
         });
     }
 
