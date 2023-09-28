@@ -1,18 +1,21 @@
+import java.nio.charset.StandardCharsets
+
 plugins {
     id 'com.android.application'
 }
 
 android {
     namespace "org.love2d.android"
-    compileSdk 33
-    ndkVersion "25.2.9519653"
+    ndkVersion "26.0.10792818"
 
     defaultConfig {
-        applicationId "org.love2d.android"
-        versionCode 32
-        versionName "12.0"
+        applicationId project.properties["app.application_id"]
+        versionCode project.properties["app.version_code"].toInteger()
+        versionName project.properties["app.version_name"]
         minSdk 21
-        targetSdk 33
+        compileSdk 34
+        targetSdk 34
+
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
@@ -24,6 +27,30 @@ android {
                 targets "love_android", "OpenAL", "love"
             }
         }
+
+        def getAppName = {
+            def nameArray = project.properties["app.name_byte_array"]
+            def name = project.properties["app.name"]
+            if (name != null && nameArray != null) {
+                throw new Exception("Only define either `app.name` or `app.name_byte_array` in gradle.properties, but not both!")
+            }
+
+            if (name == null) {
+                def nameArraySplit = nameArray.split(",")
+                def nameBytes = new byte[nameArraySplit.length]
+                def count = 0
+                for (String s: nameArraySplit) {
+                    nameBytes[count++] = (byte) Integer.parseInt(s)
+                }
+                return new String(nameBytes, StandardCharsets.UTF_8)
+            }
+            return name
+        }
+
+        manifestPlaceholders = [
+            NAME:getAppName(),
+            ORIENTATION:project.properties["app.orientation"],
+        ]
     }
 
     def retrieveAll3pModules = { ->
@@ -33,6 +60,7 @@ android {
             if (details.isDirectory()) {
                 if (file(details.file.path + "/Android.mk").exists() ||
                         file(details.file.path + "/CMakeLists.mk").exists()) {
+                    def logger = project.getLogger()
                     logger.lifecycle("3rd-party module: " + details.file.path)
 
                     def javainfo = file(details.file.path + "/java.txt")
@@ -71,7 +99,7 @@ android {
         prefab true
     }
 
-    flavorDimensions 'mode', 'recording'
+    flavorDimensions = ['mode', 'recording']
     productFlavors {
         normal {
             dimension 'mode'
@@ -123,7 +151,12 @@ android {
     }
     packagingOptions {
         jniLibs {
-            excludes += ['lib/armeabi-v7a/libOpenSLES.so', 'lib/arm64-v8a/libOpenSLES.so', 'lib/x86/libOpenSLES.so', 'lib/x86_64/libOpenSLES.so']
+            excludes += [
+                'lib/armeabi-v7a/libOpenSLES.so',
+                'lib/arm64-v8a/libOpenSLES.so',
+                'lib/x86/libOpenSLES.so',
+                'lib/x86_64/libOpenSLES.so'
+            ]
         }
     }
 }

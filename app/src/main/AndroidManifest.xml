@@ -24,7 +24,7 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/love"
-        android:label="LÖVE for Android">
+        android:label="${NAME}">
         <!-- You don't have to change the activity class unless you have special needs! !-->
         <activity
             android:name="org.love2d.android.GameActivity"
@@ -32,7 +32,7 @@
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:launchMode="singleInstance"
-            android:screenOrientation="landscape">
+            android:screenOrientation="${ORIENTATION}">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
