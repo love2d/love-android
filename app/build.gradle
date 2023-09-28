@@ -122,12 +122,9 @@ android {
         }
     }
     packagingOptions {
-        // Due to inclusion of "OpenAL" target, these files are included too, but this
-        // file is provided by Android as public API. Exclude them!
-        exclude 'lib/armeabi-v7a/libOpenSLES.so'
-        exclude 'lib/arm64-v8a/libOpenSLES.so'
-        exclude 'lib/x86/libOpenSLES.so'
-        exclude 'lib/x86_64/libOpenSLES.so'
+        jniLibs {
+            excludes += ['lib/armeabi-v7a/libOpenSLES.so', 'lib/arm64-v8a/libOpenSLES.so', 'lib/x86/libOpenSLES.so', 'lib/x86_64/libOpenSLES.so']
+        }
     }
 }
 
