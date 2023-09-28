@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -95,7 +96,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
     public boolean onCreate() {
         Log.v(TAG, "onCreate");
 
-        mBaseDir = getContext().getExternalFilesDir(null);
+        mBaseDir = Objects.requireNonNull(getContext()).getExternalFilesDir(null);
         return true;
     }
 
