@@ -19,11 +19,12 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
-				// https://issuetracker.google.com/issues/274493986
+                cppFlags "-Wno-error=cast-function-type-strict"
+                // https://issuetracker.google.com/issues/274493986
                 // Transitive shared library that's added through `add_dependencies` is not taken into
-				// account. This result in liboboe.so and libluajit.so not get included into the final
-				// APK. "love" target depends on LuaJIT, and OpenAL that depends on oboe::oboe. So,
-				// add "OpenAL" and "love" target.
+                // account. This result in liboboe.so and libluajit.so not get included into the final
+                // APK. "love" target depends on LuaJIT, and OpenAL that depends on oboe::oboe. So,
+                // add "OpenAL" and "love" target.
                 targets "love_android", "OpenAL", "love"
             }
         }
