@@ -115,7 +115,10 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
 
-        handleIntent(this.getIntent());
+        if (!embed) {
+            handleIntent(getIntent());
+            setIntent(null);
+        }
 
         super.onCreate(savedInstanceState);
         metrics = getResources().getDisplayMetrics();
