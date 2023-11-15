@@ -41,6 +41,7 @@ public class SelectorActivity extends AppCompatActivity {
         if (android.os.Build.VERSION.SDK_INT < 19) {
             Toast.makeText(this, "This activity does not work on Android before KitKat!", Toast.LENGTH_SHORT).show();
             finish();
+            return;
         }
 
         final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
@@ -49,7 +50,6 @@ public class SelectorActivity extends AppCompatActivity {
                 if (result != null) {
                     Intent intent = new Intent(SelectorActivity.this, GameActivity.class);
                     intent.setData(result);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
                 }
 

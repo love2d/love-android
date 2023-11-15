@@ -30,7 +30,7 @@
         android:exported="true"
         android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
         android:label="${NAME}"
-        android:launchMode="singleTask"
+        android:launchMode="singleInstance"
         android:screenOrientation="${ORIENTATION}"
         android:resizeableActivity="false"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
