@@ -35,11 +35,11 @@ call :compile arm64-v8a aarch64-linux-android 21
 if "%ERRORLEVEL%" == "1" goto :error
 
 rem ARMv7
-call :compile armeabi-v7a armv7a-linux-androideabi 21 -m32
+call :compile armeabi-v7a armv7a-linux-androideabi 16 -m32
 if not "%ERRORLEVEL%" == "0" goto :error
 
 rem x86
-call :compile x86 i686-linux-android 21 -m32
+call :compile x86 i686-linux-android 16 -m32
 if not "%ERRORLEVEL%" == "0" goto :error
 
 rem x86_64
