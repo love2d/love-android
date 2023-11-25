@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT module to save/list bytecode.
 --
--- Copyright (C) 2005-2022 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 ----------------------------------------------------------------------------
 --
@@ -11,7 +11,7 @@
 ------------------------------------------------------------------------------
 
 local jit = require("jit")
-assert(jit.version_num == 20100, "LuaJIT core/library version mismatch")
+assert(jit.version_num == 20199, "LuaJIT core/library version mismatch")
 local bit = require("bit")
 
 -- Symbol name prefix for LuaJIT bytecode.
@@ -38,7 +38,7 @@ Save LuaJIT bytecode: luajit -b[options] input output
   --        Stop handling options.
   -         Use stdin as input and/or stdout as output.
 
-File types: c h obj o raw (default)
+File types: c cc h obj o raw (default)
 ]]
   os.exit(1)
 end
@@ -81,7 +81,7 @@ end
 ------------------------------------------------------------------------------
 
 local map_type = {
-  raw = "raw", c = "c", h = "h", o = "obj", obj = "obj",
+  raw = "raw", c = "c", cc = "c", h = "h", o = "obj", obj = "obj",
 }
 
 local map_arch = {
