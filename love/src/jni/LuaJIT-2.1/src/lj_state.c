@@ -1,6 +1,6 @@
 /*
 ** State and stack handling.
-** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -103,8 +103,17 @@ void lj_state_shrinkstack(lua_State *L, MSize used)
 void LJ_FASTCALL lj_state_growstack(lua_State *L, MSize need)
 {
   MSize n;
-  if (L->stacksize > LJ_STACK_MAXEX)  /* Overflow while handling overflow? */
-    lj_err_throw(L, LUA_ERRERR);
+  if (L->stacksize >= LJ_STACK_MAXEX) {
+    /* 4. Throw 'error in error handling' when we are _over_ the limit. */
+    if (L->stacksize > LJ_STACK_MAXEX)
+      lj_err_throw(L, LUA_ERRERR);  /* Does not invoke an error handler. */
+    /* 1. We are _at_ the limit after the last growth. */
+    if (L->status < LUA_ERRRUN) {  /* 2. Throw 'stack overflow'. */
+      L->status = LUA_ERRRUN;  /* Prevent ending here again for pushed msg. */
+      lj_err_msg(L, LJ_ERR_STKOV);  /* May invoke an error handler. */
+    }
+    /* 3. Add space (over the limit) for pushed message and error handler. */
+  }
   n = L->stacksize + need;
   if (n > LJ_STACK_MAX) {
     n += 2*LUA_MINSTACK;
@@ -114,13 +123,23 @@ void LJ_FASTCALL lj_state_growstack(lua_State *L, MSize need)
       n = LJ_STACK_MAX;
   }
   resizestack(L, n);
-  if (L->stacksize >= LJ_STACK_MAXEX)
-    lj_err_msg(L, LJ_ERR_STKOV);
 }
 
 void LJ_FASTCALL lj_state_growstack1(lua_State *L)
 {
   lj_state_growstack(L, 1);
+}
+
+static TValue *cpgrowstack(lua_State *co, lua_CFunction dummy, void *ud)
+{
+  UNUSED(dummy);
+  lj_state_growstack(co, *(MSize *)ud);
+  return NULL;
+}
+
+int LJ_FASTCALL lj_state_cpgrowstack(lua_State *L, MSize need)
+{
+  return lj_vm_cpcall(L, NULL, &need, cpgrowstack);
 }
 
 /* Allocate basic stack for new state. */
@@ -327,8 +346,11 @@ void LJ_FASTCALL lj_state_free(global_State *g, lua_State *L)
   lj_assertG(L != mainthread(g), "free of main thread");
   if (obj2gco(L) == gcref(g->cur_L))
     setgcrefnull(g->cur_L);
-  lj_func_closeuv(L, tvref(L->stack));
-  lj_assertG(gcref(L->openupval) == NULL, "stale open upvalues");
+  if (gcref(L->openupval) != NULL) {
+    lj_func_closeuv(L, tvref(L->stack));
+    lj_trace_abort(g);  /* For aa_uref soundness. */
+    lj_assertG(gcref(L->openupval) == NULL, "stale open upvalues");
+  }
   lj_mem_freevec(g, tvref(L->stack), L->stacksize, TValue);
   lj_mem_freet(g, L);
 }

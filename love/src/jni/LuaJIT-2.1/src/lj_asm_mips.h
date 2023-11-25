@@ -1,6 +1,6 @@
 /*
 ** MIPS IR assembler (SSA IR -> machine code).
-** Copyright (C) 2005-2022 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
 */
 
 /* -- Register allocator extensions --------------------------------------- */
@@ -1207,22 +1207,29 @@ nolo:
 static void asm_uref(ASMState *as, IRIns *ir)
 {
   Reg dest = ra_dest(as, ir, RSET_GPR);
-  if (irref_isk(ir->op1)) {
+  int guarded = (irt_t(ir->t) & (IRT_GUARD|IRT_TYPE)) == (IRT_GUARD|IRT_PGC);
+  if (irref_isk(ir->op1) && !guarded) {
     GCfunc *fn = ir_kfunc(IR(ir->op1));
     MRef *v = &gcref(fn->l.uvptr[(ir->op2 >> 8)])->uv.v;
     emit_lsptr(as, MIPSI_AL, dest, v, RSET_GPR);
   } else {
-    Reg uv = ra_scratch(as, RSET_GPR);
-    Reg func = ra_alloc1(as, ir->op1, RSET_GPR);
-    if (ir->o == IR_UREFC) {
-      asm_guard(as, MIPSI_BEQ, RID_TMP, RID_ZERO);
-      emit_tsi(as, MIPSI_AADDIU, dest, uv, (int32_t)offsetof(GCupval, tv));
-      emit_tsi(as, MIPSI_LBU, RID_TMP, uv, (int32_t)offsetof(GCupval, closed));
+    if (guarded)
+      asm_guard(as, ir->o == IR_UREFC ? MIPSI_BEQ : MIPSI_BNE, RID_TMP, RID_ZERO);
+    if (ir->o == IR_UREFC)
+      emit_tsi(as, MIPSI_AADDIU, dest, dest, (int32_t)offsetof(GCupval, tv));
+    else
+      emit_tsi(as, MIPSI_AL, dest, dest, (int32_t)offsetof(GCupval, v));
+    if (guarded)
+      emit_tsi(as, MIPSI_LBU, RID_TMP, dest, (int32_t)offsetof(GCupval, closed));
+    if (irref_isk(ir->op1)) {
+      GCfunc *fn = ir_kfunc(IR(ir->op1));
+      GCobj *o = gcref(fn->l.uvptr[(ir->op2 >> 8)]);
+      emit_loada(as, dest, o);
     } else {
-      emit_tsi(as, MIPSI_AL, dest, uv, (int32_t)offsetof(GCupval, v));
+      emit_tsi(as, MIPSI_AL, dest, ra_alloc1(as, ir->op1, RSET_GPR),
+	       (int32_t)offsetof(GCfuncL, uvptr) +
+	       (int32_t)sizeof(MRef) * (int32_t)(ir->op2 >> 8));
     }
-    emit_tsi(as, MIPSI_AL, uv, func, (int32_t)offsetof(GCfuncL, uvptr) +
-	     (int32_t)sizeof(MRef) * (int32_t)(ir->op2 >> 8));
   }
 }
 
@@ -1337,8 +1344,8 @@ static void asm_fload(ASMState *as, IRIns *ir)
       }
     }
     ofs = field_ofs[ir->op2];
+    lj_assertA(!irt_isfp(ir->t), "bad FP FLOAD");
   }
-  lj_assertA(!irt_isfp(ir->t), "bad FP FLOAD");
   emit_tsi(as, mi, dest, idx, ofs);
 }
 
@@ -2667,7 +2674,7 @@ static void asm_head_root_base(ASMState *as)
 }
 
 /* Coalesce BASE register for a side trace. */
-static RegSet asm_head_side_base(ASMState *as, IRIns *irp, RegSet allow)
+static Reg asm_head_side_base(ASMState *as, IRIns *irp)
 {
   IRIns *ir = IR(REF_BASE);
   Reg r = ir->r;
@@ -2676,15 +2683,15 @@ static RegSet asm_head_side_base(ASMState *as, IRIns *irp, RegSet allow)
     if (rset_test(as->modset, r) || irt_ismarked(ir->t))
       ir->r = RID_INIT;  /* No inheritance for modified BASE register. */
     if (irp->r == r) {
-      rset_clear(allow, r);  /* Mark same BASE register as coalesced. */
+      return r;  /* Same BASE register already coalesced. */
     } else if (ra_hasreg(irp->r) && rset_test(as->freeset, irp->r)) {
-      rset_clear(allow, irp->r);
       emit_move(as, r, irp->r);  /* Move from coalesced parent reg. */
+      return irp->r;
     } else {
       emit_getgl(as, r, jit_base);  /* Otherwise reload BASE. */
     }
   }
-  return allow;
+  return RID_NONE;
 }
 
 /* -- Tail of trace ------------------------------------------------------- */
