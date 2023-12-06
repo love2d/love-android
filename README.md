@@ -3,6 +3,8 @@ Copyright (c) 2006-2023 LOVE Development Team
 
 ![Build Status](https://github.com/love2d/love-android/workflows/build/badge.svg)
 
+Updated with a twist : https://love2d.org/forums/viewtopic.php?t=82514 to have a lighter package
+
 Download:
 ---------
 
