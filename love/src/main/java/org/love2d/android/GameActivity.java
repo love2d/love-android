@@ -114,6 +114,7 @@ public class GameActivity extends SDLActivity {
         gamePath = "";
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
+        needToCopyGameInArchive = embed;
 
         if (!embed) {
             handleIntent(getIntent());
