@@ -48,8 +48,10 @@ public class SelectorActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             (Uri result) -> {
                 if (result != null) {
+
                     Intent intent = new Intent(SelectorActivity.this, GameActivity.class);
                     intent.setData(result);
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(intent);
                 }
 
