@@ -172,6 +172,9 @@ public class GameActivity extends SDLActivity {
                         filename = pathSegments[pathSegments.length - 1];
                     }
 
+                    // Sanitize filename to prevent PhysFS complaining later.
+                    filename = filename.replaceAll("[^a-zA-Z0-9_\\\\-\\\\.]", "_");
+
                     String destination_file = this.getCacheDir().getPath() + "/" + filename;
                     InputStream data = getContentResolver().openInputStream(game);
 
