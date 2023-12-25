@@ -117,8 +117,9 @@ public class GameActivity extends SDLActivity {
         needToCopyGameInArchive = embed;
 
         if (!embed) {
-            handleIntent(getIntent());
-            setIntent(null);
+            Intent intent = getIntent();
+            handleIntent(intent);
+            intent.setData(null);
         }
 
         super.onCreate(savedInstanceState);
