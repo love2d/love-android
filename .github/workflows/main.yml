@@ -43,3 +43,8 @@ jobs:
       with:
         name: love-android-embed.aab
         path: app/build/outputs/bundle/embedNoRecordRelease/app-embed-noRecord-release.aab
+    - name: Artifact (Debug symbols)
+      uses: actions/upload-artifact@v3
+      with:
+        name: love-android-unstripped-debugsyms
+        path: love/build/intermediates/library_jni
