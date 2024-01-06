@@ -18,6 +18,7 @@ dnl  (Haiku, for example, sets none of these.)
 ISUNIX="false"
 ISWINDOWS="false"
 ISMACOSX="false"
+ISOS2="false"
 
 dnl Figure out which math library to use
 case "$host" in
@@ -32,7 +33,7 @@ case "$host" in
         MATHLIB=""
         SYS_GL_LIBS="-lGL"
         ;;
-    *-*-darwin* )
+    *-*-darwin*)
         ISMACOSX="true"
         EXE=""
         MATHLIB=""
@@ -64,14 +65,20 @@ case "$host" in
         MATHLIB=""
         SYS_GL_LIBS="-lGLES_CM"
         ;;
-    *-*-emscripten* )
+    *-*-emscripten*)
         dnl This should really be .js, but we need to specify extra flags when compiling to js
         EXE=".bc"
         MATHLIB=""
         SYS_GL_LIBS=""
         ;;
-    *-*-riscos* )
+    *-*-riscos*)
         EXE=",e1f"
+        MATHLIB=""
+        SYS_GL_LIBS=""
+        ;;
+    *-*-os2*)
+        ISOS2="true"
+        EXE=".exe"
         MATHLIB=""
         SYS_GL_LIBS=""
         ;;
@@ -90,6 +97,7 @@ AC_SUBST(MATHLIB)
 AC_SUBST(ISMACOSX)
 AC_SUBST(ISWINDOWS)
 AC_SUBST(ISUNIX)
+AC_SUBST(ISOS2)
 
 dnl Check for SDL
 SDL_VERSION=2.0.18
@@ -175,6 +183,80 @@ if test x$have_opengl = xyes; then
     GLLIB="$XPATH $SYS_GL_LIBS"
     OPENGL_TARGETS="TARGETS"
 fi
+
+AC_MSG_CHECKING(for GCC -Wformat)
+have_wformat=no
+save_CFLAGS="$CFLAGS"
+CFLAGS="$save_CFLAGS -Wformat"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int x = 0;]],[])],
+    [have_wformat=yes], [])
+AC_MSG_RESULT($have_wformat)
+CFLAGS="$save_CFLAGS"
+if test x$have_wformat = xyes; then
+    CFLAGS="$CFLAGS -DHAVE_WFORMAT"
+fi
+
+AC_MSG_CHECKING(for GCC -Wformat-overflow)
+have_wformat_overflow=no
+save_CFLAGS="$CFLAGS"
+CFLAGS="$save_CFLAGS -Wformat-overflow"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int x = 0;]],[])],
+    [have_wformat_overflow=yes], [])
+AC_MSG_RESULT($have_wformat_overflow)
+CFLAGS="$save_CFLAGS"
+if test x$have_wformat_overflow = xyes; then
+    CFLAGS="$CFLAGS -DHAVE_WFORMAT_OVERFLOW"
+fi
+
+AC_MSG_CHECKING(for GCC -Wformat-extra-args)
+have_wformat_extra_args=no
+save_CFLAGS="$CFLAGS"
+CFLAGS="$save_CFLAGS -Wformat-extra-args"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int x = 0;]],[])],
+    [have_wformat_extra_args=yes], [])
+AC_MSG_RESULT($have_wformat_extra_args)
+CFLAGS="$save_CFLAGS"
+if test x$have_wformat_extra_args = xyes; then
+    CFLAGS="$CFLAGS -DHAVE_WFORMAT_EXTRA_ARGS"
+fi
+
+AC_ARG_ENABLE(werror,
+[AS_HELP_STRING([--enable-werror], [treat warnings as errors [default=no]])],
+              enable_werror=$enableval, enable_werror=no)
+if test x$enable_werror = xyes; then
+    AC_MSG_CHECKING(for GCC -Werror option)
+    have_gcc_werror=no
+
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$save_CFLAGS -Werror"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int x = 0;]],[])],
+        [have_gcc_werror=yes], [])
+    AC_MSG_RESULT($have_gcc_werror)
+    CFLAGS="$save_CFLAGS"
+
+    if test x$have_gcc_werror = xyes; then
+        CFLAGS="$CFLAGS -Werror"
+    fi
+fi
+
+case "$host" in
+    *-ios-*|*-*-darwin* )
+        AC_MSG_CHECKING(for GCC -Wno-error=deprecated-declarations option)
+        have_gcc_wno_error_deprecated_declarations=no
+
+        save_CFLAGS="$CFLAGS"
+        CFLAGS="$save_CFLAGS -Wno-error=deprecated-declarations"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        int x = 0;
+        ]],[])], [have_gcc_wno_error_deprecated_declarations=yes],[])
+        AC_MSG_RESULT($have_gcc_werror)
+        CFLAGS="$save_CFLAGS"
+
+        if test x$have_gcc_wno_error_deprecated_declarations = xyes; then
+            EXTRA_CFLAGS="$EXTRA_CFLAGS -Wno-error=deprecated-declarations"
+        fi
+    	;;
+esac
 
 AC_SUBST(OPENGLES1_TARGETS)
 AC_SUBST(OPENGLES2_TARGETS)

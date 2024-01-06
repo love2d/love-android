@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,6 +25,7 @@
 #include "SDL_joystick.h"
 #include "SDL_hints.h"
 #include "SDL_stdinc.h"
+#include "SDL_timer.h"
 #include "../SDL_sysjoystick.h"
 #include "../SDL_joystick_c.h"
 #include "../hidapi/SDL_hidapijoystick_c.h"
@@ -66,23 +67,29 @@ static NSString *GCInputXboxShareButton = @"Button Share";
 #if defined(__MACOSX__) && (__MAC_OS_X_VERSION_MAX_ALLOWED <= 101600)
 + (BOOL)supportsHIDDevice:(IOHIDDeviceRef)device;
 #endif
+#if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 130000) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 130000) || (__MAC_OS_VERSION_MAX_ALLOWED >= 1500000))
+@property(nonatomic, readonly) NSString *productCategory;
+#endif
+#if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 140500) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 140500) || (__MAC_OS_X_VERSION_MAX_ALLOWED >= 110300))
+@property(class, nonatomic, readwrite) BOOL shouldMonitorBackgroundEvents;
+#endif
 @end
 @interface GCExtendedGamepad (SDL)
 #if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 121000) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 121000) || (__MAC_OS_VERSION_MAX_ALLOWED >= 1401000))
-@property (nonatomic, readonly, nullable) GCControllerButtonInput *leftThumbstickButton;
-@property (nonatomic, readonly, nullable) GCControllerButtonInput *rightThumbstickButton;
+@property(nonatomic, readonly, nullable) GCControllerButtonInput *leftThumbstickButton;
+@property(nonatomic, readonly, nullable) GCControllerButtonInput *rightThumbstickButton;
 #endif
 #if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 130000) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 130000) || (__MAC_OS_VERSION_MAX_ALLOWED >= 1500000))
-@property (nonatomic, readonly) GCControllerButtonInput *buttonMenu;
-@property (nonatomic, readonly, nullable) GCControllerButtonInput *buttonOptions;
+@property(nonatomic, readonly) GCControllerButtonInput *buttonMenu;
+@property(nonatomic, readonly, nullable) GCControllerButtonInput *buttonOptions;
 #endif
 #if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 140000) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 140000) || (__MAC_OS_VERSION_MAX_ALLOWED > 1500000))
-@property (nonatomic, readonly, nullable) GCControllerButtonInput *buttonHome;
+@property(nonatomic, readonly, nullable) GCControllerButtonInput *buttonHome;
 #endif
 @end
 @interface GCMicroGamepad (SDL)
 #if !((__IPHONE_OS_VERSION_MAX_ALLOWED >= 130000) || (__APPLETV_OS_VERSION_MAX_ALLOWED >= 130000) || (__MAC_OS_VERSION_MAX_ALLOWED >= 1500000))
-@property (nonatomic, readonly) GCControllerButtonInput *buttonMenu;
+@property(nonatomic, readonly) GCControllerButtonInput *buttonMenu;
 #endif
 @end
 
@@ -111,8 +118,7 @@ static SDL_JoystickDeviceItem *deviceList = NULL;
 static int numjoysticks = 0;
 int SDL_AppleTVRemoteOpenedAsJoystick = 0;
 
-static SDL_JoystickDeviceItem *
-GetDeviceForIndex(int device_index)
+static SDL_JoystickDeviceItem *GetDeviceForIndex(int device_index)
 {
     SDL_JoystickDeviceItem *device = deviceList;
     int i = 0;
@@ -129,60 +135,111 @@ GetDeviceForIndex(int device_index)
 }
 
 #ifdef SDL_JOYSTICK_MFI
-static BOOL
-IsControllerPS4(GCController *controller)
+static BOOL IsControllerPS4(GCController *controller)
 {
     if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
         if ([controller.productCategory isEqualToString:@"DualShock 4"]) {
             return TRUE;
         }
     } else {
-        if ([controller.vendorName containsString: @"DUALSHOCK"]) {
+        if ([controller.vendorName containsString:@"DUALSHOCK"]) {
             return TRUE;
         }
     }
     return FALSE;
 }
-static BOOL
-IsControllerPS5(GCController *controller)
+static BOOL IsControllerPS5(GCController *controller)
 {
     if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
         if ([controller.productCategory isEqualToString:@"DualSense"]) {
             return TRUE;
         }
     } else {
-        if ([controller.vendorName containsString: @"DualSense"]) {
+        if ([controller.vendorName containsString:@"DualSense"]) {
             return TRUE;
         }
     }
     return FALSE;
 }
-static BOOL
-IsControllerXbox(GCController *controller)
+static BOOL IsControllerXbox(GCController *controller)
 {
     if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
         if ([controller.productCategory isEqualToString:@"Xbox One"]) {
             return TRUE;
         }
     } else {
-        if ([controller.vendorName containsString: @"Xbox"]) {
+        if ([controller.vendorName containsString:@"Xbox"]) {
             return TRUE;
         }
     }
     return FALSE;
 }
-static BOOL
-IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controller)
+static BOOL IsControllerSwitchPro(GCController *controller)
 {
-    Uint16 *guid16 = (Uint16 *)device->guid.data;
+    if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
+        if ([controller.productCategory isEqualToString:@"Switch Pro Controller"]) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+static BOOL IsControllerSwitchJoyConL(GCController *controller)
+{
+    if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
+        if ([controller.productCategory isEqualToString:@"Nintendo Switch Joy-Con (L)"]) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+static BOOL IsControllerSwitchJoyConR(GCController *controller)
+{
+    if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
+        if ([controller.productCategory isEqualToString:@"Nintendo Switch Joy-Con (R)"]) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+static BOOL IsControllerSwitchJoyConPair(GCController *controller)
+{
+    if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)) {
+        if ([controller.productCategory isEqualToString:@"Nintendo Switch Joy-Con (L/R)"]) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+static BOOL IsControllerStadia(GCController *controller)
+{
+    if ([controller.vendorName hasPrefix:@"Stadia"]) {
+        return TRUE;
+    }
+    return FALSE;
+}
+static BOOL IsControllerBackboneOne(GCController *controller)
+{
+    if ([controller.vendorName hasPrefix:@"Backbone One"]) {
+        return TRUE;
+    }
+    return FALSE;
+}
+static BOOL IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controller)
+{
     Uint16 vendor = 0;
     Uint16 product = 0;
     Uint8 subtype = 0;
-
     const char *name = NULL;
+
+    if (@available(macOS 11.3, iOS 14.5, tvOS 14.5, *)) {
+        if (!GCController.shouldMonitorBackgroundEvents) {
+            GCController.shouldMonitorBackgroundEvents = YES;
+        }
+    }
+
     /* Explicitly retain the controller because SDL_JoystickDeviceItem is a
      * struct, and ARC doesn't work with structs. */
-    device->controller = (__bridge GCController *) CFBridgingRetain(controller);
+    device->controller = (__bridge GCController *)CFBridgingRetain(controller);
 
     if (controller.vendorName) {
         name = controller.vendorName.UTF8String;
@@ -194,20 +251,38 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
 
     device->name = SDL_CreateJoystickName(0, 0, NULL, name);
 
+#ifdef DEBUG_CONTROLLER_PROFILE
+    if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
+        if (controller.physicalInputProfile) {
+            for (id key in controller.physicalInputProfile.buttons) {
+                NSLog(@"Button %@ available\n", key);
+            }
+            for (id key in controller.physicalInputProfile.axes) {
+                NSLog(@"Axis %@ available\n", key);
+            }
+        }
+    }
+#endif
+
     if (controller.extendedGamepad) {
         GCExtendedGamepad *gamepad = controller.extendedGamepad;
         BOOL is_xbox = IsControllerXbox(controller);
         BOOL is_ps4 = IsControllerPS4(controller);
         BOOL is_ps5 = IsControllerPS5(controller);
-#if TARGET_OS_TV
-        BOOL is_MFi = (!is_xbox && !is_ps4 && !is_ps5);
-#endif
+        BOOL is_switch_pro = IsControllerSwitchPro(controller);
+        BOOL is_switch_joycon_pair = IsControllerSwitchJoyConPair(controller);
+        BOOL is_stadia = IsControllerStadia(controller);
+        BOOL is_backbone_one = IsControllerBackboneOne(controller);
         int nbuttons = 0;
+        BOOL has_direct_menu;
 
 #ifdef SDL_JOYSTICK_HIDAPI
         if ((is_xbox && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_XBOXONE)) ||
             (is_ps4 && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_PS4)) ||
-            (is_ps5 && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_PS5))) {
+            (is_ps5 && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_PS5)) ||
+            (is_switch_pro && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO)) ||
+            (is_switch_joycon_pair && HIDAPI_IsDevicePresent(USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR, 0, "")) ||
+            (is_stadia && HIDAPI_IsDeviceTypePresent(SDL_CONTROLLER_TYPE_GOOGLE_STADIA))) {
             /* The HIDAPI driver is taking care of this device */
             return FALSE;
         }
@@ -237,22 +312,24 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
             device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_BACK);
             ++nbuttons;
         }
-        if ([gamepad respondsToSelector:@selector(buttonHome)] && gamepad.buttonHome) {
+        /* The Nintendo Switch JoyCon home button doesn't ever show as being held down */
+        if ([gamepad respondsToSelector:@selector(buttonHome)] && gamepad.buttonHome && !is_switch_joycon_pair) {
             device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_GUIDE);
             ++nbuttons;
         }
-        BOOL has_direct_menu = [gamepad respondsToSelector:@selector(buttonMenu)] && gamepad.buttonMenu;
-#if TARGET_OS_TV
-        /* On tvOS MFi controller menu button brings you to the home screen */
-        if (is_MFi) {
-            has_direct_menu = FALSE;
-        }
-#endif
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_START);
         ++nbuttons;
+
+        has_direct_menu = [gamepad respondsToSelector:@selector(buttonMenu)] && gamepad.buttonMenu;
         if (!has_direct_menu) {
             device->uses_pause_handler = SDL_TRUE;
         }
+#if TARGET_OS_TV
+        /* The single menu button isn't very reliable, at least as of tvOS 16.1 */
+        if ((device->button_mask & (1 << SDL_CONTROLLER_BUTTON_BACK)) == 0) {
+            device->uses_pause_handler = SDL_TRUE;
+        }
+#endif
 
 #ifdef ENABLE_PHYSICAL_INPUT_PROFILE
         if ([controller respondsToSelector:@selector(physicalInputProfile)]) {
@@ -290,7 +367,15 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
 #endif
 #pragma clang diagnostic pop
 
-        if (is_xbox) {
+        if (is_backbone_one) {
+            vendor = USB_VENDOR_BACKBONE;
+            if (is_ps5) {
+                product = USB_PRODUCT_BACKBONE_ONE_IOS_PS5;
+            } else {
+                product = USB_PRODUCT_BACKBONE_ONE_IOS;
+            }
+            subtype = 0;
+        } else if (is_xbox) {
             vendor = USB_VENDOR_MICROSOFT;
             if (device->has_xbox_paddles) {
                 /* Assume Xbox One Elite Series 2 Controller unless/until GCController flows VID/PID */
@@ -318,10 +403,27 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
             vendor = USB_VENDOR_SONY;
             product = USB_PRODUCT_SONY_DS5;
             subtype = 0;
+        } else if (is_switch_pro) {
+            vendor = USB_VENDOR_NINTENDO;
+            product = USB_PRODUCT_NINTENDO_SWITCH_PRO;
+            subtype = 0;
+        } else if (is_switch_joycon_pair) {
+            vendor = USB_VENDOR_NINTENDO;
+            product = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR;
+            subtype = 0;
         } else {
             vendor = USB_VENDOR_APPLE;
             product = 1;
             subtype = 1;
+        }
+
+        if (is_backbone_one) {
+            /* The Backbone app uses share button */
+            if ((device->button_mask & (1 << SDL_CONTROLLER_BUTTON_MISC1)) != 0) {
+                device->button_mask &= ~(1 << SDL_CONTROLLER_BUTTON_MISC1);
+                --nbuttons;
+                device->has_xbox_share_button = SDL_FALSE;
+            }
         }
 
         device->naxes = 6; /* 2 thumbsticks and 2 triggers */
@@ -329,7 +431,34 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
         device->nbuttons = nbuttons;
 
     } else if (controller.gamepad) {
+        BOOL is_switch_joyconL = IsControllerSwitchJoyConL(controller);
+        BOOL is_switch_joyconR = IsControllerSwitchJoyConR(controller);
         int nbuttons = 0;
+
+#ifdef SDL_JOYSTICK_HIDAPI
+        if ((is_switch_joyconL && HIDAPI_IsDevicePresent(USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT, 0, "")) ||
+            (is_switch_joyconR && HIDAPI_IsDevicePresent(USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_SWITCH_JOYCON_RIGHT, 0, ""))) {
+            /* The HIDAPI driver is taking care of this device */
+            return FALSE;
+        }
+#else
+        (void)is_switch_joyconL;
+        (void)is_switch_joyconR;
+#endif
+
+        if (is_switch_joyconL) {
+            vendor = USB_VENDOR_NINTENDO;
+            product = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT;
+            subtype = 0;
+        } else if (is_switch_joyconR) {
+            vendor = USB_VENDOR_NINTENDO;
+            product = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_RIGHT;
+            subtype = 0;
+        } else {
+            vendor = USB_VENDOR_APPLE;
+            product = 2;
+            subtype = 2;
+        }
 
         /* These buttons are part of the original MFi spec */
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_A);
@@ -338,13 +467,15 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_Y);
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+#if TARGET_OS_TV
+        /* The menu button is used by the OS and not available to applications */
+        nbuttons += 6;
+#else
         device->button_mask |= (1 << SDL_CONTROLLER_BUTTON_START);
         nbuttons += 7;
         device->uses_pause_handler = SDL_TRUE;
+#endif
 
-        vendor = USB_VENDOR_APPLE;
-        product = 2;
-        subtype = 2;
         device->naxes = 0; /* no traditional analog inputs */
         device->nhats = 1; /* d-pad */
         device->nbuttons = nbuttons;
@@ -372,23 +503,17 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
     }
 #endif /* TARGET_OS_TV */
 
-    /* We only need 16 bits for each of these; space them out to fill 128. */
-    /* Byteswap so devices get same GUID on little/big endian platforms. */
-    *guid16++ = SDL_SwapLE16(SDL_HARDWARE_BUS_BLUETOOTH);
-    *guid16++ = 0;
-    *guid16++ = SDL_SwapLE16(vendor);
-    *guid16++ = 0;
-    *guid16++ = SDL_SwapLE16(product);
-    *guid16++ = 0;
-
-    *guid16++ = SDL_SwapLE16(device->button_mask);
-
     if (vendor == USB_VENDOR_APPLE) {
         /* Note that this is an MFI controller and what subtype it is */
-        device->guid.data[14] = 'm';
-        device->guid.data[15] = subtype;
+        device->guid = SDL_CreateJoystickGUID(SDL_HARDWARE_BUS_BLUETOOTH, vendor, product, 0, name, 'm', subtype);
     } else {
-        device->guid.data[15] = subtype;
+        device->guid = SDL_CreateJoystickGUID(SDL_HARDWARE_BUS_BLUETOOTH, vendor, product, 0, name, 0, subtype);
+    }
+
+    /* Update the GUID with capability bits */
+    {
+        Uint16 *guid16 = (Uint16 *)device->guid.data;
+        guid16[6] = SDL_SwapLE16(device->button_mask);
     }
 
     /* This will be set when the first button press of the controller is
@@ -399,8 +524,7 @@ IOS_AddMFIJoystickDevice(SDL_JoystickDeviceItem *device, GCController *controlle
 #endif /* SDL_JOYSTICK_MFI */
 
 #if defined(SDL_JOYSTICK_iOS_ACCELEROMETER) || defined(SDL_JOYSTICK_MFI)
-static void
-IOS_AddJoystickDevice(GCController *controller, SDL_bool accelerometer)
+static void IOS_AddJoystickDevice(GCController *controller, SDL_bool accelerometer)
 {
     SDL_JoystickDeviceItem *device = deviceList;
 
@@ -420,7 +544,7 @@ IOS_AddJoystickDevice(GCController *controller, SDL_bool accelerometer)
         device = device->next;
     }
 
-    device = (SDL_JoystickDeviceItem *) SDL_calloc(1, sizeof(SDL_JoystickDeviceItem));
+    device = (SDL_JoystickDeviceItem *)SDL_calloc(1, sizeof(SDL_JoystickDeviceItem));
     if (device == NULL) {
         return;
     }
@@ -469,8 +593,7 @@ IOS_AddJoystickDevice(GCController *controller, SDL_bool accelerometer)
 }
 #endif /* SDL_JOYSTICK_iOS_ACCELEROMETER || SDL_JOYSTICK_MFI */
 
-static SDL_JoystickDeviceItem *
-IOS_RemoveJoystickDevice(SDL_JoystickDeviceItem *device)
+static SDL_JoystickDeviceItem *IOS_RemoveJoystickDevice(SDL_JoystickDeviceItem *device)
 {
     SDL_JoystickDeviceItem *prev = NULL;
     SDL_JoystickDeviceItem *next = NULL;
@@ -524,8 +647,7 @@ IOS_RemoveJoystickDevice(SDL_JoystickDeviceItem *device)
 }
 
 #if TARGET_OS_TV
-static void SDLCALL
-SDL_AppleTVRemoteRotationHintChanged(void *udata, const char *name, const char *oldValue, const char *newValue)
+static void SDLCALL SDL_AppleTVRemoteRotationHintChanged(void *udata, const char *name, const char *oldValue, const char *newValue)
 {
     BOOL allowRotation = newValue != NULL && *newValue != '0';
 
@@ -539,23 +661,25 @@ SDL_AppleTVRemoteRotationHintChanged(void *udata, const char *name, const char *
 }
 #endif /* TARGET_OS_TV */
 
-#if defined(__MACOSX__)
-static int is_macos11(void)
-{
-    return (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_15);
-}
-#endif
-
-static int
-IOS_JoystickInit(void)
+static int IOS_JoystickInit(void)
 {
 #if defined(__MACOSX__)
-    if (!is_macos11()) {
+#if _SDL_HAS_BUILTIN(__builtin_available)
+    if (@available(macOS 10.16, *)) {
+        /* Continue with initialization on macOS 11+ */
+    } else {
         return 0;
     }
+#else
+    /* No @available, must be an older macOS version */
+    return 0;
+#endif
 #endif
 
     @autoreleasepool {
+#ifdef SDL_JOYSTICK_MFI
+        NSNotificationCenter *center;
+#endif
 #ifdef SDL_JOYSTICK_iOS_ACCELEROMETER
         if (SDL_GetHintBoolean(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, SDL_TRUE)) {
             /* Default behavior, accelerometer as joystick */
@@ -580,29 +704,32 @@ IOS_JoystickInit(void)
                             SDL_AppleTVRemoteRotationHintChanged, NULL);
 #endif /* TARGET_OS_TV */
 
-        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+        center = [NSNotificationCenter defaultCenter];
 
         connectObserver = [center addObserverForName:GCControllerDidConnectNotification
                                               object:nil
                                                queue:nil
                                           usingBlock:^(NSNotification *note) {
-                                              GCController *controller = note.object;
-                                              IOS_AddJoystickDevice(controller, SDL_FALSE);
+                                            GCController *controller = note.object;
+                                            SDL_LockJoysticks();
+                                            IOS_AddJoystickDevice(controller, SDL_FALSE);
+                                            SDL_UnlockJoysticks();
                                           }];
 
         disconnectObserver = [center addObserverForName:GCControllerDidDisconnectNotification
                                                  object:nil
                                                   queue:nil
                                              usingBlock:^(NSNotification *note) {
-                                                 GCController *controller = note.object;
-                                                 SDL_JoystickDeviceItem *device = deviceList;
-                                                 while (device != NULL) {
-                                                     if (device->controller == controller) {
-                                                         IOS_RemoveJoystickDevice(device);
-                                                         break;
-                                                     }
-                                                     device = device->next;
-                                                 }
+                                               GCController *controller = note.object;
+                                               SDL_JoystickDeviceItem *device;
+                                               SDL_LockJoysticks();
+                                               for (device = deviceList; device != NULL; device = device->next) {
+                                                   if (device->controller == controller) {
+                                                       IOS_RemoveJoystickDevice(device);
+                                                       break;
+                                                   }
+                                               }
+                                               SDL_UnlockJoysticks();
                                              }];
 #endif /* SDL_JOYSTICK_MFI */
     }
@@ -610,26 +737,27 @@ IOS_JoystickInit(void)
     return 0;
 }
 
-static int
-IOS_JoystickGetCount(void)
+static int IOS_JoystickGetCount(void)
 {
     return numjoysticks;
 }
 
-static void
-IOS_JoystickDetect(void)
+static void IOS_JoystickDetect(void)
 {
 }
 
-static const char *
-IOS_JoystickGetDeviceName(int device_index)
+static const char *IOS_JoystickGetDeviceName(int device_index)
 {
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
     return device ? device->name : "Unknown";
 }
 
-static int
-IOS_JoystickGetDevicePlayerIndex(int device_index)
+static const char *IOS_JoystickGetDevicePath(int device_index)
+{
+    return NULL;
+}
+
+static int IOS_JoystickGetDevicePlayerIndex(int device_index)
 {
 #ifdef SDL_JOYSTICK_MFI
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
@@ -640,8 +768,7 @@ IOS_JoystickGetDevicePlayerIndex(int device_index)
     return -1;
 }
 
-static void
-IOS_JoystickSetDevicePlayerIndex(int device_index, int player_index)
+static void IOS_JoystickSetDevicePlayerIndex(int device_index, int player_index)
 {
 #ifdef SDL_JOYSTICK_MFI
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
@@ -651,8 +778,7 @@ IOS_JoystickSetDevicePlayerIndex(int device_index, int player_index)
 #endif
 }
 
-static SDL_JoystickGUID
-IOS_JoystickGetDeviceGUID(int device_index)
+static SDL_JoystickGUID IOS_JoystickGetDeviceGUID(int device_index)
 {
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
     SDL_JoystickGUID guid;
@@ -664,15 +790,13 @@ IOS_JoystickGetDeviceGUID(int device_index)
     return guid;
 }
 
-static SDL_JoystickID
-IOS_JoystickGetDeviceInstanceID(int device_index)
+static SDL_JoystickID IOS_JoystickGetDeviceInstanceID(int device_index)
 {
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
     return device ? device->instance_id : -1;
 }
 
-static int
-IOS_JoystickOpen(SDL_Joystick *joystick, int device_index)
+static int IOS_JoystickOpen(SDL_Joystick *joystick, int device_index)
 {
     SDL_JoystickDeviceItem *device = GetDeviceForIndex(device_index);
     if (device == NULL) {
@@ -709,14 +833,14 @@ IOS_JoystickOpen(SDL_Joystick *joystick, int device_index)
             if (device->uses_pause_handler) {
                 GCController *controller = device->controller;
                 controller.controllerPausedHandler = ^(GCController *c) {
-                    if (joystick->hwdata) {
-                        ++joystick->hwdata->num_pause_presses;
-                    }
+                  if (joystick->hwdata) {
+                      ++joystick->hwdata->num_pause_presses;
+                  }
                 };
             }
 
 #ifdef ENABLE_MFI_SENSORS
-            if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+            if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
                 GCController *controller = joystick->hwdata->controller;
                 GCMotion *motion = controller.motion;
                 if (motion && motion.hasRotationRate) {
@@ -729,7 +853,7 @@ IOS_JoystickOpen(SDL_Joystick *joystick, int device_index)
 #endif /* ENABLE_MFI_SENSORS */
 
 #ifdef ENABLE_MFI_SYSTEM_GESTURE_STATE
-            if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+            if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
                 GCController *controller = joystick->hwdata->controller;
                 for (id key in controller.physicalInputProfile.buttons) {
                     GCControllerButtonInput *button = controller.physicalInputProfile.buttons[key];
@@ -750,8 +874,7 @@ IOS_JoystickOpen(SDL_Joystick *joystick, int device_index)
     return 0;
 }
 
-static void
-IOS_AccelerometerUpdate(SDL_Joystick *joystick)
+static void IOS_AccelerometerUpdate(SDL_Joystick *joystick)
 {
 #ifdef SDL_JOYSTICK_iOS_ACCELEROMETER
     const float maxgforce = SDL_IPHONE_MAX_GFORCE;
@@ -788,15 +911,14 @@ IOS_AccelerometerUpdate(SDL_Joystick *joystick)
     accel.z = SDL_clamp(accel.z, -maxgforce, maxgforce);
 
     /* pass in data mapped to range of SInt16 */
-    SDL_PrivateJoystickAxis(joystick, 0,  (accel.x / maxgforce) * maxsint16);
+    SDL_PrivateJoystickAxis(joystick, 0, (accel.x / maxgforce) * maxsint16);
     SDL_PrivateJoystickAxis(joystick, 1, -(accel.y / maxgforce) * maxsint16);
-    SDL_PrivateJoystickAxis(joystick, 2,  (accel.z / maxgforce) * maxsint16);
+    SDL_PrivateJoystickAxis(joystick, 2, (accel.z / maxgforce) * maxsint16);
 #endif /* SDL_JOYSTICK_iOS_ACCELEROMETER */
 }
 
 #ifdef SDL_JOYSTICK_MFI
-static Uint8
-IOS_MFIJoystickHatStateForDPad(GCControllerDirectionPad *dpad)
+static Uint8 IOS_MFIJoystickHatStateForDPad(GCControllerDirectionPad *dpad)
 {
     Uint8 hat = 0;
 
@@ -820,8 +942,7 @@ IOS_MFIJoystickHatStateForDPad(GCControllerDirectionPad *dpad)
 }
 #endif
 
-static void
-IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
+static void IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
 {
 #if SDL_JOYSTICK_MFI
     @autoreleasepool {
@@ -830,22 +951,45 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
         int i;
         int pause_button_index = 0;
 
+#ifdef DEBUG_CONTROLLER_STATE
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
+            if (controller.physicalInputProfile) {
+                for (id key in controller.physicalInputProfile.buttons) {
+                    GCControllerButtonInput *button = controller.physicalInputProfile.buttons[key];
+                    if (button.isPressed)
+                        NSLog(@"Button %@ = %s\n", key, button.isPressed ? "pressed" : "released");
+                }
+                for (id key in controller.physicalInputProfile.axes) {
+                    GCControllerAxisInput *axis = controller.physicalInputProfile.axes[key];
+                    if (axis.value != 0.0f)
+                        NSLog(@"Axis %@ = %.2f\n", key, axis.value);
+                }
+            }
+        }
+#endif
+
         if (controller.extendedGamepad) {
+            SDL_bool isstack;
             GCExtendedGamepad *gamepad = controller.extendedGamepad;
 
             /* Axis order matches the XInput Windows mappings. */
             Sint16 axes[] = {
-                (Sint16) (gamepad.leftThumbstick.xAxis.value * 32767),
-                (Sint16) (gamepad.leftThumbstick.yAxis.value * -32767),
-                (Sint16) ((gamepad.leftTrigger.value * 65535) - 32768),
-                (Sint16) (gamepad.rightThumbstick.xAxis.value * 32767),
-                (Sint16) (gamepad.rightThumbstick.yAxis.value * -32767),
-                (Sint16) ((gamepad.rightTrigger.value * 65535) - 32768),
+                (Sint16)(gamepad.leftThumbstick.xAxis.value * 32767),
+                (Sint16)(gamepad.leftThumbstick.yAxis.value * -32767),
+                (Sint16)((gamepad.leftTrigger.value * 65535) - 32768),
+                (Sint16)(gamepad.rightThumbstick.xAxis.value * 32767),
+                (Sint16)(gamepad.rightThumbstick.yAxis.value * -32767),
+                (Sint16)((gamepad.rightTrigger.value * 65535) - 32768),
             };
 
             /* Button order matches the XInput Windows mappings. */
-            Uint8 buttons[joystick->nbuttons];
+            Uint8 *buttons = SDL_small_alloc(Uint8, joystick->nbuttons, &isstack);
             int button_count = 0;
+
+            if (buttons == NULL) {
+                SDL_OutOfMemory();
+                return;
+            }
 
             /* These buttons are part of the original MFi spec */
             buttons[button_count++] = gamepad.buttonA.isPressed;
@@ -882,9 +1026,8 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
 
 #ifdef ENABLE_PHYSICAL_INPUT_PROFILE
             if (joystick->hwdata->has_dualshock_touchpad) {
-                buttons[button_count++] = controller.physicalInputProfile.buttons[GCInputDualShockTouchpadButton].isPressed;
-
                 GCControllerDirectionPad *dpad;
+                buttons[button_count++] = controller.physicalInputProfile.buttons[GCInputDualShockTouchpadButton].isPressed;
 
                 dpad = controller.physicalInputProfile.dpads[GCInputDualShockTouchpadOne];
                 if (dpad.xAxis.value || dpad.yAxis.value) {
@@ -941,7 +1084,7 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
             }
 
 #ifdef ENABLE_MFI_SENSORS
-            if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+            if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
                 GCMotion *motion = controller.motion;
                 if (motion && motion.sensorsActive) {
                     float data[3];
@@ -951,25 +1094,33 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
                         data[0] = rate.x;
                         data[1] = rate.z;
                         data[2] = -rate.y;
-                        SDL_PrivateJoystickSensor(joystick, SDL_SENSOR_GYRO, data, 3);
+                        SDL_PrivateJoystickSensor(joystick, SDL_SENSOR_GYRO, 0, data, 3);
                     }
                     if (motion.hasGravityAndUserAcceleration) {
                         GCAcceleration accel = motion.acceleration;
                         data[0] = -accel.x * SDL_STANDARD_GRAVITY;
                         data[1] = -accel.y * SDL_STANDARD_GRAVITY;
                         data[2] = -accel.z * SDL_STANDARD_GRAVITY;
-                        SDL_PrivateJoystickSensor(joystick, SDL_SENSOR_ACCEL, data, 3);
+                        SDL_PrivateJoystickSensor(joystick, SDL_SENSOR_ACCEL, 0, data, 3);
                     }
                 }
             }
 #endif /* ENABLE_MFI_SENSORS */
 
+            SDL_small_free(buttons, isstack);
         } else if (controller.gamepad) {
+            SDL_bool isstack;
             GCGamepad *gamepad = controller.gamepad;
 
             /* Button order matches the XInput Windows mappings. */
-            Uint8 buttons[joystick->nbuttons];
+            Uint8 *buttons = SDL_small_alloc(Uint8, joystick->nbuttons, &isstack);
             int button_count = 0;
+
+            if (buttons == NULL) {
+                SDL_OutOfMemory();
+                return;
+            }
+
             buttons[button_count++] = gamepad.buttonA.isPressed;
             buttons[button_count++] = gamepad.buttonB.isPressed;
             buttons[button_count++] = gamepad.buttonX.isPressed;
@@ -984,14 +1135,16 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
             for (i = 0; i < button_count; i++) {
                 SDL_PrivateJoystickButton(joystick, i, buttons[i]);
             }
+
+            SDL_small_free(buttons, isstack);
         }
 #if TARGET_OS_TV
         else if (controller.microGamepad) {
             GCMicroGamepad *gamepad = controller.microGamepad;
 
             Sint16 axes[] = {
-                (Sint16) (gamepad.dpad.xAxis.value * 32767),
-                (Sint16) (gamepad.dpad.yAxis.value * -32767),
+                (Sint16)(gamepad.dpad.xAxis.value * 32767),
+                (Sint16)(gamepad.dpad.yAxis.value * -32767),
             };
 
             for (i = 0; i < SDL_arraysize(axes); i++) {
@@ -1034,26 +1187,25 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
         }
 
 #ifdef ENABLE_MFI_BATTERY
-        if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCDeviceBattery *battery = controller.battery;
             if (battery) {
                 SDL_JoystickPowerLevel ePowerLevel = SDL_JOYSTICK_POWER_UNKNOWN;
 
                 switch (battery.batteryState) {
                 case GCDeviceBatteryStateDischarging:
-                    {
-                        float power_level = battery.batteryLevel;
-                        if (power_level <= 0.05f) {
-                            ePowerLevel = SDL_JOYSTICK_POWER_EMPTY;
-                        } else if (power_level <= 0.20f) {
-                            ePowerLevel = SDL_JOYSTICK_POWER_LOW;
-                        } else if (power_level <= 0.70f) {
-                            ePowerLevel = SDL_JOYSTICK_POWER_MEDIUM;
-                        } else {
-                            ePowerLevel = SDL_JOYSTICK_POWER_FULL;
-                        }
+                {
+                    float power_level = battery.batteryLevel;
+                    if (power_level <= 0.05f) {
+                        ePowerLevel = SDL_JOYSTICK_POWER_EMPTY;
+                    } else if (power_level <= 0.20f) {
+                        ePowerLevel = SDL_JOYSTICK_POWER_LOW;
+                    } else if (power_level <= 0.70f) {
+                        ePowerLevel = SDL_JOYSTICK_POWER_MEDIUM;
+                    } else {
+                        ePowerLevel = SDL_JOYSTICK_POWER_FULL;
                     }
-                    break;
+                } break;
                 case GCDeviceBatteryStateCharging:
                     ePowerLevel = SDL_JOYSTICK_POWER_WIRED;
                     break;
@@ -1075,18 +1227,19 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
 #ifdef ENABLE_MFI_RUMBLE
 
 @interface SDL_RumbleMotor : NSObject
-    @property(nonatomic,strong) CHHapticEngine *engine API_AVAILABLE(macos(11.0), ios(13.0), tvos(14.0));
-    @property(nonatomic,strong) id<CHHapticPatternPlayer> player API_AVAILABLE(macos(11.0), ios(13.0), tvos(14.0));
-    @property bool active;
+@property(nonatomic, strong) CHHapticEngine *engine API_AVAILABLE(macos(10.16), ios(13.0), tvos(14.0));
+@property(nonatomic, strong) id<CHHapticPatternPlayer> player API_AVAILABLE(macos(10.16), ios(13.0), tvos(14.0));
+@property bool active;
 @end
 
-@implementation SDL_RumbleMotor {
+@implementation SDL_RumbleMotor
+{
 }
 
--(void)cleanup
+- (void)cleanup
 {
     @autoreleasepool {
-        if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             if (self.player != nil) {
                 [self.player cancelAndReturnError:nil];
                 self.player = nil;
@@ -1099,11 +1252,12 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
     }
 }
 
--(int)setIntensity:(float)intensity
+- (int)setIntensity:(float)intensity
 {
     @autoreleasepool {
-        if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             NSError *error = nil;
+            CHHapticDynamicParameter *param;
 
             if (self.engine == nil) {
                 return SDL_SetError("Haptics engine was stopped");
@@ -1118,8 +1272,8 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
             }
 
             if (self.player == nil) {
-                CHHapticEventParameter *param = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:1.0f];
-                CHHapticEvent *event = [[CHHapticEvent alloc] initWithEventType:CHHapticEventTypeHapticContinuous parameters:[NSArray arrayWithObjects:param, nil] relativeTime:0 duration:GCHapticDurationInfinite];
+                CHHapticEventParameter *event_param = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:1.0f];
+                CHHapticEvent *event = [[CHHapticEvent alloc] initWithEventType:CHHapticEventTypeHapticContinuous parameters:[NSArray arrayWithObjects:event_param, nil] relativeTime:0 duration:GCHapticDurationInfinite];
                 CHHapticPattern *pattern = [[CHHapticPattern alloc] initWithEvents:[NSArray arrayWithObject:event] parameters:[[NSArray alloc] init] error:&error];
                 if (error != nil) {
                     return SDL_SetError("Couldn't create haptic pattern: %s", [error.localizedDescription UTF8String]);
@@ -1132,7 +1286,7 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
                 self.active = false;
             }
 
-            CHHapticDynamicParameter *param = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity relativeTime:0];
+            param = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity relativeTime:0];
             [self.player sendParameters:[NSArray arrayWithObject:param] atTime:0 error:&error];
             if (error != nil) {
                 return SDL_SetError("Couldn't update haptic player: %s", [error.localizedDescription UTF8String]);
@@ -1148,11 +1302,13 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
     }
 }
 
--(id) initWithController:(GCController*)controller locality:(GCHapticsLocality)locality API_AVAILABLE(macos(11.0), ios(14.0), tvos(14.0))
+- (id)initWithController:(GCController *)controller locality:(GCHapticsLocality)locality API_AVAILABLE(macos(10.16), ios(14.0), tvos(14.0))
 {
     @autoreleasepool {
-        self = [super init];
         NSError *error;
+        __weak __typeof(self) weakSelf;
+        self = [super init];
+        weakSelf = self;
 
         self.engine = [controller.haptics createEngineWithLocality:locality];
         if (self.engine == nil) {
@@ -1166,24 +1322,23 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
             return nil;
         }
 
-        __weak typeof(self) weakSelf = self;
         self.engine.stoppedHandler = ^(CHHapticEngineStoppedReason stoppedReason) {
-            SDL_RumbleMotor *_this = weakSelf;
-            if (_this == nil) {
-                return;
-            }
+          SDL_RumbleMotor *_this = weakSelf;
+          if (_this == nil) {
+              return;
+          }
 
-            _this.player = nil;
-            _this.engine = nil;
+          _this.player = nil;
+          _this.engine = nil;
         };
         self.engine.resetHandler = ^{
-            SDL_RumbleMotor *_this = weakSelf;
-            if (_this == nil) {
-                return;
-            }
+          SDL_RumbleMotor *_this = weakSelf;
+          if (_this == nil) {
+              return;
+          }
 
-            _this.player = nil;
-            [_this.engine startAndReturnError:nil];
+          _this.player = nil;
+          [_this.engine startAndReturnError:nil];
         };
 
         return self;
@@ -1193,54 +1348,55 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
 @end
 
 @interface SDL_RumbleContext : NSObject
-    @property(nonatomic,strong) SDL_RumbleMotor *m_low_frequency_motor;
-    @property(nonatomic,strong) SDL_RumbleMotor *m_high_frequency_motor;
-    @property(nonatomic,strong) SDL_RumbleMotor *m_left_trigger_motor;
-    @property(nonatomic,strong) SDL_RumbleMotor *m_right_trigger_motor;
+@property(nonatomic, strong) SDL_RumbleMotor *lowFrequencyMotor;
+@property(nonatomic, strong) SDL_RumbleMotor *highFrequencyMotor;
+@property(nonatomic, strong) SDL_RumbleMotor *leftTriggerMotor;
+@property(nonatomic, strong) SDL_RumbleMotor *rightTriggerMotor;
 @end
 
-@implementation SDL_RumbleContext {
+@implementation SDL_RumbleContext
+{
 }
 
--(id) initWithLowFrequencyMotor:(SDL_RumbleMotor*)low_frequency_motor
-             HighFrequencyMotor:(SDL_RumbleMotor*)high_frequency_motor
-               LeftTriggerMotor:(SDL_RumbleMotor*)left_trigger_motor
-              RightTriggerMotor:(SDL_RumbleMotor*)right_trigger_motor
+- (id)initWithLowFrequencyMotor:(SDL_RumbleMotor *)low_frequency_motor
+             HighFrequencyMotor:(SDL_RumbleMotor *)high_frequency_motor
+               LeftTriggerMotor:(SDL_RumbleMotor *)left_trigger_motor
+              RightTriggerMotor:(SDL_RumbleMotor *)right_trigger_motor
 {
     self = [super init];
-    self.m_low_frequency_motor = low_frequency_motor;
-    self.m_high_frequency_motor = high_frequency_motor;
-    self.m_left_trigger_motor = left_trigger_motor;
-    self.m_right_trigger_motor = right_trigger_motor;
+    self.lowFrequencyMotor = low_frequency_motor;
+    self.highFrequencyMotor = high_frequency_motor;
+    self.leftTriggerMotor = left_trigger_motor;
+    self.rightTriggerMotor = right_trigger_motor;
     return self;
 }
 
--(int) rumbleWithLowFrequency:(Uint16)low_frequency_rumble andHighFrequency:(Uint16)high_frequency_rumble
+- (int)rumbleWithLowFrequency:(Uint16)low_frequency_rumble andHighFrequency:(Uint16)high_frequency_rumble
 {
     int result = 0;
 
-    result += [self.m_low_frequency_motor setIntensity:((float)low_frequency_rumble / 65535.0f)];
-    result += [self.m_high_frequency_motor setIntensity:((float)high_frequency_rumble / 65535.0f)];
+    result += [self.lowFrequencyMotor setIntensity:((float)low_frequency_rumble / 65535.0f)];
+    result += [self.highFrequencyMotor setIntensity:((float)high_frequency_rumble / 65535.0f)];
     return ((result < 0) ? -1 : 0);
 }
 
--(int) rumbleLeftTrigger:(Uint16)left_rumble andRightTrigger:(Uint16)right_rumble
+- (int)rumbleLeftTrigger:(Uint16)left_rumble andRightTrigger:(Uint16)right_rumble
 {
     int result = 0;
 
-    if (self.m_left_trigger_motor && self.m_right_trigger_motor) {
-        result += [self.m_left_trigger_motor setIntensity:((float)left_rumble / 65535.0f)];
-        result += [self.m_right_trigger_motor setIntensity:((float)right_rumble / 65535.0f)];
+    if (self.leftTriggerMotor && self.rightTriggerMotor) {
+        result += [self.leftTriggerMotor setIntensity:((float)left_rumble / 65535.0f)];
+        result += [self.rightTriggerMotor setIntensity:((float)right_rumble / 65535.0f)];
     } else {
         result = SDL_Unsupported();
     }
     return ((result < 0) ? -1 : 0);
 }
 
--(void)cleanup
+- (void)cleanup
 {
-    [self.m_low_frequency_motor cleanup];
-    [self.m_high_frequency_motor cleanup];
+    [self.lowFrequencyMotor cleanup];
+    [self.highFrequencyMotor cleanup];
 }
 
 @end
@@ -1248,7 +1404,7 @@ IOS_MFIJoystickUpdate(SDL_Joystick *joystick)
 static SDL_RumbleContext *IOS_JoystickInitRumble(GCController *controller)
 {
     @autoreleasepool {
-        if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             SDL_RumbleMotor *low_frequency_motor = [[SDL_RumbleMotor alloc] initWithController:controller locality:GCHapticsLocalityLeftHandle];
             SDL_RumbleMotor *high_frequency_motor = [[SDL_RumbleMotor alloc] initWithController:controller locality:GCHapticsLocalityRightHandle];
             SDL_RumbleMotor *left_trigger_motor = [[SDL_RumbleMotor alloc] initWithController:controller locality:GCHapticsLocalityLeftTrigger];
@@ -1266,8 +1422,7 @@ static SDL_RumbleContext *IOS_JoystickInitRumble(GCController *controller)
 
 #endif /* ENABLE_MFI_RUMBLE */
 
-static int
-IOS_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
+static int IOS_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
 #ifdef ENABLE_MFI_RUMBLE
     SDL_JoystickDeviceItem *device = joystick->hwdata;
@@ -1276,7 +1431,7 @@ IOS_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 h
         return SDL_SetError("Controller is no longer connected");
     }
 
-    if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+    if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
         if (!device->rumble && device->controller && device->controller.haptics) {
             SDL_RumbleContext *rumble = IOS_JoystickInitRumble(device->controller);
             if (rumble) {
@@ -1296,8 +1451,7 @@ IOS_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 h
 #endif
 }
 
-static int
-IOS_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble)
+static int IOS_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble)
 {
 #ifdef ENABLE_MFI_RUMBLE
     SDL_JoystickDeviceItem *device = joystick->hwdata;
@@ -1306,7 +1460,7 @@ IOS_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 ri
         return SDL_SetError("Controller is no longer connected");
     }
 
-    if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+    if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
         if (!device->rumble && device->controller && device->controller.haptics) {
             SDL_RumbleContext *rumble = IOS_JoystickInitRumble(device->controller);
             if (rumble) {
@@ -1326,8 +1480,7 @@ IOS_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 ri
 #endif
 }
 
-static Uint32
-IOS_JoystickGetCapabilities(SDL_Joystick *joystick)
+static Uint32 IOS_JoystickGetCapabilities(SDL_Joystick *joystick)
 {
     Uint32 result = 0;
 
@@ -1339,15 +1492,15 @@ IOS_JoystickGetCapabilities(SDL_Joystick *joystick)
             return 0;
         }
 
-        if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCController *controller = device->controller;
-            #ifdef ENABLE_MFI_LIGHT
+#ifdef ENABLE_MFI_LIGHT
             if (controller.light) {
                 result |= SDL_JOYCAP_LED;
             }
-            #endif
+#endif
 
-            #ifdef ENABLE_MFI_RUMBLE
+#ifdef ENABLE_MFI_RUMBLE
             if (controller.haptics) {
                 for (GCHapticsLocality locality in controller.haptics.supportedLocalities) {
                     if ([locality isEqualToString:GCHapticsLocalityHandles]) {
@@ -1357,7 +1510,7 @@ IOS_JoystickGetCapabilities(SDL_Joystick *joystick)
                     }
                 }
             }
-            #endif
+#endif
         }
     }
 #endif /* ENABLE_MFI_LIGHT || ENABLE_MFI_RUMBLE */
@@ -1365,8 +1518,7 @@ IOS_JoystickGetCapabilities(SDL_Joystick *joystick)
     return result;
 }
 
-static int
-IOS_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
+static int IOS_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
 {
 #ifdef ENABLE_MFI_LIGHT
     @autoreleasepool {
@@ -1376,7 +1528,7 @@ IOS_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
             return SDL_SetError("Controller is no longer connected");
         }
 
-        if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCController *controller = device->controller;
             GCDeviceLight *light = controller.light;
             if (light) {
@@ -1392,14 +1544,12 @@ IOS_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
     return SDL_Unsupported();
 }
 
-static int
-IOS_JoystickSendEffect(SDL_Joystick *joystick, const void *data, int size)
+static int IOS_JoystickSendEffect(SDL_Joystick *joystick, const void *data, int size)
 {
     return SDL_Unsupported();
 }
 
-static int
-IOS_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled)
+static int IOS_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled)
 {
 #ifdef ENABLE_MFI_SENSORS
     @autoreleasepool {
@@ -1409,7 +1559,7 @@ IOS_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled)
             return SDL_SetError("Controller is no longer connected");
         }
 
-        if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCController *controller = device->controller;
             GCMotion *motion = controller.motion;
             if (motion) {
@@ -1423,8 +1573,7 @@ IOS_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled)
     return SDL_Unsupported();
 }
 
-static void
-IOS_JoystickUpdate(SDL_Joystick *joystick)
+static void IOS_JoystickUpdate(SDL_Joystick *joystick)
 {
     SDL_JoystickDeviceItem *device = joystick->hwdata;
 
@@ -1439,8 +1588,7 @@ IOS_JoystickUpdate(SDL_Joystick *joystick)
     }
 }
 
-static void
-IOS_JoystickClose(SDL_Joystick *joystick)
+static void IOS_JoystickClose(SDL_Joystick *joystick)
 {
     SDL_JoystickDeviceItem *device = joystick->hwdata;
 
@@ -1472,7 +1620,7 @@ IOS_JoystickClose(SDL_Joystick *joystick)
             controller.playerIndex = -1;
 
 #ifdef ENABLE_MFI_SYSTEM_GESTURE_STATE
-            if (@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)) {
+            if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
                 for (id key in controller.physicalInputProfile.buttons) {
                     GCControllerButtonInput *button = controller.physicalInputProfile.buttons[key];
                     if ([button isBoundToSystemGesture]) {
@@ -1490,8 +1638,7 @@ IOS_JoystickClose(SDL_Joystick *joystick)
     }
 }
 
-static void
-IOS_JoystickQuit(void)
+static void IOS_JoystickQuit(void)
 {
     @autoreleasepool {
 #ifdef SDL_JOYSTICK_MFI
@@ -1525,8 +1672,7 @@ IOS_JoystickQuit(void)
     numjoysticks = 0;
 }
 
-static SDL_bool
-IOS_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out)
+static SDL_bool IOS_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out)
 {
     return SDL_FALSE;
 }
@@ -1534,32 +1680,15 @@ IOS_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out)
 #if defined(SDL_JOYSTICK_MFI) && defined(__MACOSX__)
 SDL_bool IOS_SupportedHIDDevice(IOHIDDeviceRef device)
 {
-    if (is_macos11()) {
-        if ([GCController supportsHIDDevice:device]) {
-            return SDL_TRUE;
-        }
-
-        /* GCController supportsHIDDevice may return false if the device hasn't been
-         * seen by the framework yet, so check a few controllers we know are supported.
-         */
-        {
-            Sint32 vendor = 0;
-            Sint32 product = 0;
-            CFTypeRef refCF = NULL;
-
-            refCF = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDVendorIDKey));
-            if (refCF) {
-                CFNumberGetValue(refCF, kCFNumberSInt32Type, &vendor);
-            }
-
-            refCF = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductIDKey));
-            if (refCF) {
-                CFNumberGetValue(refCF, kCFNumberSInt32Type, &product);
-            }
-
-            if (vendor == USB_VENDOR_MICROSOFT && SDL_IsJoystickXboxSeriesX(vendor, product)) {
+    if (@available(macOS 10.16, *)) {
+        const int MAX_ATTEMPTS = 3;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+            if ([GCController supportsHIDDevice:device]) {
                 return SDL_TRUE;
             }
+
+            /* The framework may not have seen the device yet */
+            SDL_Delay(10);
         }
     }
     return SDL_FALSE;
@@ -1567,18 +1696,17 @@ SDL_bool IOS_SupportedHIDDevice(IOHIDDeviceRef device)
 #endif
 
 #if defined(SDL_JOYSTICK_MFI) && defined(ENABLE_PHYSICAL_INPUT_PROFILE)
-static void
-GetAppleSFSymbolsNameForElement(GCControllerElement *element, char *name)
+/* NOLINTNEXTLINE(readability-non-const-parameter): getCString takes a non-const char* */
+static void GetAppleSFSymbolsNameForElement(GCControllerElement *element, char *name)
 {
-    if (@available(macos 11.0, iOS 14.0, tvOS 14.0, *)) {
+    if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
         if (element) {
-            [element.sfSymbolsName getCString: name maxLength: 255 encoding: NSASCIIStringEncoding];
+            [element.sfSymbolsName getCString:name maxLength:255 encoding:NSASCIIStringEncoding];
         }
     }
 }
 
-static GCControllerDirectionPad *
-GetDirectionalPadForController(GCController *controller)
+static GCControllerDirectionPad *GetDirectionalPadForController(GCController *controller)
 {
     if (controller.extendedGamepad) {
         return controller.extendedGamepad.dpad;
@@ -1598,18 +1726,16 @@ GetDirectionalPadForController(GCController *controller)
 
 static char elementName[256];
 
-const char *
-IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontroller, SDL_GameControllerButton button)
+const char *IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontroller, SDL_GameControllerButton button)
 {
     elementName[0] = '\0';
 #if defined(SDL_JOYSTICK_MFI) && defined(ENABLE_PHYSICAL_INPUT_PROFILE)
     if (gamecontroller && SDL_GameControllerGetJoystick(gamecontroller)->driver == &SDL_IOS_JoystickDriver) {
-        if (@available(iOS 14.0, tvOS 14.0, macOS 11.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCController *controller = SDL_GameControllerGetJoystick(gamecontroller)->hwdata->controller;
             if ([controller respondsToSelector:@selector(physicalInputProfile)]) {
-                NSDictionary<NSString *,GCControllerElement *> *elements = controller.physicalInputProfile.elements;
-                switch (button)
-                {
+                NSDictionary<NSString *, GCControllerElement *> *elements = controller.physicalInputProfile.elements;
+                switch (button) {
                 case SDL_CONTROLLER_BUTTON_A:
                     GetAppleSFSymbolsNameForElement(elements[GCInputButtonA], elementName);
                     break;
@@ -1643,8 +1769,9 @@ IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontrol
                 case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
                     GetAppleSFSymbolsNameForElement(elements[GCInputRightShoulder], elementName);
                     break;
-                case SDL_CONTROLLER_BUTTON_DPAD_UP: {
-                    GCControllerDirectionPad * dpad = GetDirectionalPadForController(controller);
+                case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                {
+                    GCControllerDirectionPad *dpad = GetDirectionalPadForController(controller);
                     if (dpad) {
                         GetAppleSFSymbolsNameForElement(dpad.up, elementName);
                         if (SDL_strlen(elementName) == 0) {
@@ -1653,8 +1780,9 @@ IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontrol
                     }
                     break;
                 }
-                case SDL_CONTROLLER_BUTTON_DPAD_DOWN: {
-                    GCControllerDirectionPad * dpad = GetDirectionalPadForController(controller);
+                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                {
+                    GCControllerDirectionPad *dpad = GetDirectionalPadForController(controller);
                     if (dpad) {
                         GetAppleSFSymbolsNameForElement(dpad.down, elementName);
                         if (SDL_strlen(elementName) == 0) {
@@ -1663,8 +1791,9 @@ IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontrol
                     }
                     break;
                 }
-                case SDL_CONTROLLER_BUTTON_DPAD_LEFT: {
-                    GCControllerDirectionPad * dpad = GetDirectionalPadForController(controller);
+                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                {
+                    GCControllerDirectionPad *dpad = GetDirectionalPadForController(controller);
                     if (dpad) {
                         GetAppleSFSymbolsNameForElement(dpad.left, elementName);
                         if (SDL_strlen(elementName) == 0) {
@@ -1673,8 +1802,9 @@ IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontrol
                     }
                     break;
                 }
-                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: {
-                    GCControllerDirectionPad * dpad = GetDirectionalPadForController(controller);
+                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                {
+                    GCControllerDirectionPad *dpad = GetDirectionalPadForController(controller);
                     if (dpad) {
                         GetAppleSFSymbolsNameForElement(dpad.right, elementName);
                         if (SDL_strlen(elementName) == 0) {
@@ -1711,18 +1841,16 @@ IOS_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController *gamecontrol
     return elementName;
 }
 
-const char *
-IOS_GameControllerGetAppleSFSymbolsNameForAxis(SDL_GameController *gamecontroller, SDL_GameControllerAxis axis)
+const char *IOS_GameControllerGetAppleSFSymbolsNameForAxis(SDL_GameController *gamecontroller, SDL_GameControllerAxis axis)
 {
     elementName[0] = '\0';
 #if defined(SDL_JOYSTICK_MFI) && defined(ENABLE_PHYSICAL_INPUT_PROFILE)
     if (gamecontroller && SDL_GameControllerGetJoystick(gamecontroller)->driver == &SDL_IOS_JoystickDriver) {
-        if (@available(iOS 14.0, tvOS 14.0, macOS 11.0, *)) {
+        if (@available(macOS 10.16, iOS 14.0, tvOS 14.0, *)) {
             GCController *controller = SDL_GameControllerGetJoystick(gamecontroller)->hwdata->controller;
             if ([controller respondsToSelector:@selector(physicalInputProfile)]) {
-                NSDictionary<NSString *,GCControllerElement *> *elements = controller.physicalInputProfile.elements;
-                switch (axis)
-                {
+                NSDictionary<NSString *, GCControllerElement *> *elements = controller.physicalInputProfile.elements;
+                switch (axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
                     GetAppleSFSymbolsNameForElement(elements[GCInputLeftThumbstick], elementName);
                     break;
@@ -1751,13 +1879,12 @@ IOS_GameControllerGetAppleSFSymbolsNameForAxis(SDL_GameController *gamecontrolle
     return *elementName ? elementName : NULL;
 }
 
-
-SDL_JoystickDriver SDL_IOS_JoystickDriver =
-{
+SDL_JoystickDriver SDL_IOS_JoystickDriver = {
     IOS_JoystickInit,
     IOS_JoystickGetCount,
     IOS_JoystickDetect,
     IOS_JoystickGetDeviceName,
+    IOS_JoystickGetDevicePath,
     IOS_JoystickGetDevicePlayerIndex,
     IOS_JoystickSetDevicePlayerIndex,
     IOS_JoystickGetDeviceGUID,

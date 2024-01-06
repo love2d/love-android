@@ -1,6 +1,6 @@
 /*
 ** C type management.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_CTYPE_H
@@ -276,6 +276,8 @@ typedef struct CTState {
 #define CTTYDEFP(_)
 #endif
 
+#define CTF_LONG_IF8		(CTF_LONG * (sizeof(long) == 8))
+
 /* Common types. */
 #define CTTYDEF(_) \
   _(NONE,		0,	CT_ATTRIB, CTATTRIB(CTA_BAD)) \
@@ -289,8 +291,8 @@ typedef struct CTState {
   _(UINT16,		2,	CT_NUM, CTF_UNSIGNED|CTALIGN(1)) \
   _(INT32,		4,	CT_NUM, CTALIGN(2)) \
   _(UINT32,		4,	CT_NUM, CTF_UNSIGNED|CTALIGN(2)) \
-  _(INT64,		8,	CT_NUM, CTF_LONG|CTALIGN(3)) \
-  _(UINT64,		8,	CT_NUM, CTF_UNSIGNED|CTF_LONG|CTALIGN(3)) \
+  _(INT64,		8,	CT_NUM, CTF_LONG_IF8|CTALIGN(3)) \
+  _(UINT64,		8,	CT_NUM, CTF_UNSIGNED|CTF_LONG_IF8|CTALIGN(3)) \
   _(FLOAT,		4,	CT_NUM, CTF_FP|CTALIGN(2)) \
   _(DOUBLE,		8,	CT_NUM, CTF_FP|CTALIGN(3)) \
   _(COMPLEX_FLOAT,	8,	CT_ARRAY, CTF_COMPLEX|CTALIGN(2)|CTID_FLOAT) \
@@ -468,6 +470,7 @@ LJ_FUNC CType *lj_ctype_rawref(CTState *cts, CTypeID id);
 LJ_FUNC CTSize lj_ctype_size(CTState *cts, CTypeID id);
 LJ_FUNC CTSize lj_ctype_vlsize(CTState *cts, CType *ct, CTSize nelem);
 LJ_FUNC CTInfo lj_ctype_info(CTState *cts, CTypeID id, CTSize *szp);
+LJ_FUNC CTInfo lj_ctype_info_raw(CTState *cts, CTypeID id, CTSize *szp);
 LJ_FUNC cTValue *lj_ctype_meta(CTState *cts, CTypeID id, MMS mm);
 LJ_FUNC GCstr *lj_ctype_repr(lua_State *L, CTypeID id, GCstr *name);
 LJ_FUNC GCstr *lj_ctype_repr_int64(lua_State *L, uint64_t n, int isunsigned);

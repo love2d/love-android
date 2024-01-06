@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2022 LOVE Development Team
+ * Copyright (c) 2006-2023 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -114,8 +114,13 @@ public class GameActivity extends SDLActivity {
         gamePath = "";
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
+        needToCopyGameInArchive = embed;
 
-        handleIntent(this.getIntent());
+        if (!embed) {
+            Intent intent = getIntent();
+            handleIntent(intent);
+            intent.setData(null);
+        }
 
         super.onCreate(savedInstanceState);
         metrics = getResources().getDisplayMetrics();
@@ -168,6 +173,9 @@ public class GameActivity extends SDLActivity {
                         filename = pathSegments[pathSegments.length - 1];
                     }
 
+                    // Sanitize filename to prevent PhysFS complaining later.
+                    filename = filename.replaceAll("[^a-zA-Z0-9_\\\\-\\\\.]", "_");
+
                     String destination_file = this.getCacheDir().getPath() + "/" + filename;
                     InputStream data = getContentResolver().openInputStream(game);
 
@@ -197,10 +205,6 @@ public class GameActivity extends SDLActivity {
                 alert_dialog.setCancelable(false);
                 alert_dialog.create().show();
             }
-        } else {
-            // No game specified via the intent data or embed build is used.
-            // Load game archive only when needed.
-            needToCopyGameInArchive = embed;
         }
 
         Log.d("GameActivity", "new gamePath: " + gamePath);
@@ -608,13 +612,12 @@ public class GameActivity extends SDLActivity {
 
     public boolean isNativeLibsExtracted() {
         ApplicationInfo appInfo = getApplicationInfo();
-        boolean nativeLibsExtracted = true;
 
         if (android.os.Build.VERSION.SDK_INT >= 23) {
-            nativeLibsExtracted = (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
+            return (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
         }
 
-        return nativeLibsExtracted;
+        return true;
     }
 
     @Keep

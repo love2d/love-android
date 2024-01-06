@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-    package="org.love2d.android.executable"
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" >
 
   <application tools:node="merge">
@@ -50,6 +48,18 @@
             android:host="*"
             android:mimeType="*/*"
             android:pathPattern=".*\\.love" />
+      </intent-filter>
+    </activity>
+    <activity
+        android:name="org.love2d.android.SelectorActivity"
+        android:label="LÖVE Loader"
+        android:exported="true"
+        android:enabled="@bool/selector_active"
+        android:theme="@style/Theme.AppCompat.NoActionBar" >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+        <category android:name="tv.ouya.intent.category.GAME" />
       </intent-filter>
     </activity>
   </application>

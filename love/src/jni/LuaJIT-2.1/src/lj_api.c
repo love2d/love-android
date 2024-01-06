@@ -1,6 +1,6 @@
 /*
 ** Public Lua/C API.
-** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Major portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -104,7 +104,12 @@ LUA_API int lua_checkstack(lua_State *L, int size)
   if (size > LUAI_MAXCSTACK || (L->top - L->base + size) > LUAI_MAXCSTACK) {
     return 0;  /* Stack overflow. */
   } else if (size > 0) {
-    lj_state_checkstack(L, (MSize)size);
+    int avail = (int)(mref(L->maxstack, TValue) - L->top);
+    if (size > avail &&
+	lj_state_cpgrowstack(L, (MSize)(size - avail)) != LUA_OK) {
+      L->top--;
+      return 0;  /* Out of memory. */
+    }
   }
   return 1;
 }
@@ -779,7 +784,7 @@ LUA_API void lua_concat(lua_State *L, int n)
 	L->top -= n;
 	break;
       }
-      n -= (int)(L->top - top);
+      n -= (int)(L->top - (top - 2*LJ_FR2));
       L->top = top+2;
       lj_vm_call(L, top, 1+1);
       L->top -= 1+LJ_FR2;

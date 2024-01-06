@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,11 +25,10 @@
 #include "SDL_cocoavideo.h"
 #include "../../events/SDL_clipboardevents_c.h"
 
-int
-Cocoa_SetClipboardText(_THIS, const char *text)
+int Cocoa_SetClipboardText(_THIS, const char *text)
 { @autoreleasepool
 {
-    SDL_VideoData *data = (SDL_VideoData *) _this->driverdata;
+    SDL_VideoData *data = (__bridge SDL_VideoData *) _this->driverdata;
     NSPasteboard *pasteboard;
     NSString *format = NSPasteboardTypeString;
     NSString *nsstr = [NSString stringWithUTF8String:text];
@@ -38,14 +37,13 @@ Cocoa_SetClipboardText(_THIS, const char *text)
     }
 
     pasteboard = [NSPasteboard generalPasteboard];
-    data->clipboard_count = [pasteboard declareTypes:[NSArray arrayWithObject:format] owner:nil];
+    data.clipboard_count = [pasteboard declareTypes:[NSArray arrayWithObject:format] owner:nil];
     [pasteboard setString:nsstr forType:format];
 
     return 0;
 }}
 
-char *
-Cocoa_GetClipboardText(_THIS)
+char *Cocoa_GetClipboardText(_THIS)
 { @autoreleasepool
 {
     NSPasteboard *pasteboard;
@@ -73,8 +71,7 @@ Cocoa_GetClipboardText(_THIS)
     return text;
 }}
 
-SDL_bool
-Cocoa_HasClipboardText(_THIS)
+SDL_bool Cocoa_HasClipboardText(_THIS)
 {
     SDL_bool result = SDL_FALSE;
     char *text = Cocoa_GetClipboardText(_this);
@@ -85,8 +82,7 @@ Cocoa_HasClipboardText(_THIS)
     return result;
 }
 
-void
-Cocoa_CheckClipboardUpdate(struct SDL_VideoData * data)
+void Cocoa_CheckClipboardUpdate(SDL_VideoData * data)
 { @autoreleasepool
 {
     NSPasteboard *pasteboard;
@@ -94,11 +90,11 @@ Cocoa_CheckClipboardUpdate(struct SDL_VideoData * data)
 
     pasteboard = [NSPasteboard generalPasteboard];
     count = [pasteboard changeCount];
-    if (count != data->clipboard_count) {
-        if (data->clipboard_count) {
+    if (count != data.clipboard_count) {
+        if (data.clipboard_count) {
             SDL_SendClipboardUpdate();
         }
-        data->clipboard_count = count;
+        data.clipboard_count = count;
     }
 }}
 

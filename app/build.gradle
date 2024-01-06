@@ -1,15 +1,42 @@
+import java.nio.charset.StandardCharsets
+
 apply plugin: 'com.android.application'
 
 android {
-    compileSdk 33
-    buildToolsVersion '33.0.0'
-    ndkVersion '23.2.8568313'
+    namespace "org.love2d.android.executable"
+    ndkVersion '25.2.9519653'
+
     defaultConfig {
         applicationId 'com.formularsumo.starwarsforcecollectionremake.embed'
         versionCode 59
         versionName '0.12-prerelease'
-        minSdkVersion 16
-        targetSdk 33
+        minSdk 16
+        compileSdk 34
+        targetSdk 34
+        
+        def getAppName = {
+            def nameArray = project.properties["app.name_byte_array"]
+            def name = project.properties["app.name"]
+            if (name != null && nameArray != null) {
+                throw new Exception("Only define either `app.name` or `app.name_byte_array` in gradle.properties, but not both!")
+            }
+
+            if (name == null) {
+                def nameArraySplit = nameArray.split(",")
+                def nameBytes = new byte[nameArraySplit.length]
+                def count = 0
+                for (String s: nameArraySplit) {
+                    nameBytes[count++] = (byte) Integer.parseInt(s)
+                }
+                return new String(nameBytes, StandardCharsets.UTF_8)
+            }
+            return name
+        }
+
+        manifestPlaceholders = [
+            NAME:getAppName(),
+            ORIENTATION:project.properties["app.orientation"],
+        ]
     }
     buildTypes {
         release {
@@ -17,7 +44,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    flavorDimensions 'mode', 'recording'
+    flavorDimensions = ['mode', 'recording']
     productFlavors {
         normal {
             dimension 'mode'
@@ -32,7 +59,7 @@ android {
             dimension 'recording'
         }
     }
-    lintOptions {
+    lint {
         abortOnError false
     }
 }
@@ -40,6 +67,6 @@ android {
 dependencies {
     api 'androidx.multidex:multidex:2.0.1'
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.5.1'
+    api 'androidx.appcompat:appcompat:1.6.1'
     api project(':love')
 }

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -39,14 +39,21 @@
 
 typedef unsigned long long  ULLONG;
 
+static SDL_bool ticks_started = SDL_FALSE;
 static ULONG    ulTmrFreq = 0;
 static ULLONG   ullTmrStart = 0;
 
-void
-SDL_TicksInit(void)
+void SDL_TicksInit(void)
 {
     ULONG ulTmrStart;  /* for 32-bit fallback. */
-    ULONG ulRC = DosTmrQueryFreq(&ulTmrFreq);
+    ULONG ulRC;
+
+    if (ticks_started) {
+        return;
+    }
+    ticks_started = SDL_TRUE;
+
+    ulRC = DosTmrQueryFreq(&ulTmrFreq);
     if (ulRC != NO_ERROR) {
         debug_os2("DosTmrQueryFreq() failed, rc = %u", ulRC);
     } else {
@@ -58,22 +65,21 @@ SDL_TicksInit(void)
     }
 
     ulTmrFreq = 0; /* Error - use DosQuerySysInfo() for timer. */
-    DosQuerySysInfo(QSV_MS_COUNT, QSV_MS_COUNT, &ulTmrStart, sizeof (ULONG));
+    DosQuerySysInfo(QSV_MS_COUNT, QSV_MS_COUNT, &ulTmrStart, sizeof(ULONG));
     ullTmrStart = (ULLONG) ulTmrStart;
 }
 
-void
-SDL_TicksQuit(void)
+void SDL_TicksQuit(void)
 {
+    ticks_started = SDL_FALSE;
 }
 
-Uint64
-SDL_GetTicks64(void)
+Uint64 SDL_GetTicks64(void)
 {
     Uint64 ui64Result;
     ULLONG ullTmrNow;
 
-    if (ulTmrFreq == 0) { /* Was not initialized. */
+    if (!ticks_started) {
         SDL_TicksInit();
     }
 
@@ -83,15 +89,14 @@ SDL_GetTicks64(void)
     } else {
         /* note that this counter rolls over to 0 every ~49 days. Fix your system so DosTmrQueryTime works if you need to avoid this. */
         ULONG ulTmrNow;
-        DosQuerySysInfo(QSV_MS_COUNT, QSV_MS_COUNT, &ulTmrNow, sizeof (ULONG));
+        DosQuerySysInfo(QSV_MS_COUNT, QSV_MS_COUNT, &ulTmrNow, sizeof(ULONG));
         ui64Result = (((Uint64) ulTmrNow) - ullTmrStart);
     }
 
     return ui64Result;
 }
 
-Uint64
-SDL_GetPerformanceCounter(void)
+Uint64 SDL_GetPerformanceCounter(void)
 {
     QWORD   qwTmrNow;
 
@@ -101,14 +106,12 @@ SDL_GetPerformanceCounter(void)
     return *((Uint64 *)&qwTmrNow);
 }
 
-Uint64
-SDL_GetPerformanceFrequency(void)
+Uint64 SDL_GetPerformanceFrequency(void)
 {
     return (ulTmrFreq == 0)? 1000 : (Uint64)ulTmrFreq;
 }
 
-void
-SDL_Delay(Uint32 ms)
+void SDL_Delay(Uint32 ms)
 {
     HTIMER  hTimer = NULLHANDLE;
     ULONG   ulRC;
