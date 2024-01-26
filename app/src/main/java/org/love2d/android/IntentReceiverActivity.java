@@ -27,6 +27,8 @@ import android.os.Bundle;
 
 import androidx.annotation.Nullable;
 
+import java.util.Objects;
+
 public class IntentReceiverActivity extends Activity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -35,7 +37,7 @@ public class IntentReceiverActivity extends Activity {
         Intent mainIntent = getIntent();
         Intent intent = new Intent(this, GameActivity.class);
 
-        if (mainIntent.getAction().equals(Intent.ACTION_SEND)) {
+        if (Objects.equals(mainIntent.getAction(), Intent.ACTION_SEND)) {
             // Convert to simpler intent that our GameActivity can process.
             Uri uri = mainIntent.getParcelableExtra(Intent.EXTRA_STREAM);
             intent.setData(uri);

@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace "org.love2d.android"
-    ndkVersion "26.0.10792818"
+    ndkVersion "26.1.10909125"
 
     defaultConfig {
         applicationId project.properties["app.application_id"]
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
-        minSdk 21
+        minSdk 23
         compileSdk 34
         targetSdk 34
 
