@@ -172,7 +172,7 @@ dependencies {
     implementation 'com.google.oboe:oboe:1.7.0'
 }
 
-// We don't even use Kotlin. Why we have to suffer...
+// We don't even use Kotlin. Why we have to care about it?
 configurations.implementation {
     exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
 }

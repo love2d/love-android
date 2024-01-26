@@ -1,7 +1,7 @@
 Android Port of LÖVE, an awesome 2D game engine for Lua (http://love2d.org)  
 Copyright (c) 2006-2023 LOVE Development Team
 
-![](https://github.com/love2d/love-android/workflows/build/badge.svg)
+![Build Status](https://github.com/love2d/love-android/workflows/build/badge.svg)
 
 Download:
 ---------
@@ -38,32 +38,32 @@ Detailed instructions can be viewed at https://github.com/love2d/love-android/wi
 Quick Start:
 ------------
 
-Before you start, install JDK 11 or later. If you intend to build from Android Studio, skip this step as
-Android Studio bundles its own JDK 11.
+Before you start, install JDK 17 (not later not earlier). If you intend to build from Android Studio, skip this step as
+Android Studio bundles its own JDK 17.
 
-Install CMake version 3.21 or later in your system. Install Android SDK with SDK API 33 (33.0.0) and Android NDK 25.2.9519653.
-Set the environment variables `ANDROID_SDK_ROOT` to your Android SDK location if necessary and run.
+Install CMake version 3.21 or later in your system. Install Android SDK with SDK API 34 (34.x.y) and Android NDK
+25.2.9519653, set the environment variable `ANDROID_HOME` to your Android SDK as necessary then run.
 
 ```
 $ ./gradlew assembleNormalRecord
 ```
 
-in the root folder of this project. This should give you a .apk file in the `app/build/outputs/apk/normalRecord`
-subdirectory that you can then sign and install on your phone. The `normalRecord` .apk flavor is what you normally have
-when downloading one from https://love2d.org.
+in the root folder of this project. This should give you an .apk file in the `app/build/outputs/apk/normalRecord`
+subdirectory that you can then sign and install on your phone. The `normalRecord` .apk variant is what you normally have
+when downloading APK from https://love2d.org.
 
 If you want to put your game inside the APK, you can either:
 
 1. Put all your games in `app/src/embed/assets` such that your `main.lua` path is `app/src/embed/assets/main.lua`; or
 2. Put your zipped \*.love in `app/src/embed/assets` with name `game.love`
 
-And change the package name, application version string and codes, application display name, and the icons (see
+And change the application id, application version string and codes, application display name, and the icons (see
 [Game Packaging Wiki](https://github.com/love2d/love-android/wiki/Game-Packaging). Afterwards,
 run either `gradlew assembleEmbedNoRecordRelease` (or `gradlew assembleEmbedRecordRelease` if your game uses microphone) to
 generate APK which you can install or `gradlew bundleEmbedNoRecordRelease` (or `gradlew bundleEmbedRecordRelease`) to generate
 AAB which you can upload to Play Store.
 
-Alternatively, you can install Android Studio **2022.1.1** or later. After opening it for the first time, open its SDK Manager
+Alternatively, you can install Android Studio **2022.3.1** or later. After opening it for the first time, open its SDK Manager
 and on the tab "SDK Tools", tick "Show Package Details" then select NDK (Side By Side) version 25.2.9519653. After that, open
 the repository root.
 
@@ -76,8 +76,16 @@ Bugs and/or feature requests should be reported to the issue tracker at:
 * https://github.com/love2d/love-android/issues - LÖVE-Android-specific issues
 * https://github.com/love2d/love/issues - for LÖVE in general
 
+Note: If in doubt, fill an issue report to https://github.com/love2d/love/issues. We'll transfer the issue to this repository as needed.
+
 Changelog:
 ----------
+
+11.5:
+
+* Contains all relevant changes for desktop LÖVE [11.5](https://love2d.org/wiki/11.5).
+* Fixed audio in Android still playing in the background in certain cases. ([love2d/love#1828](https://github.com/love2d/love/issues/1828))
+
 
 11.4:
 
