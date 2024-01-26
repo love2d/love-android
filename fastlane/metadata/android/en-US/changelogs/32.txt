@@ -1,0 +1,3 @@
+11.5:
+• Contains all relevant changes for desktop LÖVE 11.5.
+• Fixed audio in Android still playing in the background in certain cases. (love2d/love#1828).

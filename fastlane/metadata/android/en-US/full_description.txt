@@ -1,0 +1,24 @@
+<p>
+    <b>LÖVE is an awesome 2D game framework for Lua.</b>
+</p>
+<p>
+    LÖVE is a free, open-source, cross-platform framework released under the zlib license for developing video games. The framework is written in C++ and uses Lua as its scripting language.
+</p>
+<p>
+    This is the Android port of LÖVE. It can load games from *.love files and from /sdcard/lovegame (or /sdcard/Android/data/org.love2d.android/files/games/lovegame) folder.
+</p>
+<p>
+    <b>These features come with the framework:</b>
+</p>
+<ul>
+    <li>Supports OpenGL pixel shaders GLSL.</li>
+    <li>Supports touchscreen for mobile devices.</li>
+    <li>Supports joysticks by providing interface for connected joysticks.</li>
+    <li>Supports UTF-8.</li>
+    <li>Supports image formats: PNG, JPEG, GIF, TGA and BMP.</li>
+    <li>Supports audio formats: WAV, OGG, and MP3.</li>
+    <li>Supports video formats: OGV.</li>
+    <li>Supports the physics engine Box2D in games, which can be disabled to lighten the library.</li>
+    <li>Supports the LuaSocket library for network communications TCP/UDP.</li>
+    <li>Supports the lua-enet library, another network library implementing Enet, a reliable protocol based on UDP.</li>
+</ul>
