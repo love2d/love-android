@@ -20,13 +20,14 @@
 
 package org.love2d.android;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 public class AboutActivity extends AppCompatActivity {
 
@@ -45,7 +46,11 @@ public class AboutActivity extends AppCompatActivity {
         });
 
         // Set version
-        TextView versionText = findViewById(R.id.textView4);
-        versionText.setText(getString(R.string.version_info, BuildConfig.VERSION_NAME));
+        try {
+            String version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            TextView versionText = findViewById(R.id.textView4);
+            versionText.setText(getString(R.string.version_info, version));
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
     }
 }

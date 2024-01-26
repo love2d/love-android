@@ -20,15 +20,6 @@
 
 package org.love2d.android;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
@@ -39,6 +30,15 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
         GameListAdapter adapter = new GameListAdapter();
 
-            // Set refresh listener
+        // Set refresh listener
         swipeLayout.setOnRefreshListener(() -> {
             scanGames(adapter, noGameText, swipeLayout);
         });
@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle item selection
         if (itemId == R.id.optionItem) {
-            openFileLauncher.launch(new String[] {"*/*"});
+            openFileLauncher.launch(new String[]{"*/*"});
             return true;
         } else if (itemId == R.id.optionItem2) {
             Intent intent = new Intent(this, GameActivity.class);
@@ -120,7 +120,8 @@ public class MainActivity extends AppCompatActivity {
     private AlertDialog getGameFolderDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
             .setTitle(getString(R.string.game_folder))
-            .setPositiveButton(R.string.ok, (dialog1, which) -> { });
+            .setPositiveButton(R.string.ok, (dialog1, which) -> {
+            });
         StringBuilder message = new StringBuilder()
             .append(getString(R.string.game_folder_location, getPackageName()))
             .append("\n\n");
@@ -211,7 +212,8 @@ public class MainActivity extends AppCompatActivity {
             ZipFile zip = new ZipFile(file, ZipFile.OPEN_READ);
             valid = zip.getEntry("main.lua") != null;
             zip.close();
-        } catch (IOException ignored) { }
+        } catch (IOException ignored) {
+        }
 
         return valid;
     }

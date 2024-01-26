@@ -15,8 +15,8 @@
  */
 
 /*
-* Modified for use with LOVE by the LOVE Development Team
-* Copyright (C) 2023 LOVE Development Team
+ * Modified for use with LOVE by the LOVE Development Team
+ * Copyright (C) 2023 LOVE Development Team
  */
 
 package org.love2d.android;
@@ -29,7 +29,6 @@ import android.database.MatrixCursor;
 import android.graphics.Point;
 import android.os.Build;
 import android.os.CancellationSignal;
-import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;
@@ -42,15 +41,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.PriorityQueue;
-import java.util.Set;
 
 /**
  * Manages documents and exposes them to the Android system for sharing.
@@ -61,25 +56,25 @@ public class LoveDocumentsProvider extends DocumentsProvider {
     // Use these as the default columns to return information about a root if no specific
     // columns are requested in a query.
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[]{
-            Root.COLUMN_ROOT_ID,
-            Root.COLUMN_MIME_TYPES,
-            Root.COLUMN_FLAGS,
-            Root.COLUMN_ICON,
-            Root.COLUMN_TITLE,
-            Root.COLUMN_SUMMARY,
-            Root.COLUMN_DOCUMENT_ID,
-            Root.COLUMN_AVAILABLE_BYTES
+        Root.COLUMN_ROOT_ID,
+        Root.COLUMN_MIME_TYPES,
+        Root.COLUMN_FLAGS,
+        Root.COLUMN_ICON,
+        Root.COLUMN_TITLE,
+        Root.COLUMN_SUMMARY,
+        Root.COLUMN_DOCUMENT_ID,
+        Root.COLUMN_AVAILABLE_BYTES
     };
 
     // Use these as the default columns to return information about a document if no specific
     // columns are requested in a query.
     private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[]{
-            Document.COLUMN_DOCUMENT_ID,
-            Document.COLUMN_MIME_TYPE,
-            Document.COLUMN_DISPLAY_NAME,
-            Document.COLUMN_LAST_MODIFIED,
-            Document.COLUMN_FLAGS,
-            Document.COLUMN_SIZE
+        Document.COLUMN_DOCUMENT_ID,
+        Document.COLUMN_MIME_TYPE,
+        Document.COLUMN_DISPLAY_NAME,
+        Document.COLUMN_LAST_MODIFIED,
+        Document.COLUMN_FLAGS,
+        Document.COLUMN_SIZE
     };
 
     // No official policy on how many to return, but make sure you do limit the number of recent
@@ -120,19 +115,13 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         // documents will show up in the "Recents" category.  FLAG_SUPPORTS_SEARCH allows users
         // to search all documents the application shares. FLAG_SUPPORTS_IS_CHILD allows
         // testing parent child relationships, available after SDK 21 (Lollipop).
-        if (SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE |
-                    Root.FLAG_SUPPORTS_RECENTS |
-                    Root.FLAG_SUPPORTS_SEARCH);
-        } else {
-            row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE |
-                    Root.FLAG_SUPPORTS_RECENTS |
-                    Root.FLAG_SUPPORTS_SEARCH |
-                    Root.FLAG_SUPPORTS_IS_CHILD);
-        }
+        row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE |
+            Root.FLAG_SUPPORTS_RECENTS |
+            Root.FLAG_SUPPORTS_SEARCH |
+            Root.FLAG_SUPPORTS_IS_CHILD);
 
         // COLUMN_TITLE is the root title (e.g. what will be displayed to identify your provider).
-        row.add(Root.COLUMN_TITLE, getContext().getApplicationInfo().loadLabel(getContext().getPackageManager()).toString());
+        row.add(Root.COLUMN_TITLE, Objects.requireNonNull(getContext()).getApplicationInfo().loadLabel(getContext().getPackageManager()).toString());
 
         // This document id must be unique within this provider and consistent across time.  The
         // system picker UI may save it and refer to it later.
@@ -149,7 +138,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
     @Override
     public Cursor queryRecentDocuments(String rootId, String[] projection)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "queryRecentDocuments");
 
         // This implementation walks a local file structure to find the most recently
@@ -181,7 +170,11 @@ public class LoveDocumentsProvider extends DocumentsProvider {
             final File file = pending.removeFirst();
             if (file.isDirectory()) {
                 // If it's a directory, add all its children to the unprocessed list
-                Collections.addAll(pending, file.listFiles());
+                File[] files = file.listFiles();
+
+                if (files != null) {
+                    Collections.addAll(pending, files);
+                }
             } else {
                 // If it's a file, add it to the ordered queue.
                 lastModifiedFiles.add(file);
@@ -200,7 +193,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
     @Override
     public Cursor querySearchDocuments(String rootId, String query, String[] projection)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "querySearchDocuments");
 
         // Create a cursor with the requested projection, or the default projection.
@@ -225,7 +218,11 @@ public class LoveDocumentsProvider extends DocumentsProvider {
             final File file = pending.removeFirst();
             if (file.isDirectory()) {
                 // If it's a directory, add all its children to the unprocessed list
-                Collections.addAll(pending, file.listFiles());
+                File[] files = file.listFiles();
+
+                if (files != null) {
+                    Collections.addAll(pending, files);
+                }
             } else {
                 // If it's a file and it matches, add it to the result cursor.
                 if (file.getName().toLowerCase().contains(query)) {
@@ -239,18 +236,18 @@ public class LoveDocumentsProvider extends DocumentsProvider {
     @Override
     public AssetFileDescriptor openDocumentThumbnail(String documentId, Point sizeHint,
                                                      CancellationSignal signal)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "openDocumentThumbnail");
 
         final File file = getFileForDocId(documentId);
         final ParcelFileDescriptor pfd =
-                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
         return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
     @Override
     public Cursor queryDocument(String documentId, String[] projection)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "queryDocument");
 
         // Create a cursor with the requested projection, or the default projection.
@@ -263,14 +260,18 @@ public class LoveDocumentsProvider extends DocumentsProvider {
     public Cursor queryChildDocuments(String parentDocumentId, String[] projection,
                                       String sortOrder) throws FileNotFoundException {
         Log.v(TAG, "queryChildDocuments, parentDocumentId: " +
-                parentDocumentId +
-                " sortOrder: " +
-                sortOrder);
+            parentDocumentId +
+            " sortOrder: " +
+            sortOrder);
 
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final File parent = getFileForDocId(parentDocumentId);
-        for (File file : parent.listFiles()) {
-            includeFile(result, null, file);
+        File[] files = parent.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                includeFile(result, null, file);
+            }
         }
         return result;
     }
@@ -292,22 +293,18 @@ public class LoveDocumentsProvider extends DocumentsProvider {
     @Override
     public boolean isChildDocument(String parentDocumentId, String documentId) {
         Log.v(TAG, "isChildDocument");
-        if(documentId.startsWith(parentDocumentId)) {
-            return true;
-        } else {
-            return false;
-        }
+        return documentId.startsWith(parentDocumentId);
     }
 
     @Override
     public String createDocument(String documentId, String mimeType, String displayName)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "createDocument");
 
         File parent = getFileForDocId(documentId);
         File file = new File(parent.getPath(), displayName);
         int conflictId = 1;
-        while(file.exists()) {
+        while (file.exists()) {
             file = new File(parent.getPath(), displayName + "(" + conflictId++ + ")");
         }
         try {
@@ -321,18 +318,18 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
             if (!wasNewFileCreated) {
                 throw new FileNotFoundException("Failed to create document with name " +
-                        displayName + " and documentId " + documentId);
+                    displayName + " and documentId " + documentId);
             }
         } catch (IOException e) {
             throw new FileNotFoundException("Failed to create document with name " +
-                    displayName + " and documentId " + documentId);
+                displayName + " and documentId " + documentId);
         }
         return getDocIdForFile(file);
     }
 
     @Override
     public String renameDocument(String documentId, String displayName)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "renameDocument");
         if (displayName == null) {
             throw new FileNotFoundException("Failed to rename document, new name is null");
@@ -373,7 +370,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
     @Override
     public void removeDocument(String documentId, String parentDocumentId)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "removeDocument");
         File parent = getFileForDocId(parentDocumentId);
         File file = getFileForDocId(documentId);
@@ -411,14 +408,14 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         Log.v(TAG, "copyDocument with document parent");
         if (!isChildDocument(sourceParentDocumentId, sourceDocumentId)) {
             throw new FileNotFoundException("Failed to copy document with id " +
-                    sourceDocumentId + ". Parent is not: " + sourceParentDocumentId);
+                sourceDocumentId + ". Parent is not: " + sourceParentDocumentId);
         }
         return copyDocument(sourceDocumentId, targetParentDocumentId);
     }
 
     @Override
     public String copyDocument(String sourceDocumentId, String targetParentDocumentId)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         Log.v(TAG, "copyDocument");
 
         File parent = getFileForDocId(targetParentDocumentId);
@@ -426,13 +423,13 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         File newFile = new File(parent.getPath(), oldFile.getName());
         try {
             int conflictId = 1;
-            while(newFile.exists()) {
+            while (newFile.exists()) {
                 newFile = new File(parent.getPath(), oldFile.getName() + "(" + conflictId++ + ")");
             }
             // Create the new File to copy into
             boolean wasNewFileCreated = false;
             boolean isDirectory = Document.MIME_TYPE_DIR.equals(getTypeForFile(oldFile));
-            if(isDirectory) {
+            if (isDirectory) {
                 if (newFile.mkdir()) {
                     if (newFile.setWritable(true) && newFile.setReadable(true)) {
                         wasNewFileCreated = true;
@@ -448,13 +445,13 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
             if (!wasNewFileCreated) {
                 throw new FileNotFoundException("Failed to copy document " + sourceDocumentId +
-                        ". Could not create new file.");
+                    ". Could not create new file.");
             }
 
-            if(!isDirectory) {
+            if (!isDirectory) {
                 // Copy the bytes into the new file
-                try (InputStream inStream = new FileInputStream(oldFile)) {
-                    try (OutputStream outStream = new FileOutputStream(newFile)) {
+                try (FileInputStream inStream = new FileInputStream(oldFile)) {
+                    try (FileOutputStream outStream = new FileOutputStream(newFile)) {
                         // Transfer bytes from in to out
                         byte[] buf = new byte[16384]; // disk: 8-64k
                         int len;
@@ -466,7 +463,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
             }
         } catch (IOException e) {
             throw new FileNotFoundException("Failed to copy document: " + sourceDocumentId +
-                    ". " + e.getMessage());
+                ". " + e.getMessage());
         }
         return getDocIdForFile(newFile);
     }
@@ -478,7 +475,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         try {
             // Copy document, insisting that the parent is correct
             String newDocumentId = copyDocument(sourceDocumentId, sourceParentDocumentId,
-                    targetParentDocumentId);
+                targetParentDocumentId);
             // Remove old document
             removeDocument(sourceDocumentId, sourceParentDocumentId);
             return newDocumentId;
@@ -530,7 +527,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         final int lastDot = name.lastIndexOf('.');
         if (lastDot >= 0) {
             final String extension = name.substring(lastDot + 1);
-            if(extension == "love") {
+            if (extension.equals("love")) {
                 return "application/x-love-game";
             }
             final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
@@ -575,10 +572,9 @@ public class LoveDocumentsProvider extends DocumentsProvider {
      * @param result the cursor to modify
      * @param docId  the document ID representing the desired file (may be null if given file)
      * @param file   the File object representing the desired file (may be null if given docID)
-     * @throws FileNotFoundException
      */
     private void includeFile(MatrixCursor result, String docId, File file)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         if (docId == null) {
             docId = getDocIdForFile(file);
         } else {
@@ -597,11 +593,8 @@ public class LoveDocumentsProvider extends DocumentsProvider {
             // FLAG_SUPPORTS_DELETE
             flags |= Document.FLAG_SUPPORTS_WRITE;
             flags |= Document.FLAG_SUPPORTS_DELETE;
+            flags |= Document.FLAG_SUPPORTS_RENAME;
 
-            // Add SDK specific flags if appropriate
-            if (SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                flags |= Document.FLAG_SUPPORTS_RENAME;
-            }
             if (SDK_INT >= Build.VERSION_CODES.N) {
                 flags |= Document.FLAG_SUPPORTS_REMOVE;
                 flags |= Document.FLAG_SUPPORTS_MOVE;
@@ -619,8 +612,8 @@ public class LoveDocumentsProvider extends DocumentsProvider {
 
         final MatrixCursor.RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
-        if(file.getAbsolutePath() == mBaseDir.getAbsolutePath()) {
-            row.add(Document.COLUMN_DISPLAY_NAME, getContext().getApplicationInfo().loadLabel(getContext().getPackageManager()).toString());
+        if (file.getAbsolutePath().equals(mBaseDir.getAbsolutePath())) {
+            row.add(Document.COLUMN_DISPLAY_NAME, Objects.requireNonNull(getContext()).getApplicationInfo().loadLabel(getContext().getPackageManager()).toString());
         } else {
             row.add(Document.COLUMN_DISPLAY_NAME, displayName);
         }
@@ -630,7 +623,7 @@ public class LoveDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_FLAGS, flags);
 
         // Add a custom icon
-        if(mimeType == "application/x-love-game") {
+        if (mimeType.equals("application/x-love-game")) {
             row.add(Document.COLUMN_ICON, R.drawable.love);
         } else {
             row.add(Document.COLUMN_ICON, null);
@@ -642,7 +635,6 @@ public class LoveDocumentsProvider extends DocumentsProvider {
      *
      * @param docId the document ID representing the desired file
      * @return a File represented by the given document ID
-     * @throws java.io.FileNotFoundException
      */
     private File getFileForDocId(String docId) throws FileNotFoundException {
         File target = mBaseDir;

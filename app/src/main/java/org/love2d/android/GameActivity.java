@@ -20,11 +20,6 @@
 
 package org.love2d.android;
 
-import androidx.annotation.Keep;
-import androidx.core.app.ActivityCompat;
-
-import org.libsdl.app.SDLActivity;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +37,11 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.WindowManager;
+
+import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
+
+import org.libsdl.app.SDLActivity;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -75,7 +75,7 @@ public class GameActivity extends SDLActivity {
 
     @Override
     protected String[] getLibraries() {
-        return new String[] {
+        return new String[]{
             "c++_shared",
             "SDL2",
             "oboe",
@@ -193,15 +193,12 @@ public class GameActivity extends SDLActivity {
             }
         }
 
-        if (inputStream != null) {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                // Ignored
-            }
+        try {
+            inputStream.close();
+        } catch (IOException ignored) {
         }
 
-        return inputStream != null;
+        return true;
     }
 
     @Keep
@@ -235,7 +232,7 @@ public class GameActivity extends SDLActivity {
         HashMap<String, Boolean> map = buildFileTree(getAssets(), "", new HashMap<>());
         ArrayList<String> result = new ArrayList<>();
 
-        for (Map.Entry<String, Boolean> data: map.entrySet()) {
+        for (Map.Entry<String, Boolean> data : map.entrySet()) {
             result.add((data.getValue() ? "d" : "f") + data.getKey());
         }
 
@@ -418,13 +415,12 @@ public class GameActivity extends SDLActivity {
             // Mark as file
             map.put(dir, true);
 
-            // This Object comparison is intentional.
-            if (strippedDir != dir) {
+            if (!strippedDir.equals(dir)) {
                 map.put(strippedDir, true);
             }
 
             if (list != null) {
-                for (String path: list) {
+                for (String path : list) {
                     buildFileTree(assetManager, dir + path + "/", map);
                 }
             }
@@ -440,6 +436,10 @@ public class GameActivity extends SDLActivity {
 
         try {
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
+            if (pfd == null) {
+                throw new RuntimeException("pfd is null");
+            }
+
             fd = pfd.dup().detachFd();
             pfd.close();
         } catch (Exception e) {
@@ -453,12 +453,14 @@ public class GameActivity extends SDLActivity {
         String scheme = game.getScheme();
         String path = game.getPath();
 
-        if (scheme.equals("content")) {
-            // Convert the URI to file descriptor.
-            args = new String[] {"/love2d://fd/" + convertToFileDescriptor(game)};
-        } else if (scheme.equals("file")) {
-            // Regular file, pass as-is.
-            args = new String[] {path};
+        if (scheme != null) {
+            if (scheme.equals("content")) {
+                // Convert the URI to file descriptor.
+                args = new String[]{"/love2d://fd/" + convertToFileDescriptor(game)};
+            } else if (scheme.equals("file")) {
+                // Regular file, pass as-is.
+                args = new String[]{path};
+            }
         }
     }
 }
