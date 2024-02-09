@@ -114,10 +114,12 @@ public class GameActivity extends SDLActivity {
         gamePath = "";
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
+        needToCopyGameInArchive = embed;
 
         if (!embed) {
-            handleIntent(getIntent());
-            setIntent(null);
+            Intent intent = getIntent();
+            handleIntent(intent);
+            intent.setData(null);
         }
 
         super.onCreate(savedInstanceState);
@@ -171,6 +173,11 @@ public class GameActivity extends SDLActivity {
                         filename = pathSegments[pathSegments.length - 1];
                     }
 
+                    // Sanitize filename to prevent PhysFS complaining later.
+                    filename = filename.replaceAll("[^a-zA-Z0-9_\\\\-\\\\.]", "_");
+
+
+
                     String destination_file = this.getCacheDir().getPath() + "/" + filename;
                     InputStream data = getContentResolver().openInputStream(game);
 
@@ -200,11 +207,6 @@ public class GameActivity extends SDLActivity {
                 alert_dialog.setCancelable(false);
                 alert_dialog.create().show();
             }
-        } else {
-            // No game specified via the intent data or embed build is used.
-            // Load game archive only when needed.
-            needToCopyGameInArchive = embed;
-            gamePath = "";
         }
 
         Log.d("GameActivity", "new gamePath: " + gamePath);
