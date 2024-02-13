@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2006-2024 LOVE Development Team
  *
  * This software is provided 'as-is', without any express or implied
