@@ -5,6 +5,9 @@ on: [push, pull_request]
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -16,29 +19,37 @@ jobs:
         distribution: adopt-hotspot
         java-version: 17
         cache: gradle
-    - name: Build
-      run: bash ./gradlew assembleNormalRecord assembleEmbedRelease bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
+    - name: Build Normal Flavor
+      run: bash ./gradlew assembleNormalRecord${{ matrix.build_type }}
+    - name: Build Release-specific Binaries
+      if: ${{ matrix.build_type == 'Release' }}
+      run: bash ./gradlew assembleEmbedRelease bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
     - name: Artifact (Normal debug APK)
+      if: ${{ matrix.build_type == 'Debug' }}
       uses: actions/upload-artifact@v3
       with:
         name: love-android-debug.apk
         path: app/build/outputs/apk/normalRecord/debug/app-normal-record-debug.apk
     - name: Artifact (Normal unsigned APK)
+      if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
         name: love-android.apk
         path: app/build/outputs/apk/normalRecord/release/app-normal-record-release-unsigned.apk
     - name: Artifact (Normal AAB w/o recording)
+      if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
         name: love-android-ps.aab
         path: app/build/outputs/bundle/normalNoRecordRelease/app-normal-noRecord-release.aab
     - name: Artifact (Embed AAB)
+      if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
         name: love-android-embed-record.aab
         path: app/build/outputs/bundle/embedRecordRelease/app-embed-record-release.aab
     - name: Artifact (Embed AAB w/o recording)
+      if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
         name: love-android-embed.aab
@@ -46,5 +57,5 @@ jobs:
     - name: Artifact (Debug symbols)
       uses: actions/upload-artifact@v3
       with:
-        name: love-android-unstripped-debugsyms
+        name: love-android-unstripped-debugsyms-${{ matrix.build_type }}
         path: love/build/intermediates/library_jni
