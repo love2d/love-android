@@ -62,4 +62,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: love-android-unstripped-debugsyms-${{ matrix.build_type }}
-        path: love/build/intermediates/library_jni
+        path: love/build/intermediates/cxx
