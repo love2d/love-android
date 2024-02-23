@@ -8,6 +8,8 @@ jobs:
     strategy:
       matrix:
         build_type: [Debug, Release]
+    env:
+      JAVA_OPTS: '-Xmx10G'
     steps:
     - name: Prepare Environment
       run: sudo apt-get update && curl -Lo kitware-archive.sh https://apt.kitware.com/kitware-archive.sh && sudo bash ./kitware-archive.sh
@@ -62,4 +64,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: love-android-unstripped-debugsyms-${{ matrix.build_type }}
-        path: love/build/intermediates/cxx
+        path: app/build/intermediates/cxx
