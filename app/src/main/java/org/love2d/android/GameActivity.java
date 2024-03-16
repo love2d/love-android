@@ -101,9 +101,9 @@ public class GameActivity extends SDLActivity {
         }
 
         Intent intent = getIntent();
-        // Prevent SDL sending filedropped event. Let us do that instead.
-        setIntent(null);
         handleIntent(intent, true);
+        // Prevent SDL sending filedropped event. Let us do that instead.
+        intent.setData(null);
 
         super.onCreate(savedInstanceState);
 
