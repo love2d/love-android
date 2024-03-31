@@ -81,6 +81,7 @@ public class GameActivity extends SDLActivity {
             "oboe",
             "openal",
             "luajit",
+            "liblove",
             "love",
         };
     }
