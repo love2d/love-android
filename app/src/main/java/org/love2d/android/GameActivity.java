@@ -216,12 +216,6 @@ public class GameActivity extends SDLActivity {
     }
 
     @Keep
-    public boolean openURLFromLOVE(String url) {
-        Log.d(TAG, "opening url = " + url);
-        return openURL(url) == 0;
-    }
-
-    @Keep
     public boolean hasBackgroundMusic() {
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         return audioManager.isMusicActive();
