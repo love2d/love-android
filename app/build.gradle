@@ -10,7 +10,7 @@ android {
         applicationId project.properties["app.application_id"]
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
-        minSdk 16
+        minSdk 18
         compileSdk 34
         targetSdk 34
         
