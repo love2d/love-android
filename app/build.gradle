@@ -13,12 +13,12 @@ android {
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
         minSdk 23
-        compileSdk 34
-        targetSdk 34
+        compileSdk 35
+        targetSdk 35
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared"
+                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
                 // https://issuetracker.google.com/issues/274493986
                 // Transitive shared library that's added through `add_dependencies` is not taken into
                 // account. This result in liboboe.so and libluajit.so not get included into the final
@@ -124,7 +124,7 @@ android {
     sourceSets {
         main {
             java {
-                srcDir 'src/main/cpp/megasource/libs/SDL2/android-project/app/src/main/java'
+                srcDir 'src/main/cpp/megasource/libs/SDL3/android-project/app/src/main/java'
                 srcDir 'src/main/java'
                 srcDir 'src/main/cpp/love/src/libraries/luahttps/src/android/java'
                 srcDirs += retrieveAll3pModules()

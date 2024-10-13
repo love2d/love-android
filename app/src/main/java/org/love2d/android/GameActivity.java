@@ -77,7 +77,7 @@ public class GameActivity extends SDLActivity {
     protected String[] getLibraries() {
         return new String[]{
             "c++_shared",
-            "SDL2",
+            "SDL3",
             "oboe",
             "openal",
             "luajit",
