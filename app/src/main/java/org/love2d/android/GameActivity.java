@@ -451,7 +451,7 @@ public class GameActivity extends SDLActivity {
         if (scheme != null) {
             if (scheme.equals("content")) {
                 // Convert the URI to file descriptor.
-                args = new String[]{"/love2d://fd/" + convertToFileDescriptor(game)};
+                args = new String[]{"love2d://fd/" + convertToFileDescriptor(game)};
             } else if (scheme.equals("file")) {
                 // Regular file, pass as-is.
                 args = new String[]{path};

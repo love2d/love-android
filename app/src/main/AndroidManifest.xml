@@ -23,6 +23,7 @@
     <uses-feature android:name="android.hardware.audio.low_latency" android:required="false" />
     <uses-feature android:name="android.hardware.audio.pro" android:required="false" />
 
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/love"
@@ -35,6 +36,8 @@
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:launchMode="singleInstance"
             android:screenOrientation="${ORIENTATION}">
+            <!-- Allow app activity re-created -->
+            <meta-data android:name="SDL_ENV.SDL_ANDROID_ALLOW_RECREATE_ACTIVITY" android:value="1" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
