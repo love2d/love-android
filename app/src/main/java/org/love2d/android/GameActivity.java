@@ -30,7 +30,6 @@ import android.graphics.Rect;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.DisplayMetrics;
@@ -324,11 +323,6 @@ public class GameActivity extends SDLActivity {
         }
     }
 
-    @Keep
-    public int convertToFileDescriptor(String uri) {
-        return convertToFileDescriptor(Uri.parse(uri));
-    }
-
     public int getAudioSMP() {
         int smp = 256;
         AudioManager a = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -354,12 +348,8 @@ public class GameActivity extends SDLActivity {
     }
 
     public boolean isNativeLibsExtracted() {
-        if (android.os.Build.VERSION.SDK_INT >= 23) {
-            ApplicationInfo appInfo = getApplicationInfo();
-            return (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
-        }
-
-        return false;
+        ApplicationInfo appInfo = getApplicationInfo();
+        return (appInfo.flags & ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0;
     }
 
     public void sendUriAsDroppedFile(Uri uri) {
@@ -426,32 +416,14 @@ public class GameActivity extends SDLActivity {
         return map;
     }
 
-    private int convertToFileDescriptor(Uri uri) {
-        int fd = -1;
-
-        try {
-            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
-            if (pfd == null) {
-                throw new RuntimeException("pfd is null");
-            }
-
-            fd = pfd.dup().detachFd();
-            pfd.close();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed attempt to convert " + uri.toString() + " to file descriptor", e);
-        }
-
-        return fd;
-    }
-
     private void processOpenGame(Uri game) {
         String scheme = game.getScheme();
         String path = game.getPath();
 
         if (scheme != null) {
             if (scheme.equals("content")) {
-                // Convert the URI to file descriptor.
-                args = new String[]{"love2d://fd/" + convertToFileDescriptor(game)};
+                // Pass content URI as-is.
+                args = new String[]{game.toString()};
             } else if (scheme.equals("file")) {
                 // Regular file, pass as-is.
                 args = new String[]{path};
