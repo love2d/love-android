@@ -1,8 +1,8 @@
 [submodule "library/src/main/cpp/love"]
 	path = library/src/main/cpp/love
-	url = https://github.com/love2d/love
+	url = https://github.com/love2d/love.git
 	branch = main
 [submodule "library/src/main/cpp/megasource"]
 	path = library/src/main/cpp/megasource
-	url = https://github.com/love2d/megasource
+	url = https://github.com/love2d/megasource.git
 	branch = main
