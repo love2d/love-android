@@ -156,26 +156,40 @@ android {
             ]
         }
     }
-    
+
 }
 
 
-
 afterEvaluate {
+    // --- START DEBUGGING ---
+    println "DEBUG: Executing afterEvaluate for :library"
+    if (project.components == null) {
+        println "DEBUG: project.components is NULL"
+    } else {
+        println "DEBUG: Available component names: ${project.components.names}"
+        project.components.each { component ->
+            println "DEBUG: Component Name: ${component.name}, Type: ${component.class.simpleName}"
+        }
+    }
+
+    if (project.components.findByName('normalRecordRelease') == null) {
+        println "DEBUG: Component 'normalRecordRelease' NOT FOUND in project.components"
+    } else {
+        println "DEBUG: Component 'normalRecordRelease' was FOUND!"
+    }
+    // --- END DEBUGGING ---
+
     publishing {
         publications {
             main(MavenPublication) {
-                // Ensure project.group and project.version are available here.
-                // You can get them from project properties or define defaults.
                 groupId = project.findProperty("GROUP")?.toString() ?: "org.love2d.android"
-                artifactId = project.name // 'library'
+                artifactId = project.name
                 version = project.findProperty("VERSION_NAME")?.toString() ?: project.android.defaultConfig.versionName ?: "0.1.0"
 
+                // This is your line causing the error
                 from components.normalRecordRelease
             }
         }
-        // No repositories {} block needed for publishToMavenLocal, but doesn't hurt.
-        // If you add one, mavenLocal() is the one for local publishing.
     }
 }
 
