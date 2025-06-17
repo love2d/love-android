@@ -19,22 +19,17 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
-                // https://issuetracker.google.com/issues/274493986
-                // Transitive shared library that's added through `add_dependencies` is not taken into
-                // account. This result in liboboe.so and libluajit.so not get included into the final
-                // APK. "love" target depends on LuaJIT, and OpenAL that depends on oboe::oboe. So,
-                // add "OpenAL" and "love" target.
                 targets "love_android", "OpenAL", "love"
             }
         }
 
         ndk {
-            //noinspection ChromeOsAbiSupport
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
             debugSymbolLevel 'full'
         }
 
         def getAppName = {
+            // ... (your getAppName function remains the same)
             def nameArray = project.properties["app.name_byte_array"]
             def name = project.properties["app.name"]
             if (name != null && nameArray != null) {
@@ -54,12 +49,13 @@ android {
         }
 
         manifestPlaceholders = [
-            NAME:getAppName(),
-            ORIENTATION:project.properties["app.orientation"],
+                NAME:getAppName(),
+                ORIENTATION:project.properties["app.orientation"],
         ]
     }
 
     def retrieveAll3pModules = { ->
+        // ... (your retrieveAll3pModules function remains the same)
         def modules = []
 
         fileTree("src/main/cpp/lua-modules/").visit { FileVisitDetails details ->
@@ -147,51 +143,39 @@ android {
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
-            // '+' notation apparently has been supported long time ago
-            // https://issuetracker.google.com/issues/110693527#comment22
-            // We require CMake 3.21 because r23 has important fixes
-            // that's only fixed if CMake 3.21 is used.
-            // https://github.com/android/ndk/issues/463
             version '3.21.0+'
         }
     }
     packagingOptions {
         jniLibs {
             excludes += [
-                'lib/armeabi-v7a/libOpenSLES.so',
-                'lib/arm64-v8a/libOpenSLES.so',
-                'lib/x86/libOpenSLES.so',
-                'lib/x86_64/libOpenSLES.so'
+                    'lib/armeabi-v7a/libOpenSLES.so',
+                    'lib/arm64-v8a/libOpenSLES.so',
+                    'lib/x86/libOpenSLES.so',
+                    'lib/x86_64/libOpenSLES.so'
             ]
         }
     }
-
-    // Optional: publish all variants
-    publishNonDefault true
-    defaultPublishConfig "normalRecordDebug"
-    project.group = project.findProperty("GROUP") ?: "org.love2d.android"
-    project.version = project.findProperty("VERSION_NAME") ?: "0.1.0"
+    
 }
+
 
 
 afterEvaluate {
     publishing {
         publications {
-            // This publication will be used by 'publishToMavenLocal'
-            // Name it something descriptive, or just 'release' if it's the main one
-            main(MavenPublication) { // Changed name to 'main' for clarity
-                groupId = project.group
+            main(MavenPublication) {
+                // Ensure project.group and project.version are available here.
+                // You can get them from project properties or define defaults.
+                groupId = project.findProperty("GROUP")?.toString() ?: "org.love2d.android"
                 artifactId = project.name // 'library'
-                version = project.version
+                version = project.findProperty("VERSION_NAME")?.toString() ?: project.android.defaultConfig.versionName ?: "0.1.0"
 
-                // This is the critical part: ensure this component matches a valid variant
-                // Your workflow builds 'normalRecordRelease' so this should exist.
                 from components.normalRecordRelease
-
-                // If you want to include sources (good for consumers)
-                // artifact(sourcesJar) // Assuming sourcesJar task is defined
             }
         }
+        // No repositories {} block needed for publishToMavenLocal, but doesn't hurt.
+        // If you add one, mavenLocal() is the one for local publishing.
     }
 }
 
@@ -207,7 +191,6 @@ dependencies {
     implementation 'com.google.oboe:oboe:1.9.3'
 }
 
-// We don't even use Kotlin. Why we have to care about it?
 configurations.implementation {
     exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
 }
