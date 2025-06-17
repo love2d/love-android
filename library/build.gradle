@@ -2,6 +2,7 @@ import java.nio.charset.StandardCharsets
 
 plugins {
     id 'com.android.library'
+    id 'maven-publish'
 }
 
 android {
@@ -168,8 +169,32 @@ android {
     // Optional: publish all variants
     publishNonDefault true
     defaultPublishConfig "normalRecordDebug"
-
+    project.group = project.findProperty("GROUP") ?: "org.love2d.android"
+    project.version = project.findProperty("VERSION_NAME") ?: "0.1.0"
 }
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            // This publication will be used by 'publishToMavenLocal'
+            // Name it something descriptive, or just 'release' if it's the main one
+            main(MavenPublication) { // Changed name to 'main' for clarity
+                groupId = project.group
+                artifactId = project.name // 'library'
+                version = project.version
+
+                // This is the critical part: ensure this component matches a valid variant
+                // Your workflow builds 'normalRecordRelease' so this should exist.
+                from components.normalRecordRelease
+
+                // If you want to include sources (good for consumers)
+                // artifact(sourcesJar) // Assuming sourcesJar task is defined
+            }
+        }
+    }
+}
+
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
