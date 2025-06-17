@@ -85,6 +85,11 @@ jobs:
         name: love-sample-app-debug.apk
         path: sample/build/outputs/apk/debug/sample-debug.apk
     
+    # Test JitPack build compatibility
+    - name: Test JitPack Build
+      if: ${{ matrix.build_type == 'Release' }}
+      run: bash ./gradlew :library:publishToMavenLocal
+    
     # Upload Debug symbols (for both library and sample app)
     - name: Artifact (Library Debug symbols)
       uses: actions/upload-artifact@v4
