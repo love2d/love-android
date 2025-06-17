@@ -60,8 +60,9 @@ jobs:
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
-        distribution: adopt-hotspot
-        java-version: 17
+        distribution: 'temurin' # adopt-hotspot is an alias for temurin
+        java-version: '17' # This will pick the latest 17.x
+        # Or be more specific like '17.0.10' if '17.0.15' is problematic
         cache: gradle
     
     # Build Library AAR variants
