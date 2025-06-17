@@ -21,7 +21,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
+    - name: Initialize Submodules
+      run: |
+        git submodule sync --recursive
+        git submodule update --init --force --recursive
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
