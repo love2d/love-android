@@ -160,6 +160,31 @@ android {
 }
 
 
+// Configure publishing using AGP's variant API
+// This is a more robust way to ensure components are ready for Android libraries
+android.libraryVariants.all { variant ->
+    // Check if this is the variant we want to publish to Maven Local for the JitPack test
+    if (variant.name == "normalRecordRelease") {
+        println "INFO: Configuring publication for variant: ${variant.name}"
+        publishing {
+            publications {
+                // Create a publication specifically for this variant.
+                // The name 'main' or 'release' or 'normalRecordReleasePublication' is fine.
+                normalRecordReleasePublication(MavenPublication) {
+                    groupId = project.group
+                    artifactId = project.name // 'library' or you can customize e.g., "${project.name}-normal-record"
+                    version = project.version
+
+                    from components."${variant.name}" // Use the variant name dynamically
+
+                    // Optional: Add sources if you have a task for it
+                    // artifact tasks.named("generate${variant.name.capitalize()}SourcesJar", Jar)
+                }
+            }
+        }
+    }
+}
+
 afterEvaluate {
     // --- START DEBUGGING ---
     println "DEBUG: Executing afterEvaluate for :library"
