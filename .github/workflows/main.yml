@@ -29,16 +29,34 @@ jobs:
         git status
         echo "=== Checking .gitmodules ==="
         cat .gitmodules || echo "No .gitmodules found"
-        echo "=== Syncing submodules ==="
+        echo "=== Checking git config for submodules ==="
+        git config --list | grep submodule || echo "No submodule config found"
+        echo "=== Checking .git/modules ==="
+        ls -la .git/modules/ || echo "No .git/modules found"
+        echo "=== Force clean submodule state and re-init ==="
+        git submodule deinit --all --force || true
+        rm -rf .git/modules/library || true
+        rm -rf .git/modules/app || true
+        echo "=== Re-sync and init submodules ==="
         git submodule sync --recursive
-        echo "=== Updating submodules ==="
         git submodule update --init --recursive --force
-        echo "=== Submodule status after init ==="
+        echo "=== Submodule status after clean init ==="
         git submodule status --recursive
-        echo "=== Checking target directories ==="
-        ls -la library/src/main/cpp/ || echo "cpp directory not found"
-        ls -la library/src/main/cpp/love/ || echo "love directory not found"  
-        ls -la library/src/main/cpp/megasource/ || echo "megasource directory not found"
+        echo "=== Manual clone fallback if needed ==="
+        if [ ! -d "library/src/main/cpp/love" ]; then
+          echo "Love submodule still missing, manual clone..."
+          mkdir -p library/src/main/cpp
+          git clone https://github.com/love2d/love.git library/src/main/cpp/love --depth 1
+        fi
+        if [ ! -d "library/src/main/cpp/megasource" ]; then
+          echo "Megasource submodule still missing, manual clone..."
+          mkdir -p library/src/main/cpp
+          git clone https://github.com/love2d/megasource.git library/src/main/cpp/megasource --depth 1
+        fi
+        echo "=== Final verification ==="
+        ls -la library/src/main/cpp/
+        ls -la library/src/main/cpp/love/ | head -5 || echo "love directory empty/missing"
+        ls -la library/src/main/cpp/megasource/ | head -5 || echo "megasource directory empty/missing"
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
