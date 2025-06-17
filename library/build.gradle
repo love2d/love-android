@@ -1,8 +1,8 @@
-import java.nio.charset.StandardCharsets
+import java.nio.charset.StandardCharsets // Keep if getAppName or other parts need it
 
 plugins {
     id 'com.android.library'
-    id 'maven-publish'
+    id 'maven-publish' // Keep: essential for maven publishing
 }
 
 android {
@@ -10,6 +10,8 @@ android {
     ndkVersion '27.1.12297006'
 
     defaultConfig {
+        // Use distinct properties for library versioning if they differ from app versions
+        // e.g., project.properties["lib.version_code"]
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
         minSdk 23
@@ -28,8 +30,11 @@ android {
             debugSymbolLevel 'full'
         }
 
+        // getAppName function and manifestPlaceholders:
+        // These seem more app-specific. If your library's manifest doesn't use these,
+        // they could be removed or adjusted for library context.
+        // For now, keeping them as they were in your file.
         def getAppName = {
-            // ... (your getAppName function remains the same)
             def nameArray = project.properties["app.name_byte_array"]
             def name = project.properties["app.name"]
             if (name != null && nameArray != null) {
@@ -54,51 +59,49 @@ android {
         ]
     }
 
+    // retrieveAll3pModules function: Keep as is if used by your sourceSets
     def retrieveAll3pModules = { ->
-        // ... (your retrieveAll3pModules function remains the same)
         def modules = []
-
         fileTree("src/main/cpp/lua-modules/").visit { FileVisitDetails details ->
             if (details.isDirectory()) {
                 if (file(details.file.path + "/Android.mk").exists() ||
                         file(details.file.path + "/CMakeLists.mk").exists()) {
                     def logger = project.getLogger()
                     logger.lifecycle("3rd-party module: " + details.file.path)
-
                     def javainfo = file(details.file.path + "/java.txt")
                     if (javainfo.exists()) {
                         def fstream = new FileInputStream(javainfo)
                         def infile = new BufferedReader(new InputStreamReader(fstream))
                         def javapath = infile.readLine().replace("\\", "/")
                         def mpath = null
-
                         if (javapath[0] != '/') {
                             mpath = details.file.path + "/" + javapath
                         } else {
                             mpath = details.file.path + javapath
                         }
-
                         modules << mpath
-
                         logger.lifecycle("Registered path " + mpath)
                         infile.close()
                     }
                 }
             }
         }
-
         return modules
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' // Usually not for libraries
         }
+        // debug {} // Can add if needed
     }
 
+    // buildFeatures - prefab was already there, keep it.
+    // viewBinding was duplicated, keep one.
     buildFeatures {
         prefab true
+        viewBinding true // If your library uses ViewBinding.
     }
 
     flavorDimensions = ['mode', 'recording']
@@ -126,7 +129,7 @@ android {
                 srcDirs += retrieveAll3pModules()
             }
         }
-        normal {
+        normal { // This was for 'normal' flavor, keep if it has specific sources
             java {
                 srcDir 'src/normal/java'
             }
@@ -137,9 +140,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    buildFeatures {
-        viewBinding true
-    }
+
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
@@ -157,66 +158,38 @@ android {
         }
     }
 
-}
-
-
-// Configure publishing using AGP's variant API
-// This is a more robust way to ensure components are ready for Android libraries
-android.libraryVariants.all { variant ->
-    // Check if this is the variant we want to publish to Maven Local for the JitPack test
-    if (variant.name == "normalRecordRelease") {
-        println "INFO: Configuring publication for variant: ${variant.name}"
-        publishing {
-            publications {
-                // Create a publication specifically for this variant.
-                // The name 'main' or 'release' or 'normalRecordReleasePublication' is fine.
-                normalRecordReleasePublication(MavenPublication) {
-                    groupId = project.group
-                    artifactId = project.name // 'library' or you can customize e.g., "${project.name}-normal-record"
-                    version = project.version
-
-                    from components."${variant.name}" // Use the variant name dynamically
-
-                    // Optional: Add sources if you have a task for it
-                    // artifact tasks.named("generate${variant.name.capitalize()}SourcesJar", Jar)
-                }
-            }
-        }
-    }
-}
-
-afterEvaluate {
-    // --- START DEBUGGING ---
-    println "DEBUG: Executing afterEvaluate for :library"
-    if (project.components == null) {
-        println "DEBUG: project.components is NULL"
-    } else {
-        println "DEBUG: Available component names: ${project.components.names}"
-        project.components.each { component ->
-            println "DEBUG: Component Name: ${component.name}, Type: ${component.class.simpleName}"
-        }
-    }
-
-    if (project.components.findByName('normalRecordRelease') == null) {
-        println "DEBUG: Component 'normalRecordRelease' NOT FOUND in project.components"
-    } else {
-        println "DEBUG: Component 'normalRecordRelease' was FOUND!"
-    }
-    // --- END DEBUGGING ---
-
+    // RECOMMENDED: Use AGP's built-in publishing DSL (for AGP 7.0+)
+    // This should be placed INSIDE the android {} block.
     publishing {
-        publications {
-            main(MavenPublication) {
-                groupId = project.findProperty("GROUP")?.toString() ?: "org.love2d.android"
-                artifactId = project.name
-                version = project.findProperty("VERSION_NAME")?.toString() ?: project.android.defaultConfig.versionName ?: "0.1.0"
+        singleVariant("normalRecordRelease") {
+            // This tells AGP to prepare the 'normalRecordRelease' variant for publishing.
+            // The maven-publish plugin will then pick this up.
 
-                // This is your line causing the error
-                from components.normalRecordRelease
-            }
+            // To include a sources JAR in the publication (highly recommended for libraries):
+            // withSourcesJar()
+
+            // To include a Javadoc JAR (optional):
+            // withJavadocJar()
         }
     }
-}
+
+} // End of android {} block
+
+
+// REMOVE the old 'android.libraryVariants.all { ... }' publishing block.
+// It conflicts with the android.publishing DSL and afterEvaluate.
+
+// REMOVE the 'afterEvaluate { ... }' publishing block.
+// The debug code was helpful but the publishing part conflicts.
+// The android.publishing DSL is preferred.
+
+
+// Define project.group and project.version for Maven publishing.
+// These will be used by the publication created by android.publishing and maven-publish.
+// Ensure these properties are defined (e.g., in gradle.properties or set sensible defaults).
+// Use properties specific to the library's Maven coordinates if they differ from the app.
+project.group = project.findProperty("LIB_GROUP_ID")?.toString() ?: "org.love2d.android.sdk" // Example: use a library-specific group
+project.version = project.findProperty("LIB_VERSION_NAME")?.toString() ?: android.defaultConfig.versionName // Use library version
 
 
 dependencies {
