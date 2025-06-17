@@ -21,11 +21,24 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        submodules: recursive
-    - name: Initialize Submodules
+        submodules: false  # We'll handle this manually for better control
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Initialize Submodules (Robust)
       run: |
+        echo "=== Initial Git Status ==="
+        git status
+        echo "=== Checking .gitmodules ==="
+        cat .gitmodules || echo "No .gitmodules found"
+        echo "=== Syncing submodules ==="
         git submodule sync --recursive
-        git submodule update --init --force --recursive
+        echo "=== Updating submodules ==="
+        git submodule update --init --recursive --force
+        echo "=== Submodule status after init ==="
+        git submodule status --recursive
+        echo "=== Checking target directories ==="
+        ls -la library/src/main/cpp/ || echo "cpp directory not found"
+        ls -la library/src/main/cpp/love/ || echo "love directory not found"  
+        ls -la library/src/main/cpp/megasource/ || echo "megasource directory not found"
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
