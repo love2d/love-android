@@ -1,0 +1,208 @@
+import java.nio.charset.StandardCharsets // Keep if getAppName or other parts need it
+
+plugins {
+    id 'com.android.library'
+    id 'maven-publish' // Keep: essential for maven publishing
+}
+
+android {
+    namespace "org.love2d.android"
+    ndkVersion '27.1.12297006'
+
+    defaultConfig {
+        // Use distinct properties for library versioning if they differ from app versions
+        // e.g., project.properties["lib.version_code"]
+        versionCode project.properties["app.version_code"].toInteger()
+        versionName project.properties["app.version_name"]
+        minSdk 23
+        compileSdk 35
+        targetSdk 35
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
+                targets "love_android", "OpenAL", "love"
+            }
+        }
+
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+            debugSymbolLevel 'full'
+        }
+
+        // getAppName function and manifestPlaceholders:
+        // These seem more app-specific. If your library's manifest doesn't use these,
+        // they could be removed or adjusted for library context.
+        // For now, keeping them as they were in your file.
+        def getAppName = {
+            def nameArray = project.properties["app.name_byte_array"]
+            def name = project.properties["app.name"]
+            if (name != null && nameArray != null) {
+                throw new Exception("Only define either `app.name` or `app.name_byte_array` in gradle.properties, but not both!")
+            }
+
+            if (name == null) {
+                def nameArraySplit = nameArray.split(",")
+                def nameBytes = new byte[nameArraySplit.length]
+                def count = 0
+                for (String s: nameArraySplit) {
+                    nameBytes[count++] = (byte) Integer.parseInt(s)
+                }
+                return new String(nameBytes, StandardCharsets.UTF_8)
+            }
+            return name
+        }
+
+        manifestPlaceholders = [
+                NAME:getAppName(),
+                ORIENTATION:project.properties["app.orientation"],
+        ]
+    }
+
+    // retrieveAll3pModules function: Keep as is if used by your sourceSets
+    def retrieveAll3pModules = { ->
+        def modules = []
+        fileTree("src/main/cpp/lua-modules/").visit { FileVisitDetails details ->
+            if (details.isDirectory()) {
+                if (file(details.file.path + "/Android.mk").exists() ||
+                        file(details.file.path + "/CMakeLists.mk").exists()) {
+                    def logger = project.getLogger()
+                    logger.lifecycle("3rd-party module: " + details.file.path)
+                    def javainfo = file(details.file.path + "/java.txt")
+                    if (javainfo.exists()) {
+                        def fstream = new FileInputStream(javainfo)
+                        def infile = new BufferedReader(new InputStreamReader(fstream))
+                        def javapath = infile.readLine().replace("\\", "/")
+                        def mpath = null
+                        if (javapath[0] != '/') {
+                            mpath = details.file.path + "/" + javapath
+                        } else {
+                            mpath = details.file.path + javapath
+                        }
+                        modules << mpath
+                        logger.lifecycle("Registered path " + mpath)
+                        infile.close()
+                    }
+                }
+            }
+        }
+        return modules
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' // Usually not for libraries
+        }
+        // debug {} // Can add if needed
+    }
+
+    // buildFeatures - prefab was already there, keep it.
+    // viewBinding was duplicated, keep one.
+    buildFeatures {
+        prefab true
+        viewBinding true // If your library uses ViewBinding.
+    }
+
+    flavorDimensions = ['mode', 'recording']
+    productFlavors {
+        normal {
+            dimension 'mode'
+        }
+        embed {
+            dimension 'mode'
+        }
+        record {
+            dimension 'recording'
+        }
+        noRecord {
+            dimension 'recording'
+        }
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/cpp/megasource/libs/SDL3/android-project/app/src/main/java'
+                srcDir 'src/main/java'
+                srcDir 'src/main/cpp/love/src/libraries/luahttps/src/android/java'
+                srcDirs += retrieveAll3pModules()
+            }
+        }
+        normal { // This was for 'normal' flavor, keep if it has specific sources
+            java {
+                srcDir 'src/normal/java'
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.21.0+'
+        }
+    }
+    packagingOptions {
+        jniLibs {
+            excludes += [
+                    'lib/armeabi-v7a/libOpenSLES.so',
+                    'lib/arm64-v8a/libOpenSLES.so',
+                    'lib/x86/libOpenSLES.so',
+                    'lib/x86_64/libOpenSLES.so'
+            ]
+        }
+    }
+
+    // RECOMMENDED: Use AGP's built-in publishing DSL (for AGP 7.0+)
+    // This should be placed INSIDE the android {} block.
+    publishing {
+        singleVariant("normalRecordRelease") {
+            // This tells AGP to prepare the 'normalRecordRelease' variant for publishing.
+            // The maven-publish plugin will then pick this up.
+
+            // To include a sources JAR in the publication (highly recommended for libraries):
+            // withSourcesJar()
+
+            // To include a Javadoc JAR (optional):
+            // withJavadocJar()
+        }
+    }
+
+} // End of android {} block
+
+
+// REMOVE the old 'android.libraryVariants.all { ... }' publishing block.
+// It conflicts with the android.publishing DSL and afterEvaluate.
+
+// REMOVE the 'afterEvaluate { ... }' publishing block.
+// The debug code was helpful but the publishing part conflicts.
+// The android.publishing DSL is preferred.
+
+
+// Define project.group and project.version for Maven publishing.
+// These will be used by the publication created by android.publishing and maven-publish.
+// Ensure these properties are defined (e.g., in gradle.properties or set sensible defaults).
+// Use properties specific to the library's Maven coordinates if they differ from the app.
+project.group = project.findProperty("LIB_GROUP_ID")?.toString() ?: "org.love2d.android.sdk" // Example: use a library-specific group
+project.version = project.findProperty("LIB_VERSION_NAME")?.toString() ?: android.defaultConfig.versionName // Use library version
+
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    implementation 'androidx.navigation:navigation-fragment:2.8.5'
+    implementation 'androidx.navigation:navigation-ui:2.8.5'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'com.google.oboe:oboe:1.9.3'
+}
+
+configurations.implementation {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}

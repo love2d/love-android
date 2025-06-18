@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/optionItem"
+        android:title="@string/open_love_file" />
+    <item
+        android:id="@+id/optionItem2"
+        android:title="@string/launch_nogame" />
+    <item
+        android:id="@+id/optionItem3"
+        android:title="@string/game_folder" />
+    <item
+        android:id="@+id/optionItem4"
+        android:title="@string/about" />
+</menu>

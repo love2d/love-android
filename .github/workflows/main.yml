@@ -1,6 +1,9 @@
 name: build
 
-on: [push, pull_request]
+on: 
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -18,50 +21,121 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: false  # We'll handle this manually for better control
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Initialize Submodules (Robust)
+      run: |
+        echo "=== Initial Git Status ==="
+        git status
+        echo "=== Checking .gitmodules ==="
+        cat .gitmodules || echo "No .gitmodules found"
+        echo "=== Checking git config for submodules ==="
+        git config --list | grep submodule || echo "No submodule config found"
+        echo "=== Checking .git/modules ==="
+        ls -la .git/modules/ || echo "No .git/modules found"
+        echo "=== Force clean submodule state and re-init ==="
+        git submodule deinit --all --force || true
+        rm -rf .git/modules/library || true
+        rm -rf .git/modules/app || true
+        echo "=== Re-sync and init submodules ==="
+        git submodule sync --recursive
+        git submodule update --init --recursive --force
+        echo "=== Submodule status after clean init ==="
+        git submodule status --recursive
+        echo "=== Manual clone fallback if needed ==="
+        if [ ! -d "library/src/main/cpp/love" ]; then
+          echo "Love submodule still missing, manual clone..."
+          mkdir -p library/src/main/cpp
+          git clone https://github.com/love2d/love.git library/src/main/cpp/love --depth 1
+        fi
+        if [ ! -d "library/src/main/cpp/megasource" ]; then
+          echo "Megasource submodule still missing, manual clone..."
+          mkdir -p library/src/main/cpp
+          git clone https://github.com/love2d/megasource.git library/src/main/cpp/megasource --depth 1
+        fi
+        echo "=== Final verification ==="
+        ls -la library/src/main/cpp/
+        ls -la library/src/main/cpp/love/ | head -5 || echo "love directory empty/missing"
+        ls -la library/src/main/cpp/megasource/ | head -5 || echo "megasource directory empty/missing"
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
-        distribution: adopt-hotspot
-        java-version: 17
+        distribution: 'temurin' # adopt-hotspot is an alias for temurin
+        java-version: '17' # This will pick the latest 17.x
+        # Or be more specific like '17.0.10' if '17.0.15' is problematic
         cache: gradle
-    - name: Build Normal Flavor
-      run: bash ./gradlew assembleNormalRecord${{ matrix.build_type }}
-    - name: Build Release-specific Binaries
+    
+    # Build Library AAR variants
+    - name: Build Library AAR (Normal Record ${{ matrix.build_type }})
+      run: bash ./gradlew :library:assembleNormalRecord${{ matrix.build_type }}
+    - name: Build Library AAR Release variants
       if: ${{ matrix.build_type == 'Release' }}
-      run: bash ./gradlew bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
-    - name: Artifact (Normal debug APK)
+      run: bash ./gradlew :library:assembleNormalNoRecordRelease :library:assembleEmbedRecordRelease :library:assembleEmbedNoRecordRelease
+    
+    # Build Sample App Debug APK (only for Debug builds)
+    - name: Build Sample App Debug APK
+      if: ${{ matrix.build_type == 'Debug' }}
+      run: bash ./gradlew :sample:assembleDebug
+    
+    # Upload Library AAR artifacts
+    - name: Artifact (Library AAR Normal Record Debug)
       if: ${{ matrix.build_type == 'Debug' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android-debug.apk
-        path: app/build/outputs/apk/normalRecord/debug/app-normal-record-debug.apk
-    - name: Artifact (Normal unsigned APK)
+        name: love-library-normal-record-debug.aar
+        path: library/build/outputs/aar/library-normal-record-debug.aar
+    
+    - name: Artifact (Library AAR Normal Record Release)
       if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android.apk
-        path: app/build/outputs/apk/normalRecord/release/app-normal-record-release-unsigned.apk
-    - name: Artifact (Normal AAB w/o recording)
+        name: love-library-normal-record-release.aar
+        path: library/build/outputs/aar/library-normal-record-release.aar
+    
+    - name: Artifact (Library AAR Normal No Record Release)
       if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android-ps.aab
-        path: app/build/outputs/bundle/normalNoRecordRelease/app-normal-noRecord-release.aab
-    - name: Artifact (Embed AAB)
+        name: love-library-normal-norecord-release.aar
+        path: library/build/outputs/aar/library-normal-noRecord-release.aar
+    
+    - name: Artifact (Library AAR Embed Record Release)
       if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android-embed-record.aab
-        path: app/build/outputs/bundle/embedRecordRelease/app-embed-record-release.aab
-    - name: Artifact (Embed AAB w/o recording)
+        name: love-library-embed-record-release.aar
+        path: library/build/outputs/aar/library-embed-record-release.aar
+    
+    - name: Artifact (Library AAR Embed No Record Release)
       if: ${{ matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android-embed.aab
-        path: app/build/outputs/bundle/embedNoRecordRelease/app-embed-noRecord-release.aab
-    - name: Artifact (Debug symbols)
+        name: love-library-embed-norecord-release.aar
+        path: library/build/outputs/aar/library-embed-noRecord-release.aar
+    
+    # Upload Sample App APK
+    - name: Artifact (Sample App Debug APK)
+      if: ${{ matrix.build_type == 'Debug' }}
       uses: actions/upload-artifact@v4
       with:
-        name: love-android-unstripped-debugsyms-${{ matrix.build_type }}
-        path: app/build/intermediates/cxx
+        name: love-sample-app-debug.apk
+        path: sample/build/outputs/apk/debug/sample-debug.apk
+    
+    # Test JitPack build compatibility
+    - name: Test JitPack Build
+      if: ${{ matrix.build_type == 'Release' }}
+      run: bash ./gradlew :library:publishToMavenLocal
+    
+    # Upload Debug symbols (for both library and sample app)
+    - name: Artifact (Library Debug symbols)
+      uses: actions/upload-artifact@v4
+      with:
+        name: love-library-unstripped-debugsyms-${{ matrix.build_type }}
+        path: library/build/intermediates/cxx
+    
+    - name: Artifact (Sample App Debug symbols)
+      if: ${{ matrix.build_type == 'Debug' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: love-sample-app-unstripped-debugsyms-debug
+        path: sample/build/intermediates/cxx

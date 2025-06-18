@@ -1,3 +1,11 @@
+About fork:
+---------
+This is a fork of the original project, it moves the app into a library and publishes it into an aar for easy app integration.
+
+https://jitpack.io/#eltonkola/love-android/Tag
+
+if there is interest we can clean it and try to merge into the main project 
+
 Android Port of LÖVE, an awesome 2D game engine for Lua (http://love2d.org)  
 Copyright (c) 2006-2024 LOVE Development Team
 

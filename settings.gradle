@@ -7,4 +7,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "LÖVE for Android"
-include ':app'
+include ':library'
+include ':sample'
