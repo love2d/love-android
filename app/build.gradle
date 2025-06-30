@@ -18,12 +18,12 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
+                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1", "-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON"
                 // https://issuetracker.google.com/issues/274493986
                 // Transitive shared library that's added through `add_dependencies` is not taken into
                 // account. This result in liboboe.so and libluajit.so not get included into the final
-                // APK. "love" target depends on LuaJIT, and OpenAL that depends on oboe::oboe. So,
-                // add "OpenAL" and "love" target.
+                // APK. "love" target depends on LuaJIT, and "OpenAL" target depends on oboe::oboe
+                // (which provides liboboe.so). So, add "OpenAL" and "love" target.
                 targets "love_android", "OpenAL", "love"
             }
         }
