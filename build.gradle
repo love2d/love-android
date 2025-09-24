@@ -1,24 +1,19 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
-allprojects {
+buildscript {
+    ext.kt_version = '1.9.22'
+    ext.agp_version = '8.1.1'
     repositories {
         google()
         mavenCentral()
-    }
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:deprecation"
+        maven { url 'https://developer.huawei.com/repo/' }
+        maven { url 'https://jitpack.io' }
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
         }
     }
-}
-
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.1'
+        classpath "com.android.tools.build:gradle:$agp_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_version"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -29,7 +24,8 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
-repositories {
-    google()
-    mavenCentral()
+gradle.projectsEvaluated {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:deprecation"
+    }
 }

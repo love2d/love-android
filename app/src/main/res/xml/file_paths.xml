@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 允许访问 app 外部文件目录 -->
+    <external-files-path name="external_files" path="." />
+    <!-- 支持 cache 目录 -->
+    <cache-path name="cache" path="." />
+    <!-- 如果你也用 files 目录，建议也加上 -->
+    <files-path name="files" path="." />
+</paths>

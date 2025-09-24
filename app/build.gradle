@@ -1,6 +1,16 @@
 import java.nio.charset.StandardCharsets
 
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+}
+
+//读取keystore.properties获取配置信息
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 android {
     namespace "org.love2d.android.executable"
@@ -10,7 +20,7 @@ android {
         applicationId project.properties["app.application_id"]
         versionCode project.properties["app.version_code"].toInteger()
         versionName project.properties["app.version_name"]
-        minSdk 18
+        minSdk 21
         compileSdk 34
         targetSdk 34
         
@@ -38,12 +48,38 @@ android {
             ORIENTATION:project.properties["app.orientation"],
         ]
     }
-    buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    //签名配置
+    signingConfigs {
+        config {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
         }
     }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            debuggable false
+            signingConfig signingConfigs.config
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            debuggable true
+            minifyEnabled false
+            signingConfig signingConfigs.config
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        prefab true
+        viewBinding true
+        compose true
+    }
+
     flavorDimensions = ['mode', 'recording']
     productFlavors {
         normal {
@@ -59,6 +95,15 @@ android {
             dimension 'recording'
         }
     }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.9"
+    }
+
     lint {
         abortOnError false
     }
@@ -67,6 +112,12 @@ android {
 dependencies {
     api 'androidx.multidex:multidex:2.0.1'
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.6.1'
     api project(':love')
+
+    //依赖roomlib
+    // 👇 这里也必须加 Room 的依赖
+    def room_version = "2.6.1" // 或你使用的版本
+    api "androidx.room:room-runtime:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
+    api "androidx.room:room-ktx:$room_version"
 }

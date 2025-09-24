@@ -1,24 +1,52 @@
 /**
  * Copyright (c) 2006-2024 LOVE Development Team
- *
+ * <p>
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
  * arising from the use of this software.
- *
+ * <p>
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- *
+ * <p>
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ * claim that you wrote the original software. If you use this software
+ * in a product, an acknowledgment in the product documentation would be
+ * appreciated but is not required.
  * 2. Altered source versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.
+ * misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
  **/
 
 package org.love2d.android;
+
+import android.Manifest;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Vibrator;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.DisplayCutout;
+import android.view.WindowManager;
+
+import androidx.annotation.Keep;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.jeremyliao.liveeventbus.LiveEventBus;
 
 import org.libsdl.app.SDLActivity;
 
@@ -33,27 +61,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import android.Manifest;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.res.AssetManager;
-import android.media.AudioManager;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Environment;
-import android.os.Vibrator;
-import android.util.Log;
-import android.util.DisplayMetrics;
-import android.view.*;
-import android.content.pm.PackageManager;
-
-import androidx.annotation.Keep;
-import androidx.core.app.ActivityCompat;
-
 public class GameActivity extends SDLActivity {
+    private static final String TAG = "GameActivity";
     private static DisplayMetrics metrics = null;
     private static String gamePath = "";
     private static Vibrator vibrator = null;
@@ -73,13 +82,16 @@ public class GameActivity extends SDLActivity {
 
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
 
+    // 1. 在类中声明你的 JNI 函数
+    public static native void nativeInitializeLovely(String modDir);
+
     @Override
     protected String[] getLibraries() {
-        return new String[] {
-            "c++_shared",
-            "mpg123",
-            "openal",
-            "love",
+        return new String[]{
+                "c++_shared",
+                "mpg123",
+                "openal",
+                "love",
         };
     }
 
@@ -99,6 +111,13 @@ public class GameActivity extends SDLActivity {
         }
     }
 
+    // 关键步骤1：定义与GameStartUtil中完全相同的Action字符串
+    public static final String ACTION_REQUEST_SHUTDOWN = "org.love2d.android.ACTION_REQUEST_SHUTDOWN";
+    public static final String ACTION_SHUTDOWN_CONFIRMED = "org.love2d.android.ACTION_SHUTDOWN_CONFIRMED";
+
+    // 用于监听关闭命令的接收器
+    private BroadcastReceiver shutdownCommandReceiver;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("GameActivity", "started");
@@ -115,9 +134,10 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
         needToCopyGameInArchive = embed;
-
+        String modPath = "";
         if (!embed) {
             Intent intent = getIntent();
+            modPath = intent.getStringExtra("modPath");
             handleIntent(intent);
             intent.setData(null);
         }
@@ -128,10 +148,43 @@ public class GameActivity extends SDLActivity {
         // Set low-latency audio values
         nativeSetDefaultStreamValues(getAudioFreq(), getAudioSMP());
 
+        if (modPath != null && !modPath.isEmpty()) {
+            nativeInitializeLovely(modPath);
+        }
+
+        // 关键步骤2：初始化并注册广播接收器
+        shutdownCommandReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent != null && ACTION_REQUEST_SHUTDOWN.equals(intent.getAction())) {
+                    Log.d(TAG, "收到关闭命令，正在准备优雅退出...");
+                    // 关键步骤3：先发送“我将关闭”的确认回信
+                    Log.d(TAG, "✅ 发送关闭确认回信...");
+                    sendBroadcast(new Intent(ACTION_SHUTDOWN_CONFIRMED));
+                    finish();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        Log.d(TAG, "强制退出进程以确保.so库被卸载。");
+                        System.exit(0);
+                    }, 100);
+                }
+            }
+        };
+
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
             shortEdgesMode = false;
         }
+
+        // 关键修改在这里：
+        // 旧代码: registerReceiver(shutdownCommandReceiver, new IntentFilter(ACTION_REQUEST_SHUTDOWN));
+        // 新代码如下：
+        IntentFilter filter = new IntentFilter(ACTION_REQUEST_SHUTDOWN);
+        ContextCompat.registerReceiver(
+                this, // Context
+                shutdownCommandReceiver, // 你的接收器
+                filter, // 你的过滤器
+                ContextCompat.RECEIVER_NOT_EXPORTED // 明确指定为“不导出”
+        );
     }
 
     @Override
@@ -261,6 +314,8 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Cancelling vibration");
             vibrator.cancel();
         }
+        LiveEventBus.get("GAME_ACTIVITY_DESTROY", boolean.class).postAcrossProcess(true);
+        unregisterReceiver(shutdownCommandReceiver);
         super.onDestroy();
     }
 
@@ -282,8 +337,8 @@ public class GameActivity extends SDLActivity {
     public void setImmersiveMode(boolean immersive_mode) {
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             getWindow().getAttributes().layoutInDisplayCutoutMode = immersive_mode ?
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES :
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES :
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
             shortEdgesMode = immersive_mode;
         }
 
@@ -391,16 +446,16 @@ public class GameActivity extends SDLActivity {
             @Override
             public void run() {
                 AlertDialog dialog = new AlertDialog.Builder(mSingleton)
-                    .setTitle("Audio Recording Permission Missing")
-                    .setMessage("It appears that this game uses mic capabilities. The game may not work correctly without mic permission!")
-                    .setNeutralButton("Continue", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface di, int id) {
-                            synchronized (recordAudioRequestDummy) {
-                                recordAudioRequestDummy.notify();
+                        .setTitle("Audio Recording Permission Missing")
+                        .setMessage("It appears that this game uses mic capabilities. The game may not work correctly without mic permission!")
+                        .setNeutralButton("Continue", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface di, int id) {
+                                synchronized (recordAudioRequestDummy) {
+                                    recordAudioRequestDummy.notify();
+                                }
                             }
-                        }
-                    })
-                    .create();
+                        })
+                        .create();
                 dialog.show();
             }
         });
@@ -416,10 +471,10 @@ public class GameActivity extends SDLActivity {
 
     public void showExternalStoragePermissionMissingDialog() {
         AlertDialog dialog = new AlertDialog.Builder(mSingleton)
-            .setTitle("Storage Permission Missing")
-            .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.")
-            .setNeutralButton("Continue", null)
-            .create();
+                .setTitle("Storage Permission Missing")
+                .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.")
+                .setNeutralButton("Continue", null)
+                .create();
         dialog.show();
     }
 
@@ -537,7 +592,7 @@ public class GameActivity extends SDLActivity {
         HashMap<String, Boolean> map = buildFileTree(getAssets(), "", new HashMap<String, Boolean>());
         ArrayList<String> result = new ArrayList<String>();
 
-        for (Map.Entry<String, Boolean> data: map.entrySet()) {
+        for (Map.Entry<String, Boolean> data : map.entrySet()) {
             result.add((data.getValue() ? "d" : "f") + data.getKey());
         }
 
@@ -575,7 +630,7 @@ public class GameActivity extends SDLActivity {
             }
 
             if (list != null) {
-                for (String path: list) {
+                for (String path : list) {
                     buildFileTree(assetManager, dir + path + "/", map);
                 }
             }
@@ -632,7 +687,7 @@ public class GameActivity extends SDLActivity {
             String abi;
 
             if (android.os.Build.VERSION.SDK_INT >= 21) {
-                 abi = android.os.Build.SUPPORTED_ABIS[0];
+                abi = android.os.Build.SUPPORTED_ABIS[0];
             } else {
                 // This codepath should NEVER be taken as if isNativeLibsExtracted()
                 // returns false, it's 100% safe to assume we're on API level 23 or later.

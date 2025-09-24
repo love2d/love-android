@@ -22,6 +22,8 @@
 #include "lj_lex.h"
 #include "lj_bcdump.h"
 #include "lj_parse.h"
+#include "lj_log.h"
+#include "lovely_ffi.h" // <--- 1. 在这里引入我们的头文件
 
 /* -- Load Lua source code and bytecode ----------------------------------- */
 
@@ -134,20 +136,47 @@ static const char *reader_string(lua_State *L, void *ud, size_t *size)
   return ctx->str;
 }
 
-LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buf, size_t size,
-				const char *name, const char *mode)
+// v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+//            *** 这是我们需要修改的核心区域 ***
+// v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+
+// 2. 将原始的 luaL_loadbufferx 函数重命名为 original_luaL_loadbufferx
+LUALIB_API int original_luaL_loadbufferx(lua_State *L, const char *buf, size_t size,
+        const char *name, const char *mode)
 {
-  StringReaderCtx ctx;
-  ctx.str = buf;
-  ctx.size = size;
-  return lua_loadx(L, reader_string, &ctx, name, mode);
+    StringReaderCtx ctx;
+    ctx.str = buf;
+    ctx.size = size;
+    LJ_LOGI("[LuaJIT original_luaL_loadbufferx] chunk = %s", name ? name : "?");
+    return lua_loadx(L, reader_string, &ctx, name, mode);
 }
 
-LUALIB_API int luaL_loadbuffer(lua_State *L, const char *buf, size_t size,
-			       const char *name)
+// 3. 创建一个新的、使用原名的包装函数，它将调用我们的 Rust 代码
+LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buf, size_t size,
+        const char *name, const char *mode)
 {
-  return luaL_loadbufferx(L, buf, size, name, NULL);
+    // 这个函数现在是所有缓冲区加载的“看门人”
+    // 它直接调用我们在 Rust 中定义的 FFI 入口点
+    return (int)lovely_entrypoint_for_luajit(L,
+            (const uint8_t*)buf,
+            size,
+            (const uint8_t*)name,
+            (const uint8_t*)mode);
 }
+
+// 4. 修改 luaL_loadbuffer，确保它也经过我们的新流程
+LUALIB_API int luaL_loadbuffer(lua_State *L, const char *buf, size_t size,
+        const char *name)
+{
+    LJ_LOGI("[LuaJIT luaL_loadbuffer wrapper] chunk = %s", name ? name : "?");
+    // 让它调用我们新的、带有 lovely 功能的 luaL_loadbufferx
+    return luaL_loadbufferx(L, buf, size, name, NULL);
+}
+
+// ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
+//            *** 修改区域结束 ***
+// ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
+
 
 LUALIB_API int luaL_loadstring(lua_State *L, const char *s)
 {

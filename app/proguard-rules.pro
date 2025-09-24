@@ -16,5 +16,10 @@
 #   public *;
 #}
 
--keep class org.love2d.android.GameActivity { *; }
+-keep class org.love2d.android.entry.GameActivity { *; }
 -keep class org.libsdl.app.** { *; }
+
+-dontwarn com.jeremyliao.liveeventbus.**
+-keep class com.jeremyliao.liveeventbus.** { *; }
+-keep class android.arch.lifecycle.** { *; }
+-keep class android.arch.core.** { *; }
