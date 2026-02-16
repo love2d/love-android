@@ -18,7 +18,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1", "-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON"
+                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5", "-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON", "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
                 // https://issuetracker.google.com/issues/274493986
                 // Transitive shared library that's added through `add_dependencies` is not taken into
                 // account. This result in liboboe.so and libluajit.so not get included into the final
