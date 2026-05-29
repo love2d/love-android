@@ -1,6 +1,6 @@
 [submodule "app/src/main/cpp/love"]
 	path = app/src/main/cpp/love
-	url = https://github.com/love2d/love
+	url = https://github.com/cabatajoel/love
 	branch = main
 [submodule "app/src/main/cpp/megasource"]
 	path = app/src/main/cpp/megasource
