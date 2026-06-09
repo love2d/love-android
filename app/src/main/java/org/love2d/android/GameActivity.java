@@ -92,7 +92,8 @@ public class GameActivity extends SDLActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d(TAG, "started");
+        com.tapresearch.love.TapResearchLoveBridge.setActivity(this);
+        Log.d(TAG, "onCreate");
         isFused = hasEmbeddedGame();
         args = new String[0];
 
