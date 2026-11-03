@@ -7,13 +7,13 @@ plugins {
 android {
     namespace "org.love2d.android"
     ndkVersion '27.3.13750724'
+    compileSdk 35
 
     defaultConfig {
-        applicationId project.properties["app.application_id"]
-        versionCode project.properties["app.version_code"].toInteger()
-        versionName project.properties["app.version_name"]
+        applicationId providers.gradleProperty("app.application_id").getOrElse("org.love2d.android")
+        versionCode providers.gradleProperty("app.version_code").get().toInteger()
+        versionName providers.gradleProperty("app.version_name").getOrElse("12.0")
         minSdk 23
-        compileSdk = 35
         targetSdk 35
 
         externalNativeBuild {
@@ -35,8 +35,12 @@ android {
         }
 
         def getAppName = {
-            def nameArray = project.properties["app.name_byte_array"]
-            def name = project.properties["app.name"]
+            def nameArray = providers.gradleProperty("app.name_byte_array").getOrNull()
+            def name = providers.gradleProperty("app.name").getOrNull()
+            if (nameArray != null) {
+                logger.warn("'app.name_byte_array' is deprecated, consider using \\uXXXX escape sequences in 'app.name' instead")
+            }
+
             if (name != null && nameArray != null) {
                 throw new Exception("Only define either `app.name` or `app.name_byte_array` in gradle.properties, but not both!")
             }
@@ -55,7 +59,7 @@ android {
 
         manifestPlaceholders = [
             NAME:getAppName(),
-            ORIENTATION:project.properties["app.orientation"],
+            ORIENTATION:providers.gradleProperty("app.orientation").getOrElse("landscape")
         ]
     }
 
